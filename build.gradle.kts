@@ -28,6 +28,14 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter-data-jdbc")
     implementation("org.springframework.boot:spring-boot-starter-jdbc")
     implementation("org.springframework.boot:spring-boot-starter-web")
+    implementation("org.springframework.boot:spring-boot-starter-batch")
+
+    // .dotenv
+    implementation("io.github.cdimascio:dotenv-java:3.1.0")
+
+    implementation(platform("org.eclipse.rdf4j:rdf4j-bom:+"))
+    implementation("org.eclipse.rdf4j:rdf4j-storage")
+
     runtimeOnly("com.h2database:h2:2.3.+")
     compileOnly("org.projectlombok:lombok")
     runtimeOnly("org.postgresql:postgresql")
