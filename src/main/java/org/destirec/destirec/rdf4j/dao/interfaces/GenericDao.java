@@ -1,7 +1,9 @@
 package org.destirec.destirec.rdf4j.dao.interfaces;
 
+import lombok.Getter;
 import org.eclipse.rdf4j.model.IRI;
 import org.eclipse.rdf4j.model.impl.SimpleValueFactory;
+import org.eclipse.rdf4j.query.BindingSet;
 import org.eclipse.rdf4j.sparqlbuilder.core.Variable;
 import org.eclipse.rdf4j.sparqlbuilder.core.query.Queries;
 import org.eclipse.rdf4j.sparqlbuilder.graphpattern.TriplePattern;
@@ -9,23 +11,29 @@ import org.eclipse.rdf4j.spring.dao.SimpleRDF4JCRUDDao;
 import org.eclipse.rdf4j.spring.dao.support.bindingsBuilder.MutableBindings;
 import org.eclipse.rdf4j.spring.dao.support.sparql.NamedSparqlSupplier;
 import org.eclipse.rdf4j.spring.support.RDF4JTemplate;
+import org.eclipse.rdf4j.spring.util.QueryResultUtils;
 
-import java.util.List;
+import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Collectors;
 
+@Getter
 public abstract class GenericDao<FieldEnum extends Enum<FieldEnum> & ModelFields.Field, DTO extends Dto> extends SimpleRDF4JCRUDDao<DTO, IRI> {
-    private final ModelFields<FieldEnum> modelFields;
-    private final Predicate migration;
+    protected final ModelFields<FieldEnum> modelFields;
+    protected final Predicate migration;
+    protected final DtoCreator<DTO, FieldEnum> dtoCreator;
 
 
     public GenericDao(
         RDF4JTemplate rdf4JTemplate,
         ModelFields<FieldEnum> modelFields,
-        Predicate migration
+        Predicate migration,
+        DtoCreator<DTO, FieldEnum> dtoCreator
     ) {
         super(rdf4JTemplate);
         this.modelFields = modelFields;
         this.migration = migration;
+        this.dtoCreator = dtoCreator;
     }
 
     @Override
@@ -39,13 +47,11 @@ public abstract class GenericDao<FieldEnum extends Enum<FieldEnum> & ModelFields
     }
 
     @Override
-    protected void populateBindingsForUpdate(MutableBindings bindingsBuilder, DTO userDto) {
-        List<String> userDtoList = userDto.getList();
-        AtomicInteger index = new AtomicInteger();
+    protected void populateBindingsForUpdate(MutableBindings bindingsBuilder, DTO dto) {
+        Map<ModelFields.Field, String> userDto = dto.getMap();
         modelFields.getVariableNames().forEach((field, variable) -> {
             bindingsBuilder
-                    .add(variable, userDtoList.get(index.get()));
-            index.getAndIncrement();
+                    .add(variable, userDto.get(field));
         });
     }
 
@@ -89,6 +95,17 @@ public abstract class GenericDao<FieldEnum extends Enum<FieldEnum> & ModelFields
         return Queries.SELECT(variables)
                 .where(pattern)
                 .getQueryString();
+    }
+
+
+    @Override
+    protected DTO mapSolution(BindingSet querySolution) {
+        IRI id = QueryResultUtils.getIRI(querySolution, modelFields.getId());
+        var map = modelFields.getVariableNames()
+                .keySet().stream()
+                .map((key) -> Map.entry(key, QueryResultUtils.getString(querySolution, modelFields.getVariable(key))))
+                .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+        return dtoCreator.create(id, map);
     }
 
 }

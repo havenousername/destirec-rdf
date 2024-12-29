@@ -14,8 +14,9 @@ public interface ModelFields<T extends Enum<T> & ModelFields.Field> {
         Variable getVariable();
 
         CoreDatatype getType();
-    }
 
+        boolean isRead();
+    }
     Variable getId();
 
     Map<T, Variable> getVariableNames();

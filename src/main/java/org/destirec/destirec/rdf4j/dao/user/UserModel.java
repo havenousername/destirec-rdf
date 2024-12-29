@@ -37,6 +37,14 @@ public class UserModel implements ModelFields<UserModel.Fields> {
     public String getResourceLocation() {
         return DESTIREC.NAMESPACE + "resource/user/";
     }
+
+    @Override
+    public Map<Fields, IRI> getReadPredicates() {
+        return predicates.entrySet().stream()
+                .filter(fieldsIRIEntry -> fieldsIRIEntry.getKey().isRead())
+                .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+    }
+
     @Override
     public IRI getPredicate(Fields field) {
         return predicates.get(field);
@@ -55,8 +63,13 @@ public class UserModel implements ModelFields<UserModel.Fields> {
     @Getter
     @AllArgsConstructor
     public enum Fields implements ModelFields.Field {
-        USERNAME("username"), EMAIL("email"), OCCUPATION("occupation"), NAME("name");
+        NAME("name", true),
+        USERNAME("username", false),
+        EMAIL("email", true),
+        OCCUPATION("occupation", false);
+
         private final String name;
+        private final boolean isRead;
 
         @Override
         public IRI getPredicate() {

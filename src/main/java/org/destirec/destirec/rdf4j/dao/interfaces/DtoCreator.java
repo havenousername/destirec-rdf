@@ -4,7 +4,6 @@ import org.eclipse.rdf4j.model.IRI;
 
 import java.util.Map;
 
-public interface Dto {
-    Map<ModelFields.Field, String> getMap();
-    IRI id();
+public interface DtoCreator<Dto, Field> {
+    Dto create(IRI id, Map<Field, String> map);
 }
