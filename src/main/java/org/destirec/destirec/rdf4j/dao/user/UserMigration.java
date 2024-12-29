@@ -3,6 +3,7 @@ package org.destirec.destirec.rdf4j.dao.user;
 import lombok.Getter;
 import lombok.NonNull;
 import org.destirec.destirec.rdf4j.dao.interfaces.Predicate;
+import org.destirec.destirec.rdf4j.vocabulary.DESTIREC;
 import org.destirec.destirec.utils.ModelClause;
 import org.eclipse.rdf4j.model.IRI;
 import org.eclipse.rdf4j.model.Model;
@@ -20,7 +21,8 @@ import org.eclipse.rdf4j.sparqlbuilder.core.query.ModifyQuery;
 import org.eclipse.rdf4j.sparqlbuilder.core.query.Queries;
 import org.eclipse.rdf4j.sparqlbuilder.graphpattern.TriplePattern;
 import org.eclipse.rdf4j.spring.support.RDF4JTemplate;
-import org.springframework.beans.factory.annotation.Autowired;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
@@ -28,6 +30,7 @@ import java.util.List;
 
 @Component
 public class UserMigration implements Predicate {
+    Logger logger = LoggerFactory.getLogger(UserMigration.class);
     private final RDF4JTemplate rdf4jMethods;
 
     private final IRI userIRI;
@@ -43,10 +46,16 @@ public class UserMigration implements Predicate {
 
     private boolean isSetup;
 
-    public UserMigration(@Autowired RDF4JTemplate template) {
+    public UserMigration(RDF4JTemplate template) {
         rdf4jMethods = template;
         ValueFactory valueFactory = SimpleValueFactory.getInstance();
-        userIRI = valueFactory.createIRI("User");
+        try {
+            userIRI = valueFactory.createIRI(DESTIREC.NAMESPACE, "User");
+            logger.info("Created userIRI: " + userIRI);
+        } catch (Exception e) {
+            logger.error("Cannot create adequate iri value");
+            throw e;
+        }
         builder = new ModelBuilder();
         namespaces = new ArrayList<>();
         isSetup = false;
@@ -68,12 +77,16 @@ public class UserMigration implements Predicate {
                 .add(get(), RDFS.SUBCLASSOF, FOAF.PERSON)
                 .add(get(), RDFS.COMMENT, "A user of an application");
         isSetup = true;
+        logger.info("Setup is complete. Model created:\n" + builder.build().toString());
     }
 
     @Override
     public void migrate() {
-      rdf4jMethods.consumeConnection(repositoryConnection -> {
+      rdf4jMethods.consumeConnection(repositoryConnection -> {;
           try {
+              logger.info("[Thread: {}] Transaction for the migration started", Thread.currentThread().getName());
+
+              System.out.println(repositoryConnection);
               repositoryConnection.begin();
 
               Model model = builder.build();
@@ -88,11 +101,12 @@ public class UserMigration implements Predicate {
 
               ModifyQuery query = Queries.INSERT()
                       .delete(subject.has(get(), object))
-                      .insert(patterns)
-                      .where(subject.has(get(), object));
+                      .insert(patterns);
 
+              logger.info("Query for update: \n" + query.getQueryString());
               repositoryConnection.prepareUpdate(query.getQueryString()).execute();
               repositoryConnection.commit();
+              logger.info("Transaction for the migration finished successfully");
           } catch (Exception e) {
               repositoryConnection.rollback();
               throw new RuntimeException("Migration failed: " + e.getMessage());

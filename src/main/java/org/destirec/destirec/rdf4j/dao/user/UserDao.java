@@ -1,11 +1,12 @@
 package org.destirec.destirec.rdf4j.dao.user;
 
 import org.eclipse.rdf4j.model.IRI;
+import org.eclipse.rdf4j.model.impl.SimpleValueFactory;
 import org.eclipse.rdf4j.query.BindingSet;
 import org.eclipse.rdf4j.sparqlbuilder.core.query.Queries;
 import org.eclipse.rdf4j.spring.dao.SimpleRDF4JCRUDDao;
 import org.eclipse.rdf4j.spring.dao.support.bindingsBuilder.MutableBindings;
-import org.eclipse.rdf4j.spring.dao.support.opbuilder.UpdateExecutionBuilder;
+import org.eclipse.rdf4j.spring.dao.support.sparql.NamedSparqlSupplier;
 import org.eclipse.rdf4j.spring.support.RDF4JTemplate;
 import org.eclipse.rdf4j.spring.util.QueryResultUtils;
 import org.springframework.stereotype.Repository;
@@ -62,16 +63,17 @@ public class UserDao extends SimpleRDF4JCRUDDao<UserDto, IRI> {
     }
 
 
-//    @Override
-//    protected NamedSparqlSupplier getUpdateSparql(UserDto userDto) {
-//        return super.getUpdateSparql(userDto);
-//    }
-
-
-//    @Override
-//    protected NamedSparqlSupplier getInsertSparql(UserDto userDto) {
-//        return super.getInsertSparql(userDto);
-//    }
+    @Override
+    protected NamedSparqlSupplier getInsertSparql(UserDto userDto) {
+        return NamedSparqlSupplier.of(KEY_PREFIX_INSERT, () -> Queries.INSERT(
+                userModel.getId()
+                        .isA(migration.get())
+                        .andHas(userModel.getPredicate(UserModel.Fields.NAME), userModel.getVariable(UserModel.Fields.NAME))
+                        .andHas(userModel.getPredicate(UserModel.Fields.EMAIL), userModel.getVariable(UserModel.Fields.EMAIL))
+                        .andHas(userModel.getPredicate(UserModel.Fields.OCCUPATION), userModel.getVariable(UserModel.Fields.OCCUPATION))
+                        .andHas(userModel.getPredicate(UserModel.Fields.USERNAME), userModel.getVariable(UserModel.Fields.USERNAME))
+        ).getQueryString());
+    }
 
     @Override
     protected String getReadQuery() {
@@ -89,16 +91,11 @@ public class UserDao extends SimpleRDF4JCRUDDao<UserDto, IRI> {
                 .getQueryString();
     }
 
-
-    @Override
-    protected UpdateExecutionBuilder getNamedUpdate(String key) {
-        return super.getNamedUpdate(key);
-    }
-
     @Override
     protected IRI getInputId(UserDto userDto) {
         if (userDto.id() == null) {
-            return getRdf4JTemplate().getNewUUID();
+            var userId = getRdf4JTemplate().getNewUUID();
+            return SimpleValueFactory.getInstance().createIRI(userModel.getResourceLocation() + userId.stringValue());
         }
         return userDto.id();
     }

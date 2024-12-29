@@ -1,5 +1,9 @@
 package org.destirec.destirec.rdf4j;
 
+import org.destirec.destirec.rdf4j.dao.user.UserDao;
+import org.destirec.destirec.rdf4j.dao.user.UserDto;
+import org.destirec.destirec.rdf4j.dao.user.UserMigration;
+import org.destirec.destirec.rdf4j.dao.user.UserService;
 import org.destirec.destirec.rdf4j.model.ModelRDF;
 import org.destirec.destirec.rdf4j.model.resource.User;
 import org.destirec.destirec.rdf4j.model.resource.UserPreferences;
@@ -12,6 +16,20 @@ import java.util.Map;
 @RestController
 public class TestModelController {
     ModelRDF modelRDF = new ModelRDF();
+
+    private final UserDao userDao;
+
+    private final UserMigration userMigration;
+
+    private final UserService userService;
+
+    public TestModelController(UserDao userDao, UserMigration userMigration, UserService userService) {
+        this.userDao = userDao;
+        this.userMigration = userMigration;
+        this.userService = userService;
+    }
+
+
 
 
     private void createUserClassResources() {
@@ -67,11 +85,16 @@ public class TestModelController {
         );
     }
 
+    @GetMapping(value = "/add-user", produces = "text/turtle")
+    public String testDao() {
+        return userService.addUser(new UserDto("Andrei", "andrei997", "andrei.cristea@gmail.com", "Worker")).stringValue();
+    }
+
     @GetMapping(path = "/test-rdf-model", produces = "text/turtle")
     public String testRdfModel() {
         createUserClassResources();
         createUserPreferencesResources();
 
-        return modelRDF.getModel().toString();
+        return modelRDF.toString();
     }
 }

@@ -1,5 +1,7 @@
 package org.destirec.destirec.utils;
 
+import org.destirec.destirec.rdf4j.vocabulary.DESTIREC;
+
 public class Constants {
     private Constants() {}
 
@@ -8,4 +10,5 @@ public class Constants {
 
     public static int RDF_VERSION = 1;
 
+    public static String DEFAULT_GRAPH = DESTIREC.NAMESPACE + ":defaultGraph";
 }

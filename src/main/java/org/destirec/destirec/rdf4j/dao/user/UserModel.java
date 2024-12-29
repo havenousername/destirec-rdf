@@ -4,7 +4,9 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import org.destirec.destirec.rdf4j.dao.interfaces.ModelFields;
+import org.destirec.destirec.rdf4j.vocabulary.DESTIREC;
 import org.eclipse.rdf4j.model.IRI;
+import org.eclipse.rdf4j.model.base.CoreDatatype;
 import org.eclipse.rdf4j.model.vocabulary.FOAF;
 import org.eclipse.rdf4j.model.vocabulary.VCARD4;
 import org.eclipse.rdf4j.sparqlbuilder.core.SparqlBuilder;
@@ -28,6 +30,13 @@ public class UserModel implements ModelFields<UserModel.Fields> {
     private final Map<UserModel.Fields, IRI> predicates = Arrays
             .stream(UserModel.Fields.values()).collect(Collectors.toMap(Function.identity(), UserModel.Fields::getPredicate));
 
+    private final Map<UserModel.Fields, CoreDatatype> types = Arrays
+            .stream(UserModel.Fields.values()).collect(Collectors.toMap(Function.identity(), UserModel.Fields::getType));
+
+    @Override
+    public String getResourceLocation() {
+        return DESTIREC.NAMESPACE + "resource/user/";
+    }
     @Override
     public IRI getPredicate(Fields field) {
         return predicates.get(field);
@@ -36,6 +45,11 @@ public class UserModel implements ModelFields<UserModel.Fields> {
     @Override
     public Variable getVariable(Fields field) {
         return variableNames.get(field);
+    }
+
+    @Override
+    public CoreDatatype getType(Fields field) {
+        return types.get(field);
     }
 
     @Getter
@@ -57,6 +71,11 @@ public class UserModel implements ModelFields<UserModel.Fields> {
         @Override
         public Variable getVariable() {
             return SparqlBuilder.var(name);
+        }
+
+        @Override
+        public CoreDatatype getType() {
+            return CoreDatatype.XSD.STRING;
         }
     }
 }
