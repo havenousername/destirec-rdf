@@ -1,6 +1,7 @@
 package org.destirec.destirec.rdf4j.model.predicates;
 
 import lombok.Getter;
+import lombok.Setter;
 import org.destirec.destirec.rdf4j.vocabulary.DESTIREC;
 import org.destirec.destirec.rdf4j.vocabulary.WIKIDATA;
 import org.eclipse.rdf4j.model.IRI;
@@ -20,6 +21,9 @@ public class DomainPredicate implements Predicate {
 
     @Nullable
     private final IRI domain;
+
+    @Setter
+    private IRI type = OWL.CLASS;
 
 
     @Getter
@@ -51,7 +55,7 @@ public class DomainPredicate implements Predicate {
     public void setup(ModelBuilder builder, String graphName) {
         builder
                 .namedGraph(graphName)
-                .add(get(), RDF.TYPE, OWL.CLASS);
+                .add(get(), RDF.TYPE, type);
 
         if (parent != null) {
             builder.add(get(), RDFS.SUBCLASSOF, parent);

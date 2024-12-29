@@ -3,6 +3,7 @@ package org.destirec.destirec.rdf4j.model;
 import lombok.Getter;
 import org.destirec.destirec.rdf4j.model.resource.User;
 import org.destirec.destirec.rdf4j.model.resource.UserPreferences;
+import org.destirec.destirec.rdf4j.model.resource.Version;
 import org.destirec.destirec.rdf4j.vocabulary.DESTIREC;
 import org.destirec.destirec.rdf4j.vocabulary.WIKIDATA;
 import org.eclipse.rdf4j.model.Model;
@@ -28,10 +29,11 @@ public class ModelRDF {
 
     private final UserPreferences userPreferences = new UserPreferences(userClass.getIri());
 
-
+    private final Version schemaVersion = new Version();
 
     public ModelRDF(ModelBuilder builder) {
         this.builder = builder;
+
         setup();
     }
 
@@ -42,8 +44,14 @@ public class ModelRDF {
 
     private void setup() {
         setupBuilderNamespace(builder);
+        setupVersion();
         setupUser();
         setupPreferences();
+    }
+
+    private void setupVersion() {
+        schemaVersion.setup(builder, getGraphName());
+        schemaVersion.createResource(builder, getGraphName());
     }
 
 

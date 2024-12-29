@@ -1,0 +1,23 @@
+package org.destirec.destirec.rdf4j.dao.interfaces;
+
+import org.eclipse.rdf4j.model.IRI;
+import org.eclipse.rdf4j.sparqlbuilder.core.Variable;
+
+import java.util.Map;
+
+public interface ModelFields<T extends Enum<T> & ModelFields.Field> {
+    interface Field {
+        String getName();
+        IRI getPredicate();
+
+        Variable getVariable();
+    }
+
+    Variable getId();
+
+    Map<T, Variable> getVariableNames();
+    Map<T, IRI> getPredicates();
+
+    IRI getPredicate(T field);
+    Variable getVariable(T field);
+}

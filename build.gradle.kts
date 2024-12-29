@@ -33,6 +33,7 @@ dependencies {
     // .dotenv
     implementation("io.github.cdimascio:dotenv-java:3.1.0")
 
+    implementation("org.eclipse.rdf4j:rdf4j-spring:+")
     implementation(platform("org.eclipse.rdf4j:rdf4j-bom:+"))
     implementation("org.eclipse.rdf4j:rdf4j-storage")
 
