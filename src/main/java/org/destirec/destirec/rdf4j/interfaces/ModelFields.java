@@ -1,4 +1,4 @@
-package org.destirec.destirec.rdf4j.dao.interfaces;
+package org.destirec.destirec.rdf4j.interfaces;
 
 import org.eclipse.rdf4j.model.IRI;
 import org.eclipse.rdf4j.model.base.CoreDatatype;
@@ -9,11 +9,6 @@ import java.util.Map;
 public interface ModelFields<T extends Enum<T> & ModelFields.Field> {
     interface Field {
         String getName();
-        IRI getPredicate();
-
-        Variable getVariable();
-
-        CoreDatatype getType();
 
         boolean isRead();
     }

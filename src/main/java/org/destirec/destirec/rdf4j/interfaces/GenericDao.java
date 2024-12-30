@@ -1,7 +1,9 @@
-package org.destirec.destirec.rdf4j.dao.interfaces;
+package org.destirec.destirec.rdf4j.interfaces;
 
 import lombok.Getter;
 import org.eclipse.rdf4j.model.IRI;
+import org.eclipse.rdf4j.model.Literal;
+import org.eclipse.rdf4j.model.ValueFactory;
 import org.eclipse.rdf4j.model.impl.SimpleValueFactory;
 import org.eclipse.rdf4j.query.BindingSet;
 import org.eclipse.rdf4j.sparqlbuilder.core.Variable;
@@ -22,6 +24,7 @@ public abstract class GenericDao<FieldEnum extends Enum<FieldEnum> & ModelFields
     protected final ModelFields<FieldEnum> modelFields;
     protected final Predicate migration;
     protected final DtoCreator<DTO, FieldEnum> dtoCreator;
+    protected ValueFactory valueFactory = SimpleValueFactory.getInstance();
 
 
     public GenericDao(
@@ -48,15 +51,16 @@ public abstract class GenericDao<FieldEnum extends Enum<FieldEnum> & ModelFields
 
     @Override
     protected void populateBindingsForUpdate(MutableBindings bindingsBuilder, DTO dto) {
-        Map<ModelFields.Field, String> userDto = dto.getMap();
+        Map<ModelFields.Field, String> dtoEntity = dto.getMap();
         modelFields.getVariableNames().forEach((field, variable) -> {
+            Literal literal = valueFactory.createLiteral(dtoEntity.get(field), modelFields.getType(field));
             bindingsBuilder
-                    .add(variable, userDto.get(field));
+                    .add(variable, literal);
         });
     }
 
     @Override
-    protected NamedSparqlSupplier getInsertSparql(DTO userDto) {
+    public NamedSparqlSupplier getInsertSparql(DTO userDto) {
         return NamedSparqlSupplier.of(KEY_PREFIX_INSERT, () -> {
             TriplePattern pattern = modelFields.getId()
                     .isA(migration.get());

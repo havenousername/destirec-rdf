@@ -1,4 +1,4 @@
-package org.destirec.destirec.rdf4j.dao.user;
+package org.destirec.destirec.rdf4j.user;
 
 import org.eclipse.rdf4j.model.IRI;
 import org.springframework.stereotype.Service;
@@ -15,6 +15,7 @@ public class UserService {
 
     @Transactional
     public IRI addUser(UserDto user) {
+        userDao.getInsertSparql(user);
         return userDao.saveAndReturnId(user);
     }
 }

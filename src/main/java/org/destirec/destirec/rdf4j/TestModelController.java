@@ -1,9 +1,9 @@
 package org.destirec.destirec.rdf4j;
 
-import org.destirec.destirec.rdf4j.dao.user.UserDao;
-import org.destirec.destirec.rdf4j.dao.user.UserDto;
-import org.destirec.destirec.rdf4j.dao.user.UserMigration;
-import org.destirec.destirec.rdf4j.dao.user.UserService;
+import org.destirec.destirec.rdf4j.user.UserDao;
+import org.destirec.destirec.rdf4j.user.UserDto;
+import org.destirec.destirec.rdf4j.user.UserMigration;
+import org.destirec.destirec.rdf4j.user.UserService;
 import org.destirec.destirec.rdf4j.model.ModelRDF;
 import org.destirec.destirec.rdf4j.model.resource.User;
 import org.destirec.destirec.rdf4j.model.resource.UserPreferences;

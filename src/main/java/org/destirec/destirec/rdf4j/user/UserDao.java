@@ -1,11 +1,8 @@
-package org.destirec.destirec.rdf4j.dao.user;
+package org.destirec.destirec.rdf4j.user;
 
-import org.destirec.destirec.rdf4j.dao.interfaces.GenericDao;
+import org.destirec.destirec.rdf4j.interfaces.GenericDao;
 import org.eclipse.rdf4j.spring.support.RDF4JTemplate;
 import org.springframework.stereotype.Repository;
-
-
-
 
 @Repository
 public class UserDao extends GenericDao<UserModel.Fields, UserDto> {

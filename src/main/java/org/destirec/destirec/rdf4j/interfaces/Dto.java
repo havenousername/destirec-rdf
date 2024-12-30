@@ -1,4 +1,4 @@
-package org.destirec.destirec.rdf4j.dao.interfaces;
+package org.destirec.destirec.rdf4j.interfaces;
 
 import org.eclipse.rdf4j.model.IRI;
 

@@ -1,4 +1,4 @@
-package org.destirec.destirec.rdf4j.dao.interfaces;
+package org.destirec.destirec.rdf4j.interfaces;
 
 import org.eclipse.rdf4j.model.IRI;
 import org.eclipse.rdf4j.model.Namespace;
@@ -14,4 +14,6 @@ public interface Predicate {
     void setNamespaces(List<Namespace> namespaces);
 
     void setGraphName(String name);
+
+    void setupAndMigrate();
 }

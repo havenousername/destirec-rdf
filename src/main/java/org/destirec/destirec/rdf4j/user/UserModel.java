@@ -1,9 +1,9 @@
-package org.destirec.destirec.rdf4j.dao.user;
+package org.destirec.destirec.rdf4j.user;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-import org.destirec.destirec.rdf4j.dao.interfaces.ModelFields;
+import org.destirec.destirec.rdf4j.interfaces.ModelFields;
 import org.destirec.destirec.rdf4j.vocabulary.DESTIREC;
 import org.eclipse.rdf4j.model.IRI;
 import org.eclipse.rdf4j.model.base.CoreDatatype;
@@ -25,13 +25,13 @@ public class UserModel implements ModelFields<UserModel.Fields> {
     private final Variable id = SparqlBuilder.var("user_id");
 
     private final Map<UserModel.Fields, Variable> variableNames = Arrays
-            .stream(UserModel.Fields.values()).collect(Collectors.toMap(Function.identity(), UserModel.Fields::getVariable));
+            .stream(UserModel.Fields.values()).collect(Collectors.toMap(Function.identity(), this::getVariable));
 
     private final Map<UserModel.Fields, IRI> predicates = Arrays
-            .stream(UserModel.Fields.values()).collect(Collectors.toMap(Function.identity(), UserModel.Fields::getPredicate));
+            .stream(UserModel.Fields.values()).collect(Collectors.toMap(Function.identity(), this::getPredicate));
 
     private final Map<UserModel.Fields, CoreDatatype> types = Arrays
-            .stream(UserModel.Fields.values()).collect(Collectors.toMap(Function.identity(), UserModel.Fields::getType));
+            .stream(UserModel.Fields.values()).collect(Collectors.toMap(Function.identity(), this::getType));
 
     @Override
     public String getResourceLocation() {
@@ -47,17 +47,22 @@ public class UserModel implements ModelFields<UserModel.Fields> {
 
     @Override
     public IRI getPredicate(Fields field) {
-        return predicates.get(field);
+         return switch (field) {
+            case USERNAME -> FOAF.ACCOUNT_NAME;
+            case EMAIL -> FOAF.MBOX;
+            case OCCUPATION -> VCARD4.ROLE;
+            case NAME -> FOAF.NAME;
+        };
     }
 
     @Override
     public Variable getVariable(Fields field) {
-        return variableNames.get(field);
+        return SparqlBuilder.var(field.name);
     }
 
     @Override
     public CoreDatatype getType(Fields field) {
-        return types.get(field);
+        return CoreDatatype.XSD.STRING;
     }
 
     @Getter
@@ -70,25 +75,5 @@ public class UserModel implements ModelFields<UserModel.Fields> {
 
         private final String name;
         private final boolean isRead;
-
-        @Override
-        public IRI getPredicate() {
-            return switch (this) {
-                case USERNAME -> FOAF.ACCOUNT_NAME;
-                case EMAIL -> FOAF.MBOX;
-                case OCCUPATION -> VCARD4.ROLE;
-                case NAME -> FOAF.NAME;
-            };
-        }
-
-        @Override
-        public Variable getVariable() {
-            return SparqlBuilder.var(name);
-        }
-
-        @Override
-        public CoreDatatype getType() {
-            return CoreDatatype.XSD.STRING;
-        }
     }
 }

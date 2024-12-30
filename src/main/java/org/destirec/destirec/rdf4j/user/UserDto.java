@@ -1,7 +1,7 @@
-package org.destirec.destirec.rdf4j.dao.user;
+package org.destirec.destirec.rdf4j.user;
 
-import org.destirec.destirec.rdf4j.dao.interfaces.Dto;
-import org.destirec.destirec.rdf4j.dao.interfaces.ModelFields;
+import org.destirec.destirec.rdf4j.interfaces.Dto;
+import org.destirec.destirec.rdf4j.interfaces.ModelFields;
 import org.eclipse.rdf4j.model.IRI;
 
 import java.util.Map;

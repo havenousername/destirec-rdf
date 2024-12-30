@@ -14,5 +14,10 @@ public class WIKIDATA {
     public static final IRI PERCENT = new InternedIRI(NAMESPACE, "Q11229");
 
     public static final IRI MONTH = new InternedIRI(NAMESPACE, "Q5151");
+
+    public static final IRI SOFTWARE_VERSION = new InternedIRI(NAMESPACE, "Q20826013");
+
+    public static final IRI RDF = new InternedIRI(NAMESPACE, "Q54872");
+
     private WIKIDATA() {}
 }
