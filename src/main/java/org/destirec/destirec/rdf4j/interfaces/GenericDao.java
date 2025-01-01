@@ -107,7 +107,8 @@ public abstract class GenericDao<FieldEnum extends Enum<FieldEnum> & ModelFields
         IRI id = QueryResultUtils.getIRI(querySolution, modelFields.getId());
         var map = modelFields.getVariableNames()
                 .keySet().stream()
-                .map((key) -> Map.entry(key, QueryResultUtils.getString(querySolution, modelFields.getVariable(key))))
+                .map((key) -> Map.entry(key,
+                        QueryResultUtils.getString(querySolution, modelFields.getVariable(key))))
                 .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
         return dtoCreator.create(id, map);
     }

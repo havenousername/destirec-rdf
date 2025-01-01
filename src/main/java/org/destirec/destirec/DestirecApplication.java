@@ -1,7 +1,7 @@
 package org.destirec.destirec;
 
-import org.destirec.destirec.rdf4j.appservices.MigrationsService;
-import org.destirec.destirec.rdf4j.appservices.RdfInitializerService;
+import org.destirec.destirec.rdf4j.services.MigrationsService;
+import org.destirec.destirec.rdf4j.services.RdfInitializerService;
 import org.eclipse.rdf4j.model.IRI;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

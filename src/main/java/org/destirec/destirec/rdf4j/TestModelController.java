@@ -1,12 +1,13 @@
 package org.destirec.destirec.rdf4j;
 
-import org.destirec.destirec.rdf4j.user.UserDao;
-import org.destirec.destirec.rdf4j.user.UserDto;
-import org.destirec.destirec.rdf4j.user.UserMigration;
-import org.destirec.destirec.rdf4j.user.UserService;
 import org.destirec.destirec.rdf4j.model.ModelRDF;
 import org.destirec.destirec.rdf4j.model.resource.User;
 import org.destirec.destirec.rdf4j.model.resource.UserPreferences;
+import org.destirec.destirec.rdf4j.preferences.PreferenceDtoCreator;
+import org.destirec.destirec.rdf4j.preferences.PreferenceModel;
+import org.destirec.destirec.rdf4j.services.UserPreferenceService;
+import org.destirec.destirec.rdf4j.user.UserDto;
+import org.eclipse.rdf4j.model.IRI;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -17,16 +18,12 @@ import java.util.Map;
 public class TestModelController {
     ModelRDF modelRDF = new ModelRDF();
 
-    private final UserDao userDao;
+    private final UserPreferenceService userService;
+    private final PreferenceDtoCreator preferenceDtoCreator;
 
-    private final UserMigration userMigration;
-
-    private final UserService userService;
-
-    public TestModelController(UserDao userDao, UserMigration userMigration, UserService userService) {
-        this.userDao = userDao;
-        this.userMigration = userMigration;
+    public TestModelController(UserPreferenceService userService) {
         this.userService = userService;
+        preferenceDtoCreator = new PreferenceDtoCreator();
     }
 
 
@@ -87,7 +84,16 @@ public class TestModelController {
 
     @GetMapping(value = "/add-user", produces = "text/turtle")
     public String testDao() {
-        return userService.addUser(new UserDto("Andrei", "andrei997", "andrei.cristea@gmail.com", "Worker")).stringValue();
+        IRI userIRI = userService.addUser(
+                new UserDto("Andrei", "andrei997", "andrei.cristea@gmail.com", "Worker")
+        );
+        return userService.addPreference(preferenceDtoCreator
+                .create(null, userIRI, Map.of(
+                        PreferenceModel.Fields.PRICE_RANGE, "50",
+                        PreferenceModel.Fields.IS_PRICE_IMPORTANT, "true",
+                        PreferenceModel.Fields.POPULARITY_RANGE, "79",
+                        PreferenceModel.Fields.IS_POPULARITY_IMPORTANT, "false"
+                ))).stringValue();
     }
 
     @GetMapping(path = "/test-rdf-model", produces = "text/turtle")

@@ -22,6 +22,7 @@ public interface ModelFields<T extends Enum<T> & ModelFields.Field> {
     Map<T, CoreDatatype> getTypes();
 
     IRI getPredicate(T field);
+
     Variable getVariable(T field);
 
     CoreDatatype getType(T field);

@@ -69,9 +69,9 @@ public class UserModel implements ModelFields<UserModel.Fields> {
     @AllArgsConstructor
     public enum Fields implements ModelFields.Field {
         NAME("name", true),
-        USERNAME("username", false),
+        USERNAME("username", true),
         EMAIL("email", true),
-        OCCUPATION("occupation", false);
+        OCCUPATION("occupation", true);
 
         private final String name;
         private final boolean isRead;

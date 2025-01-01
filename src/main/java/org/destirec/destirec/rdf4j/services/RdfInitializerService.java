@@ -1,4 +1,4 @@
-package org.destirec.destirec.rdf4j.appservices;
+package org.destirec.destirec.rdf4j.services;
 
 import org.destirec.destirec.rdf4j.version.VersionDao;
 import org.destirec.destirec.rdf4j.version.VersionDto;
