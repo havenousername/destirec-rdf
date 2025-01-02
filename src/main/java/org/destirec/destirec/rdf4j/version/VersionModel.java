@@ -4,8 +4,7 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import org.destirec.destirec.rdf4j.interfaces.GenericModel;
 import org.destirec.destirec.rdf4j.interfaces.ModelFields;
-import org.destirec.destirec.rdf4j.interfaces.container.Container;
-import org.destirec.destirec.rdf4j.interfaces.container.SingularValueContainer;
+import org.destirec.destirec.utils.ValueContainer;
 import org.eclipse.rdf4j.model.IRI;
 import org.eclipse.rdf4j.model.base.CoreDatatype;
 import org.eclipse.rdf4j.sparqlbuilder.core.SparqlBuilder;
@@ -22,18 +21,18 @@ public class VersionModel extends GenericModel<VersionModel.Fields> {
 
 
     @Override
-    public Container<IRI> getPredicate(Fields field) {
-        return new SingularValueContainer<>(schemaPredicate.get());
+    public ValueContainer<IRI> getPredicate(Fields field) {
+        return new ValueContainer<>(schemaPredicate.get());
     }
 
     @Override
-    public Container<Variable> getVariable(Fields field) {
-        return new SingularValueContainer<>(SparqlBuilder.var(field.name));
+    public ValueContainer<Variable> getVariable(Fields field) {
+        return new ValueContainer<>(SparqlBuilder.var(field.name));
     }
 
     @Override
-    public Container<CoreDatatype> getType(Fields field) {
-        return new SingularValueContainer<>(CoreDatatype.XSD.FLOAT);
+    public ValueContainer<CoreDatatype> getType(Fields field) {
+        return new ValueContainer<>(CoreDatatype.XSD.FLOAT);
     }
 
     @Override

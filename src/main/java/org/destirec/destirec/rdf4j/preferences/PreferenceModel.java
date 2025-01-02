@@ -3,9 +3,7 @@ package org.destirec.destirec.rdf4j.preferences;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import org.destirec.destirec.rdf4j.interfaces.GenericModel;
-import org.destirec.destirec.rdf4j.interfaces.container.Container;
-import org.destirec.destirec.rdf4j.interfaces.container.MultipleValueContainer;
-import org.destirec.destirec.rdf4j.interfaces.container.SingularValueContainer;
+import org.destirec.destirec.utils.ValueContainer;
 import org.destirec.destirec.rdf4j.vocabulary.DESTIREC;
 import org.eclipse.rdf4j.model.IRI;
 import org.eclipse.rdf4j.model.base.CoreDatatype;
@@ -48,57 +46,42 @@ public class PreferenceModel extends GenericModel<PreferenceModel.Fields> {
     }
 
     @Override
-    public Container<IRI> getPredicate(Fields field) {
-        if (field == Fields.MONTHS) {
-            return new MultipleValueContainer<>(IntStream
-                    .rangeClosed(0, 11)
-                    .mapToObj(i -> preferenceMigration.getMonthPreference().get())
-                    .collect(Collectors.toList())
-            );
-        }
+    public ValueContainer<IRI> getPredicate(Fields field) {
         var values = switch (field) {
             case IS_POPULARITY_IMPORTANT -> preferenceMigration.getIsPopularityImportant().get();
             case PRICE_RANGE -> preferenceMigration.getPriceRange().get();
             case POPULARITY_RANGE -> preferenceMigration.getPopularityRange().get();
             case IS_PRICE_IMPORTANT -> preferenceMigration.getIsPriceImportant().get();
             case PREFERENCE_AUTHOR -> DC.CREATOR;
+            case MONTHS -> preferenceMigration.getMonthPreference().get();
             case null -> throw new IllegalArgumentException("Field is not defined");
-            default -> throw new IllegalStateException("Unexpected value: " + field);
         };
 
-        return new SingularValueContainer<>(values);
+        return new ValueContainer<>(values);
     }
 
     @Override
-    public Container<Variable> getVariable(Fields field) {
+    public ValueContainer<Variable> getVariable(Fields field) {
         if (field == Fields.MONTHS) {
-            return new MultipleValueContainer<>(IntStream
+            return new ValueContainer<>(IntStream
                     .rangeClosed(0, 11)
                     .mapToObj(i -> SparqlBuilder.var(field.name() + i))
                     .collect(Collectors.toList())
             );
         }
-        return new SingularValueContainer<>(SparqlBuilder.var(field.name()));
+        return new ValueContainer<>(SparqlBuilder.var(field.name()));
     }
 
     @Override
-    public Container<CoreDatatype> getType(Fields field) {
-        if (field == Fields.MONTHS) {
-            return new MultipleValueContainer<>(IntStream
-                    .rangeClosed(0, 11)
-                    .mapToObj(i -> CoreDatatype.XSD.ANYURI)
-                    .collect(Collectors.toList())
-            );
-        }
+    public ValueContainer<CoreDatatype> getType(Fields field) {
         var type = switch (field) {
             case IS_POPULARITY_IMPORTANT, IS_PRICE_IMPORTANT -> CoreDatatype.XSD.BOOLEAN;
             case POPULARITY_RANGE, PRICE_RANGE -> CoreDatatype.XSD.FLOAT;
-            case PREFERENCE_AUTHOR -> CoreDatatype.XSD.ANYURI;
+            case PREFERENCE_AUTHOR, MONTHS -> CoreDatatype.XSD.ANYURI;
             case null -> throw new IllegalArgumentException("Field is not defined");
-            default -> throw new IllegalStateException("Unexpected value: " + field);
         };
 
-        return new SingularValueContainer<>(type);
+        return new ValueContainer<>(type);
     }
 
     @Override

@@ -1,6 +1,6 @@
 package org.destirec.destirec.rdf4j.interfaces;
 
-import org.destirec.destirec.rdf4j.interfaces.container.Container;
+import org.destirec.destirec.utils.ValueContainer;
 import org.eclipse.rdf4j.model.IRI;
 import org.eclipse.rdf4j.model.base.CoreDatatype;
 import org.eclipse.rdf4j.sparqlbuilder.core.SparqlBuilder;
@@ -26,19 +26,19 @@ public abstract class GenericModel<T extends Enum<T> & ModelFields.Field> implem
 
 
     @Override
-    public Map<T, Container<Variable>> getVariableNames() {
+    public Map<T, ValueContainer<Variable>> getVariableNames() {
         return Arrays.stream(getValues())
                 .collect(Collectors.toMap(Function.identity(), this::getVariable));
     }
 
     @Override
-    public Map<T, Container<IRI>> getPredicates() {
+    public Map<T, ValueContainer<IRI>> getPredicates() {
         return Arrays.stream(getValues())
                 .collect(Collectors.toMap(Function.identity(), this::getPredicate));
     }
 
     @Override
-    public Map<T, Container<IRI>> getReadPredicates() {
+    public Map<T, ValueContainer<IRI>> getReadPredicates() {
         return getPredicates()
                 .entrySet()
                 .stream()
@@ -46,7 +46,7 @@ public abstract class GenericModel<T extends Enum<T> & ModelFields.Field> implem
                 .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
     }
 
-    public Map<T, Container<CoreDatatype>> getTypes() {
+    public Map<T, ValueContainer<CoreDatatype>> getTypes() {
         return Arrays.stream(getValues())
                 .collect(Collectors.toMap(Function.identity(), this::getType));
     }

@@ -44,6 +44,8 @@ public class UserPreferenceService {
         }
 
         preferenceDto.setMonthsDto(monthDtos);
-        return preferenceDao.saveAndReturnId(preferenceDto);
+        PreferenceDto preference = preferenceDao.save(preferenceDto);
+        System.out.println(preference);
+        return preference.getId();
     }
  }

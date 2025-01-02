@@ -4,8 +4,7 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import org.destirec.destirec.rdf4j.interfaces.GenericModel;
 import org.destirec.destirec.rdf4j.interfaces.ModelFields;
-import org.destirec.destirec.rdf4j.interfaces.container.Container;
-import org.destirec.destirec.rdf4j.interfaces.container.SingularValueContainer;
+import org.destirec.destirec.utils.ValueContainer;
 import org.eclipse.rdf4j.model.IRI;
 import org.eclipse.rdf4j.model.base.CoreDatatype;
 import org.eclipse.rdf4j.sparqlbuilder.core.SparqlBuilder;
@@ -22,26 +21,26 @@ public class MonthModel extends GenericModel<MonthModel.Fields> {
     }
 
     @Override
-    public Container<IRI> getPredicate(Fields field) {
+    public ValueContainer<IRI> getPredicate(Fields field) {
         var predicate = switch (field) {
             case RANGE -> monthMigration.getValueRange().get();
             case MONTH -> monthMigration.getMonth().get();
         };
-        return new SingularValueContainer<>(predicate);
+        return new ValueContainer<>(predicate);
     }
 
     @Override
-    public Container<Variable> getVariable(Fields field) {
-        return new SingularValueContainer<>(SparqlBuilder.var(field.name));
+    public ValueContainer<Variable> getVariable(Fields field) {
+        return new ValueContainer<>(SparqlBuilder.var(field.name));
     }
 
     @Override
-    public Container<CoreDatatype> getType(Fields field) {
+    public ValueContainer<CoreDatatype> getType(Fields field) {
         var type = switch (field) {
             case MONTH -> CoreDatatype.XSD.GMONTH;
             case RANGE -> CoreDatatype.XSD.FLOAT;
         };
-        return new SingularValueContainer<>(type);
+        return new ValueContainer<>(type);
     }
 
     @Override

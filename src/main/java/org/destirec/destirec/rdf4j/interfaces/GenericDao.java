@@ -1,9 +1,12 @@
 package org.destirec.destirec.rdf4j.interfaces;
 
 import lombok.Getter;
-import org.destirec.destirec.rdf4j.interfaces.container.Container;
+import org.destirec.destirec.rdf4j.interfaces.daoVisitors.GetVariableVisitor;
+import org.destirec.destirec.rdf4j.interfaces.daoVisitors.QueryStringVisitor;
+import org.destirec.destirec.rdf4j.interfaces.daoVisitors.TriplesVisitor;
+import org.destirec.destirec.rdf4j.interfaces.daoVisitors.UpdateBindingsVisitor;
+import org.destirec.destirec.utils.ValueContainer;
 import org.eclipse.rdf4j.model.IRI;
-import org.eclipse.rdf4j.model.Literal;
 import org.eclipse.rdf4j.model.ValueFactory;
 import org.eclipse.rdf4j.model.impl.SimpleValueFactory;
 import org.eclipse.rdf4j.query.BindingSet;
@@ -16,10 +19,9 @@ import org.eclipse.rdf4j.spring.dao.support.sparql.NamedSparqlSupplier;
 import org.eclipse.rdf4j.spring.support.RDF4JTemplate;
 import org.eclipse.rdf4j.spring.util.QueryResultUtils;
 
-import java.util.Arrays;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 
 @Getter
@@ -56,22 +58,13 @@ public abstract class GenericDao<FieldEnum extends Enum<FieldEnum> & ModelFields
     protected void populateBindingsForUpdate(MutableBindings bindingsBuilder, DTO dto) {
         Map<ModelFields.Field, String> dtoEntity = dto.getMap();
         modelFields.getVariableNames().forEach((field, variable) -> {
-            if (variable.isSingular()) {
-                Literal literal = valueFactory.createLiteral(dtoEntity.get(field), modelFields.getType(field).getSingular());
-                bindingsBuilder
-                        .add(variable.getSingular(), literal);
-            } else {
-                var variables = variable.getMultiple().stream().toList();
-                var types = modelFields.getType(field).getMultiple().stream().toList();
-
-                String[] arrayString = dtoEntity.get(field).split(",");
-                for (int i = 0; i < variables.size(); i++) {
-                    Literal literal = valueFactory.createLiteral(arrayString[i], types.get(i));
-                    bindingsBuilder
-                            .add(variables.get(i), literal);
-                }
-            }
-
+            UpdateBindingsVisitor visitor = new UpdateBindingsVisitor(
+                    dtoEntity.get(field),
+                    valueFactory,
+                    bindingsBuilder,
+                    modelFields.getType(field)
+            );
+            variable.accept(visitor);
         });
     }
 
@@ -81,16 +74,9 @@ public abstract class GenericDao<FieldEnum extends Enum<FieldEnum> & ModelFields
             TriplePattern pattern = modelFields.getId()
                     .isA(migration.get());
             modelFields.getPredicates().forEach((key, value) -> {
-                Container<Variable> variable = modelFields.getVariable(key);
-                if (variable.isSingular() && value.isSingular()) {
-                    pattern.andHas(value.getSingular(), variable.getSingular());
-                } else {
-                    var variables = variable.getMultiple().stream().toList();
-                    var values = value.getMultiple().stream().toList();
-                    for (int i = 0; i < variables.size(); i++) {
-                        pattern.andHas(values.get(i), variables.get(i));
-                    }
-                }
+                ValueContainer<Variable> variable = modelFields.getVariable(key);
+                TriplesVisitor insertVisitor = new TriplesVisitor(pattern, value);
+                variable.accept(insertVisitor);
             });
             System.out.println(Queries.INSERT(pattern).getQueryString());
             return Queries.INSERT(pattern).getQueryString();
@@ -110,35 +96,26 @@ public abstract class GenericDao<FieldEnum extends Enum<FieldEnum> & ModelFields
 
     @Override
     protected String getReadQuery() {
-        Variable[] variables = new Variable[modelFields.getVariableNames().size() + 1];
-
-        AtomicInteger index = new AtomicInteger();
-        variables[index.getAndIncrement()] = modelFields.getId();
+        List<Variable> variables = new ArrayList<>(modelFields.getVariableNames().size() + 1);
+        variables.add(modelFields.getId());
         modelFields.getVariableNames().values().forEach(variable -> {
-            if (variable.isSingular()) {
-                variables[index.getAndIncrement()] = variable.getSingular();
-            } else {
-                variable.getMultiple().forEach(variableS -> {
-                    variables[index.getAndIncrement()] = variableS;
-                });
-            }
+            GetVariableVisitor visitor = new GetVariableVisitor();
+            variable.accept(visitor);
+            variables.addAll(visitor.getVariables());
         });
 
         TriplePattern pattern = modelFields.getId()
                 .isA(migration.get());
         modelFields.getReadPredicates().forEach((key, value) -> {
-            if (value.isSingular()) {
-                pattern.andHas(value.getSingular(), modelFields.getVariable(key).getSingular());
-            } else {
-                var variablesS = modelFields.getVariable(key).getMultiple().stream().toList();
-                var values = value.getMultiple().stream().toList();
-                for (int i = 0; i < variablesS.size(); i++) {
-                    pattern.andHas(values.get(i), variablesS.get(i));
-                }
-            }
+            TriplesVisitor visitor = new TriplesVisitor(pattern, value);
+            modelFields.getVariable(key).accept(visitor);
         });
 
-        return Queries.SELECT(variables)
+        System.out.println("GET READ QUERY" + Queries.SELECT(variables.toArray(Variable[]::new))
+                .where(pattern)
+                .getQueryString() );
+
+        return Queries.SELECT(variables.toArray(Variable[]::new))
                 .where(pattern)
                 .getQueryString();
     }
@@ -148,25 +125,17 @@ public abstract class GenericDao<FieldEnum extends Enum<FieldEnum> & ModelFields
     protected DTO mapSolution(BindingSet querySolution) {
         IRI id = QueryResultUtils.getIRI(querySolution, modelFields.getId());
         var map = modelFields.getVariableNames()
-                .keySet().stream()
+                .keySet()
+                .stream()
                 .map((key) -> {
                     var variableContainer = modelFields.getVariable(key);
-                    AtomicReference<String> queryString = new AtomicReference<>("");
-                    if (variableContainer.isSingular()) {
-                        queryString.set(QueryResultUtils.getString(querySolution, variableContainer.getSingular()));
-                    } else {
-                        StringBuilder builder = new StringBuilder();
-                        variableContainer.getMultiple().forEach(variable -> {
-                            String varStr = QueryResultUtils.getString(querySolution, variable);
-                            builder.append(varStr);
-                            builder.append(",");
-                        });
-                        queryString.set(builder.toString());
-                    }
-                    return Map.entry(key, queryString.toString());
+                    QueryStringVisitor visitor = new QueryStringVisitor(querySolution);
+                    variableContainer.accept(visitor);
+                    return Map.entry(key, visitor.getQueryString().toString());
                 })
                 .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
-        return dtoCreator.create(id, map);
+        System.out.println("MAP SOLUTION");
+        return null;
     }
 
 }
