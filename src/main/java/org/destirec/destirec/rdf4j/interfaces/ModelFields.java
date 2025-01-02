@@ -1,5 +1,6 @@
 package org.destirec.destirec.rdf4j.interfaces;
 
+import org.destirec.destirec.rdf4j.interfaces.container.Container;
 import org.eclipse.rdf4j.model.IRI;
 import org.eclipse.rdf4j.model.base.CoreDatatype;
 import org.eclipse.rdf4j.sparqlbuilder.core.Variable;
@@ -14,18 +15,18 @@ public interface ModelFields<T extends Enum<T> & ModelFields.Field> {
     }
     Variable getId();
 
-    Map<T, Variable> getVariableNames();
-    Map<T, IRI> getPredicates();
+    Map<T, Container<Variable>> getVariableNames();
+    Map<T, Container<IRI>> getPredicates();
 
-    Map<T, IRI> getReadPredicates();
+    Map<T, Container<IRI>> getReadPredicates();
 
-    Map<T, CoreDatatype> getTypes();
+    Map<T, Container<CoreDatatype>> getTypes();
 
-    IRI getPredicate(T field);
+    Container<IRI> getPredicate(T field);
 
-    Variable getVariable(T field);
+    Container<Variable> getVariable(T field);
 
-    CoreDatatype getType(T field);
+    Container<CoreDatatype> getType(T field);
 
     String getResourceLocation();
 }

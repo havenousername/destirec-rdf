@@ -1,5 +1,6 @@
 package org.destirec.destirec.rdf4j.services;
 
+import org.destirec.destirec.rdf4j.preferences.months.MonthMigration;
 import org.destirec.destirec.rdf4j.user.UserMigration;
 import org.destirec.destirec.rdf4j.preferences.PreferenceMigration;
 import org.destirec.destirec.rdf4j.version.SchemaVersionMigration;
@@ -17,14 +18,18 @@ public class MigrationsService {
 
     private final PreferenceMigration preferenceMigration;
 
+    private final MonthMigration monthMigration;
+
     public MigrationsService(
             UserMigration userMigration,
             SchemaVersionMigration versionMigration,
-            PreferenceMigration preferenceMigration
+            PreferenceMigration preferenceMigration, MonthMigration monthMigration
     ) {
         this.userMigration = userMigration;
         this.versionMigration = versionMigration;
         this.preferenceMigration = preferenceMigration;
+        this.monthMigration = monthMigration;
+
         userMigration.setGraphName(DEFAULT_GRAPH);
         userMigration.setNamespaces(List.of(RDFS.NS, OWL.NS, RDF.NS, XSD.NS));
 
@@ -33,11 +38,15 @@ public class MigrationsService {
 
         preferenceMigration.setGraphName(DEFAULT_GRAPH);
         preferenceMigration.setNamespaces(List.of(RDFS.NS, OWL.NS, RDF.NS, XSD.NS, SKOS.NS));
+
+        monthMigration.setGraphName(DEFAULT_GRAPH);
+        monthMigration.setNamespaces(List.of(RDFS.NS, OWL.NS, RDF.NS, XSD.NS, SKOS.NS));
     }
 
     public void runMigrations() {
         userMigration.setupAndMigrate();
         versionMigration.setupAndMigrate();
+        monthMigration.setupAndMigrate();
         preferenceMigration.setupAndMigrate();
     }
 }

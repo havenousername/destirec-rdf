@@ -13,6 +13,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.util.ArrayList;
 import java.util.Map;
+import java.util.Random;
 
 @RestController
 public class TestModelController {
@@ -87,13 +88,19 @@ public class TestModelController {
         IRI userIRI = userService.addUser(
                 new UserDto("Andrei", "andrei997", "andrei.cristea@gmail.com", "Worker")
         );
+        var preferences = Map.of(
+                PreferenceModel.Fields.PRICE_RANGE, "50",
+                PreferenceModel.Fields.IS_PRICE_IMPORTANT, "true",
+                PreferenceModel.Fields.POPULARITY_RANGE, "79",
+                PreferenceModel.Fields.IS_POPULARITY_IMPORTANT, "false"
+        );
+
+        Float[] randomNumbers = new Random()
+                .doubles(12, 0, 100)
+                .mapToObj(d -> (float) d)
+                .toArray(Float[]::new);
         return userService.addPreference(preferenceDtoCreator
-                .create(null, userIRI, Map.of(
-                        PreferenceModel.Fields.PRICE_RANGE, "50",
-                        PreferenceModel.Fields.IS_PRICE_IMPORTANT, "true",
-                        PreferenceModel.Fields.POPULARITY_RANGE, "79",
-                        PreferenceModel.Fields.IS_POPULARITY_IMPORTANT, "false"
-                ))).stringValue();
+                .create(null, userIRI, preferences, randomNumbers)).stringValue();
     }
 
     @GetMapping(path = "/test-rdf-model", produces = "text/turtle")

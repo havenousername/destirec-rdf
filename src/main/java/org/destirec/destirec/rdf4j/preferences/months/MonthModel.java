@@ -1,4 +1,4 @@
-package org.destirec.destirec.rdf4j.user;
+package org.destirec.destirec.rdf4j.preferences.months;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -6,36 +6,28 @@ import org.destirec.destirec.rdf4j.interfaces.GenericModel;
 import org.destirec.destirec.rdf4j.interfaces.ModelFields;
 import org.destirec.destirec.rdf4j.interfaces.container.Container;
 import org.destirec.destirec.rdf4j.interfaces.container.SingularValueContainer;
-import org.destirec.destirec.rdf4j.vocabulary.DESTIREC;
 import org.eclipse.rdf4j.model.IRI;
 import org.eclipse.rdf4j.model.base.CoreDatatype;
-import org.eclipse.rdf4j.model.vocabulary.FOAF;
-import org.eclipse.rdf4j.model.vocabulary.VCARD4;
 import org.eclipse.rdf4j.sparqlbuilder.core.SparqlBuilder;
 import org.eclipse.rdf4j.sparqlbuilder.core.Variable;
 import org.springframework.stereotype.Component;
 
-@Getter
 @Component
-public class UserModel extends GenericModel<UserModel.Fields> {
-    public UserModel() {
-        super("user_id");
-    }
+public class MonthModel extends GenericModel<MonthModel.Fields> {
+    private final MonthMigration monthMigration;
 
-    @Override
-    public String getResourceLocation() {
-        return DESTIREC.NAMESPACE + "resource/user/";
+    public MonthModel(MonthMigration monthMigration) {
+        super("month_id");
+        this.monthMigration = monthMigration;
     }
 
     @Override
     public Container<IRI> getPredicate(Fields field) {
-         var predicate = switch (field) {
-            case USERNAME -> FOAF.ACCOUNT_NAME;
-            case EMAIL -> FOAF.MBOX;
-            case OCCUPATION -> VCARD4.ROLE;
-            case NAME -> FOAF.NAME;
+        var predicate = switch (field) {
+            case RANGE -> monthMigration.getValueRange().get();
+            case MONTH -> monthMigration.getMonth().get();
         };
-         return new SingularValueContainer<>(predicate);
+        return new SingularValueContainer<>(predicate);
     }
 
     @Override
@@ -45,7 +37,16 @@ public class UserModel extends GenericModel<UserModel.Fields> {
 
     @Override
     public Container<CoreDatatype> getType(Fields field) {
-        return new SingularValueContainer<>(CoreDatatype.XSD.STRING);
+        var type = switch (field) {
+            case MONTH -> CoreDatatype.XSD.GMONTH;
+            case RANGE -> CoreDatatype.XSD.FLOAT;
+        };
+        return new SingularValueContainer<>(type);
+    }
+
+    @Override
+    public String getResourceLocation() {
+        return "/resource/month/";
     }
 
     @Override
@@ -53,14 +54,11 @@ public class UserModel extends GenericModel<UserModel.Fields> {
         return Fields.values();
     }
 
-    @Getter
     @AllArgsConstructor
+    @Getter
     public enum Fields implements ModelFields.Field {
-        NAME("name", true),
-        USERNAME("username", true),
-        EMAIL("email", true),
-        OCCUPATION("occupation", true);
-
+        MONTH("month", true),
+        RANGE("monthRange", true);
         private final String name;
         private final boolean isRead;
     }

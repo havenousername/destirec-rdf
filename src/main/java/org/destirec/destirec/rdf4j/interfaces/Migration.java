@@ -6,6 +6,7 @@ import org.destirec.destirec.utils.ModelClause;
 import org.eclipse.rdf4j.model.IRI;
 import org.eclipse.rdf4j.model.Model;
 import org.eclipse.rdf4j.model.Namespace;
+import org.eclipse.rdf4j.model.ValueFactory;
 import org.eclipse.rdf4j.model.impl.SimpleValueFactory;
 import org.eclipse.rdf4j.model.util.ModelBuilder;
 import org.eclipse.rdf4j.sparqlbuilder.core.SparqlBuilder;
@@ -25,6 +26,8 @@ public abstract class Migration implements Predicate {
     protected final RDF4JTemplate rdf4jMethods;
 
     protected final IRI iri;
+    @Getter
+    protected ValueFactory valueFactory = SimpleValueFactory.getInstance();
 
     @Getter
     protected String graphName;
@@ -53,7 +56,7 @@ public abstract class Migration implements Predicate {
 
     private IRI createMigrationIRI(String name) {
         try {
-            var iri = SimpleValueFactory.getInstance().createIRI(DESTIREC.NAMESPACE, name);
+            var iri = valueFactory.createIRI(DESTIREC.NAMESPACE, name);
             logger.info("Created iri " + iri + " for: " + name);
             return iri;
         } catch (Exception e) {

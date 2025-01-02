@@ -1,5 +1,6 @@
 package org.destirec.destirec.rdf4j.preferences;
 
+import lombok.Getter;
 import org.destirec.destirec.rdf4j.interfaces.Migration;
 import org.destirec.destirec.rdf4j.interfaces.PredicateInstance;
 import org.destirec.destirec.rdf4j.vocabulary.WIKIDATA;
@@ -11,19 +12,23 @@ import org.eclipse.rdf4j.spring.support.RDF4JTemplate;
 import org.springframework.stereotype.Component;
 
 @Component
+@Getter
 public class PreferenceMigration extends Migration {
-    protected PredicateInstance isPriceImportant;
-    protected PredicateInstance priceRange;
+    private PredicateInstance isPriceImportant;
+    private PredicateInstance priceRange;
 
-    protected PredicateInstance isPopularityImportant;
+    private PredicateInstance isPopularityImportant;
 
-    protected PredicateInstance popularityRange;
+    private PredicateInstance popularityRange;
 
-    protected PreferenceMigration(RDF4JTemplate rdf4jMethods) {
+    private PredicateInstance monthPreference;
+
+    public PreferenceMigration(RDF4JTemplate rdf4jMethods) {
         super(rdf4jMethods, "Preference");
 
         initPrice();
         initPopularity();
+        initMonthPreference();
     }
 
     private void initPrice() {
@@ -42,7 +47,7 @@ public class PreferenceMigration extends Migration {
                 instance -> instance.builder()
                         .add(instance.predicate(), RDF.TYPE, OWL.DATATYPEPROPERTY)
                         .add(instance.predicate(), RDFS.DOMAIN, get())
-                        .add(instance.predicate(), RDFS.LABEL, "range of the price")
+                        .add(instance.predicate(), RDFS.COMMENT, "range of the price")
                         .add(instance.predicate(), RDFS.RANGE, XSD.FLOAT)
         );
     }
@@ -54,7 +59,7 @@ public class PreferenceMigration extends Migration {
                 (instance) -> instance.builder()
                         .add(instance.predicate(), RDF.TYPE, OWL.DATATYPEPROPERTY)
                         .add(instance.predicate(), RDFS.DOMAIN, get())
-                        .add(instance.predicate(), RDFS.LABEL, "consider popularity or not")
+                        .add(instance.predicate(), RDFS.COMMENT, "consider popularity or not")
                         .add(instance.predicate(), RDFS.RANGE, XSD.BOOLEAN)
         );
 
@@ -64,8 +69,18 @@ public class PreferenceMigration extends Migration {
                 instance -> instance.builder()
                         .add(instance.predicate(), RDF.TYPE, OWL.DATATYPEPROPERTY)
                         .add(instance.predicate(), RDFS.DOMAIN, get())
-                        .add(instance.predicate(), RDFS.LABEL, "range of the popularity")
+                        .add(instance.predicate(), RDFS.COMMENT, "range of the popularity")
                         .add(instance.predicate(), RDFS.RANGE, XSD.FLOAT)
+        );
+    }
+
+    private void initMonthPreference() {
+        monthPreference = new PredicateInstance(
+                rdf4jMethods, "monthsPreferences",
+                instance -> instance.builder()
+                        .add(instance.predicate(), RDF.TYPE, OWL.CLASS)
+                        .add(instance.predicate(), RDFS.DOMAIN, get())
+                        .add(instance.predicate(), RDFS.COMMENT, "points to the months with preference values")
         );
     }
 
@@ -76,6 +91,7 @@ public class PreferenceMigration extends Migration {
         priceRange.setup();
         isPopularityImportant.setup();
         popularityRange.setup();
+        monthPreference.setup();
     }
 
     @Override
@@ -85,6 +101,7 @@ public class PreferenceMigration extends Migration {
         priceRange.migrate();
         isPopularityImportant.migrate();
         popularityRange.migrate();
+        monthPreference.migrate();
     }
 
     @Override

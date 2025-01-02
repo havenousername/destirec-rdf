@@ -1,6 +1,7 @@
 package org.destirec.destirec.rdf4j.interfaces;
 
 import lombok.Getter;
+import org.destirec.destirec.rdf4j.interfaces.container.Container;
 import org.eclipse.rdf4j.model.IRI;
 import org.eclipse.rdf4j.model.Literal;
 import org.eclipse.rdf4j.model.ValueFactory;
@@ -15,8 +16,10 @@ import org.eclipse.rdf4j.spring.dao.support.sparql.NamedSparqlSupplier;
 import org.eclipse.rdf4j.spring.support.RDF4JTemplate;
 import org.eclipse.rdf4j.spring.util.QueryResultUtils;
 
+import java.util.Arrays;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 
 @Getter
@@ -53,9 +56,22 @@ public abstract class GenericDao<FieldEnum extends Enum<FieldEnum> & ModelFields
     protected void populateBindingsForUpdate(MutableBindings bindingsBuilder, DTO dto) {
         Map<ModelFields.Field, String> dtoEntity = dto.getMap();
         modelFields.getVariableNames().forEach((field, variable) -> {
-            Literal literal = valueFactory.createLiteral(dtoEntity.get(field), modelFields.getType(field));
-            bindingsBuilder
-                    .add(variable, literal);
+            if (variable.isSingular()) {
+                Literal literal = valueFactory.createLiteral(dtoEntity.get(field), modelFields.getType(field).getSingular());
+                bindingsBuilder
+                        .add(variable.getSingular(), literal);
+            } else {
+                var variables = variable.getMultiple().stream().toList();
+                var types = modelFields.getType(field).getMultiple().stream().toList();
+
+                String[] arrayString = dtoEntity.get(field).split(",");
+                for (int i = 0; i < variables.size(); i++) {
+                    Literal literal = valueFactory.createLiteral(arrayString[i], types.get(i));
+                    bindingsBuilder
+                            .add(variables.get(i), literal);
+                }
+            }
+
         });
     }
 
@@ -64,8 +80,19 @@ public abstract class GenericDao<FieldEnum extends Enum<FieldEnum> & ModelFields
         return NamedSparqlSupplier.of(KEY_PREFIX_INSERT, () -> {
             TriplePattern pattern = modelFields.getId()
                     .isA(migration.get());
-            modelFields.getPredicates().forEach((key, value) ->
-                    pattern.andHas(value, modelFields.getVariable(key)));
+            modelFields.getPredicates().forEach((key, value) -> {
+                Container<Variable> variable = modelFields.getVariable(key);
+                if (variable.isSingular() && value.isSingular()) {
+                    pattern.andHas(value.getSingular(), variable.getSingular());
+                } else {
+                    var variables = variable.getMultiple().stream().toList();
+                    var values = value.getMultiple().stream().toList();
+                    for (int i = 0; i < variables.size(); i++) {
+                        pattern.andHas(values.get(i), variables.get(i));
+                    }
+                }
+            });
+            System.out.println(Queries.INSERT(pattern).getQueryString());
             return Queries.INSERT(pattern).getQueryString();
         });
     }
@@ -88,13 +115,28 @@ public abstract class GenericDao<FieldEnum extends Enum<FieldEnum> & ModelFields
         AtomicInteger index = new AtomicInteger();
         variables[index.getAndIncrement()] = modelFields.getId();
         modelFields.getVariableNames().values().forEach(variable -> {
-            variables[index.getAndIncrement()] = variable;
+            if (variable.isSingular()) {
+                variables[index.getAndIncrement()] = variable.getSingular();
+            } else {
+                variable.getMultiple().forEach(variableS -> {
+                    variables[index.getAndIncrement()] = variableS;
+                });
+            }
         });
 
         TriplePattern pattern = modelFields.getId()
                 .isA(migration.get());
-        modelFields.getReadPredicates().forEach((key, value) ->
-                pattern.andHas(value, modelFields.getVariable(key)));
+        modelFields.getReadPredicates().forEach((key, value) -> {
+            if (value.isSingular()) {
+                pattern.andHas(value.getSingular(), modelFields.getVariable(key).getSingular());
+            } else {
+                var variablesS = modelFields.getVariable(key).getMultiple().stream().toList();
+                var values = value.getMultiple().stream().toList();
+                for (int i = 0; i < variablesS.size(); i++) {
+                    pattern.andHas(values.get(i), variablesS.get(i));
+                }
+            }
+        });
 
         return Queries.SELECT(variables)
                 .where(pattern)
@@ -107,8 +149,22 @@ public abstract class GenericDao<FieldEnum extends Enum<FieldEnum> & ModelFields
         IRI id = QueryResultUtils.getIRI(querySolution, modelFields.getId());
         var map = modelFields.getVariableNames()
                 .keySet().stream()
-                .map((key) -> Map.entry(key,
-                        QueryResultUtils.getString(querySolution, modelFields.getVariable(key))))
+                .map((key) -> {
+                    var variableContainer = modelFields.getVariable(key);
+                    AtomicReference<String> queryString = new AtomicReference<>("");
+                    if (variableContainer.isSingular()) {
+                        queryString.set(QueryResultUtils.getString(querySolution, variableContainer.getSingular()));
+                    } else {
+                        StringBuilder builder = new StringBuilder();
+                        variableContainer.getMultiple().forEach(variable -> {
+                            String varStr = QueryResultUtils.getString(querySolution, variable);
+                            builder.append(varStr);
+                            builder.append(",");
+                        });
+                        queryString.set(builder.toString());
+                    }
+                    return Map.entry(key, queryString.toString());
+                })
                 .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
         return dtoCreator.create(id, map);
     }
