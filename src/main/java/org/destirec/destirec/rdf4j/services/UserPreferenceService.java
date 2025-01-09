@@ -33,7 +33,12 @@ public class UserPreferenceService {
     }
 
     @Transactional
-    public IRI addPreference(PreferenceDto preferenceDto) {
+    public UserDto getUser(IRI userIRI) {
+        return userDao.getById(userIRI);
+    }
+
+    @Transactional
+    public PreferenceDto addPreference(PreferenceDto preferenceDto) {
         List<MonthDto> monthDtos = new ArrayList<>(preferenceDto.getMonthsDto());
 
         for (int i = 0; i < monthDtos.size(); i++) {
@@ -44,8 +49,9 @@ public class UserPreferenceService {
         }
 
         preferenceDto.setMonthsDto(monthDtos);
-        PreferenceDto preference = preferenceDao.save(preferenceDto);
-        System.out.println(preference);
-        return preference.getId();
+//        PreferenceDto preference = preferenceDao.save(preferenceDto);
+//        System.out.println(preference);
+//        System.out.println(preferenceDao.getReadQuery());
+        return preferenceDao.save(preferenceDto);
     }
  }

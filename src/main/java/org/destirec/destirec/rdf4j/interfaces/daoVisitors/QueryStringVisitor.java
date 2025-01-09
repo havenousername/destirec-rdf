@@ -27,12 +27,8 @@ public class QueryStringVisitor implements ContainerVisitor<Variable> {
 
     @Override
     public void visit(List<Variable> visitor) {
-        StringBuilder builder = new StringBuilder();
-        visitor.forEach(variable -> {
-            String varStr = QueryResultUtils.getString(querySolution, variable);
-            builder.append(varStr);
-            builder.append(",");
-        });
-        queryString.set(builder.toString());
+        Variable variable = SparqlHelperMethods.createConcatVariable(visitor);
+        String varStr = QueryResultUtils.getString(querySolution, variable);
+        queryString.set(varStr);
     }
 }

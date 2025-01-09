@@ -12,9 +12,12 @@ public class TriplesVisitor implements ContainerVisitor<Variable> {
     private final TriplePattern pattern;
     private final ValueContainer<IRI> predicate;
 
-    public TriplesVisitor(TriplePattern pattern, ValueContainer<IRI> predicate) {
+    private final boolean combinable;
+
+    public TriplesVisitor(TriplePattern pattern, ValueContainer<IRI> predicate, boolean combinable) {
         this.pattern = pattern;
         this.predicate = predicate;
+        this.combinable = combinable;
     }
 
     @Override
@@ -24,6 +27,11 @@ public class TriplesVisitor implements ContainerVisitor<Variable> {
 
     @Override
     public void visit(List<Variable> visitor) {
+        if (combinable) {
+            Variable variable = SparqlHelperMethods.createVariable(visitor);
+            pattern.andHas(predicate.next(), variable);
+            return;
+        }
         IRI iriInstance = predicate.next();
         if (predicate.hasNext()) {
             for (Variable variable : visitor) {

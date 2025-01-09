@@ -99,8 +99,10 @@ public class TestModelController {
                 .doubles(12, 0, 100)
                 .mapToObj(d -> (float) d)
                 .toArray(Float[]::new);
+
+//        return userService.getUser(userIRI).toString();
         return userService.addPreference(preferenceDtoCreator
-                .create(null, userIRI, preferences, randomNumbers)).stringValue();
+                .create(null, userIRI, preferences, randomNumbers)).toString();
     }
 
     @GetMapping(path = "/test-rdf-model", produces = "text/turtle")

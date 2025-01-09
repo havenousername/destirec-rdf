@@ -45,7 +45,7 @@ public class ValueContainer<T> implements Iterator<T> {
         } else if (items != null) {
             return items.size();
         } else {
-            throw new IllegalStateException("Cannot enter this state. Items or item fields cannot be both null");
+            return 0;
         }
     }
 

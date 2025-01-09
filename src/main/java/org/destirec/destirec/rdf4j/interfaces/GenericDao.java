@@ -10,6 +10,8 @@ import org.eclipse.rdf4j.model.IRI;
 import org.eclipse.rdf4j.model.ValueFactory;
 import org.eclipse.rdf4j.model.impl.SimpleValueFactory;
 import org.eclipse.rdf4j.query.BindingSet;
+import org.eclipse.rdf4j.sparqlbuilder.core.Groupable;
+import org.eclipse.rdf4j.sparqlbuilder.core.Projectable;
 import org.eclipse.rdf4j.sparqlbuilder.core.Variable;
 import org.eclipse.rdf4j.sparqlbuilder.core.query.Queries;
 import org.eclipse.rdf4j.sparqlbuilder.graphpattern.TriplePattern;
@@ -22,7 +24,10 @@ import org.eclipse.rdf4j.spring.util.QueryResultUtils;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
+
+import static org.destirec.destirec.utils.Constants.MAX_RDF_RECURSION;
 
 @Getter
 public abstract class GenericDao<FieldEnum extends Enum<FieldEnum> & ModelFields.Field, DTO extends Dto> extends SimpleRDF4JCRUDDao<DTO, IRI> {
@@ -30,6 +35,7 @@ public abstract class GenericDao<FieldEnum extends Enum<FieldEnum> & ModelFields
     protected final Predicate migration;
     protected final DtoCreator<DTO, FieldEnum> dtoCreator;
     protected ValueFactory valueFactory = SimpleValueFactory.getInstance();
+    protected AtomicInteger mapEnteredTimes = new AtomicInteger(0);
 
 
     public GenericDao(
@@ -75,7 +81,7 @@ public abstract class GenericDao<FieldEnum extends Enum<FieldEnum> & ModelFields
                     .isA(migration.get());
             modelFields.getPredicates().forEach((key, value) -> {
                 ValueContainer<Variable> variable = modelFields.getVariable(key);
-                TriplesVisitor insertVisitor = new TriplesVisitor(pattern, value);
+                TriplesVisitor insertVisitor = new TriplesVisitor(pattern, value, false);
                 variable.accept(insertVisitor);
             });
             System.out.println(Queries.INSERT(pattern).getQueryString());
@@ -93,36 +99,55 @@ public abstract class GenericDao<FieldEnum extends Enum<FieldEnum> & ModelFields
         return userDto.id();
     }
 
-
-    @Override
-    protected String getReadQuery() {
-        List<Variable> variables = new ArrayList<>(modelFields.getVariableNames().size() + 1);
-        variables.add(modelFields.getId());
+    private List<Map.Entry<VariableType, Projectable>> getReadVariables() {
+        List<Map.Entry<VariableType, Projectable>> variables = new ArrayList<>(modelFields.getVariableNames().size() + 1);
+        variables.add(Map.entry(VariableType.SINGULAR, modelFields.getId()));
         modelFields.getVariableNames().values().forEach(variable -> {
             GetVariableVisitor visitor = new GetVariableVisitor();
             variable.accept(visitor);
             variables.addAll(visitor.getVariables());
         });
 
+        return variables;
+    }
+
+
+    @Override
+    protected String getReadQuery() {
+        mapEnteredTimes.set(0);
+        List<Map.Entry<VariableType, Projectable>> variables = getReadVariables();
         TriplePattern pattern = modelFields.getId()
                 .isA(migration.get());
+
         modelFields.getReadPredicates().forEach((key, value) -> {
-            TriplesVisitor visitor = new TriplesVisitor(pattern, value);
+            TriplesVisitor visitor = new TriplesVisitor(pattern, value, true);
             modelFields.getVariable(key).accept(visitor);
         });
 
-        System.out.println("GET READ QUERY" + Queries.SELECT(variables.toArray(Variable[]::new))
-                .where(pattern)
-                .getQueryString() );
+        var groupByVariables = variables.stream()
+                .filter(variable -> variable.getKey() == VariableType.SINGULAR)
+                .map(Map.Entry::getValue)
+                .map(v -> (Groupable)v)
+                .toList();
+        var shouldGroupBy = groupByVariables.size() != variables.size();
 
-        return Queries.SELECT(variables.toArray(Variable[]::new))
+
+        return Queries.SELECT(variables
+                        .stream()
+                        .map(Map.Entry::getValue)
+                        .toArray(Projectable[]::new)
+                )
                 .where(pattern)
+                .groupBy(shouldGroupBy ? groupByVariables.toArray(Groupable[]::new) : new Groupable[0])
                 .getQueryString();
     }
 
 
     @Override
     protected DTO mapSolution(BindingSet querySolution) {
+        if (mapEnteredTimes.getAndIncrement() >= MAX_RDF_RECURSION) {
+            throw new IllegalCallerException("Reached maximum depth of " + MAX_RDF_RECURSION + ", exiting application.");
+        }
         IRI id = QueryResultUtils.getIRI(querySolution, modelFields.getId());
         var map = modelFields.getVariableNames()
                 .keySet()
@@ -134,8 +159,6 @@ public abstract class GenericDao<FieldEnum extends Enum<FieldEnum> & ModelFields
                     return Map.entry(key, visitor.getQueryString().toString());
                 })
                 .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
-        System.out.println("MAP SOLUTION");
-        return null;
+        return dtoCreator.create(id, map);
     }
-
 }

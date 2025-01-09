@@ -14,4 +14,10 @@ public class PreferenceDao extends GenericDao<PreferenceModel.Fields, Preference
     ) {
         super(rdf4JTemplate, modelFields, migration, dtoCreator);
     }
+
+
+    @Override
+    public String getReadQuery() {
+        return super.getReadQuery();
+    }
 }

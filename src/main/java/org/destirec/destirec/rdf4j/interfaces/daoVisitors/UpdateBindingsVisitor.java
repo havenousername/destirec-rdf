@@ -2,6 +2,7 @@ package org.destirec.destirec.rdf4j.interfaces.daoVisitors;
 
 import org.destirec.destirec.rdf4j.interfaces.ContainerVisitor;
 import org.destirec.destirec.utils.ValueContainer;
+import org.eclipse.rdf4j.model.IRI;
 import org.eclipse.rdf4j.model.Literal;
 import org.eclipse.rdf4j.model.ValueFactory;
 import org.eclipse.rdf4j.model.base.CoreDatatype;
@@ -26,22 +27,33 @@ public class UpdateBindingsVisitor implements ContainerVisitor<Variable> {
 
     @Override
     public void visit(Variable visitor) {
-        Literal literal = valueFactory.createLiteral(dtoValue, coreDatatype.next());
-        builder
-                .add(visitor, literal);
+        if (coreDatatype.hasNext()) {
+            Literal literal = valueFactory.createLiteral(dtoValue, coreDatatype.next());
+            builder
+                    .add(visitor, literal);
+        } else {
+            builder.add(visitor, dtoValue);
+        }
+
     }
 
     @Override
     public void visit(List<Variable> visitor) {
         String[] arrayString = dtoValue.split(",");
-        CoreDatatype datatype = coreDatatype.next();
+        CoreDatatype datatype = coreDatatype.hasNext() ? coreDatatype.next() : null;
         for (int i = 0; i < visitor.size(); i++) {
             if (coreDatatype.hasNext()) {
                 datatype = coreDatatype.next();
             }
-            Literal literal = valueFactory.createLiteral(arrayString[i], datatype);
-            builder
-                    .add(visitor.get(i), literal);
+            if (datatype != null) {
+                Literal literal = valueFactory.createLiteral(arrayString[i], datatype);
+                builder
+                        .add(visitor.get(i), literal);
+            } else {
+                IRI iri = valueFactory.createIRI(arrayString[i]);
+                builder.add(visitor.get(i), iri);
+            }
+
         }
     }
 }

@@ -77,7 +77,7 @@ public class PreferenceModel extends GenericModel<PreferenceModel.Fields> {
         var type = switch (field) {
             case IS_POPULARITY_IMPORTANT, IS_PRICE_IMPORTANT -> CoreDatatype.XSD.BOOLEAN;
             case POPULARITY_RANGE, PRICE_RANGE -> CoreDatatype.XSD.FLOAT;
-            case PREFERENCE_AUTHOR, MONTHS -> CoreDatatype.XSD.ANYURI;
+            case PREFERENCE_AUTHOR, MONTHS -> null;
             case null -> throw new IllegalArgumentException("Field is not defined");
         };
 

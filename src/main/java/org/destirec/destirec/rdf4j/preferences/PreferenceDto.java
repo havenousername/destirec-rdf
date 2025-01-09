@@ -3,6 +3,7 @@ package org.destirec.destirec.rdf4j.preferences;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.Setter;
+import lombok.ToString;
 import org.destirec.destirec.rdf4j.interfaces.Dto;
 import org.destirec.destirec.rdf4j.interfaces.ModelFields;
 import org.destirec.destirec.rdf4j.preferences.months.MonthDto;
@@ -12,6 +13,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+@ToString
 @Getter
 @AllArgsConstructor
 public class PreferenceDto implements Dto {

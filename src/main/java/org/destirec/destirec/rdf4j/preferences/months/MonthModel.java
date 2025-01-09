@@ -4,6 +4,7 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import org.destirec.destirec.rdf4j.interfaces.GenericModel;
 import org.destirec.destirec.rdf4j.interfaces.ModelFields;
+import org.destirec.destirec.rdf4j.vocabulary.DESTIREC;
 import org.destirec.destirec.utils.ValueContainer;
 import org.eclipse.rdf4j.model.IRI;
 import org.eclipse.rdf4j.model.base.CoreDatatype;
@@ -45,7 +46,7 @@ public class MonthModel extends GenericModel<MonthModel.Fields> {
 
     @Override
     public String getResourceLocation() {
-        return "/resource/month/";
+        return DESTIREC.NAMESPACE + "/resource/month/";
     }
 
     @Override
