@@ -5,6 +5,7 @@ import org.destirec.destirec.rdf4j.model.resource.User;
 import org.destirec.destirec.rdf4j.model.resource.UserPreferences;
 import org.destirec.destirec.rdf4j.preferences.PreferenceDtoCreator;
 import org.destirec.destirec.rdf4j.preferences.PreferenceModel;
+import org.destirec.destirec.rdf4j.preferences.months.MonthDao;
 import org.destirec.destirec.rdf4j.services.UserPreferenceService;
 import org.destirec.destirec.rdf4j.user.UserDto;
 import org.eclipse.rdf4j.model.IRI;
@@ -22,9 +23,12 @@ public class TestModelController {
     private final UserPreferenceService userService;
     private final PreferenceDtoCreator preferenceDtoCreator;
 
-    public TestModelController(UserPreferenceService userService) {
+    public TestModelController(
+            UserPreferenceService userService,
+            MonthDao monthDao
+    ) {
         this.userService = userService;
-        preferenceDtoCreator = new PreferenceDtoCreator();
+        preferenceDtoCreator = new PreferenceDtoCreator(monthDao);
     }
 
 

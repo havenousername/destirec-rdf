@@ -8,7 +8,6 @@ import java.time.Month;
 import java.util.Map;
 
 public record MonthDto(IRI id, Month month, float monthRange) implements Dto {
-
     @Override
     public Map<ModelFields.Field, String> getMap() {
         return Map.of(

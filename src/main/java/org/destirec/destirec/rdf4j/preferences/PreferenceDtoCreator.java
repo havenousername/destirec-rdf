@@ -1,22 +1,36 @@
 package org.destirec.destirec.rdf4j.preferences;
 
 import org.destirec.destirec.rdf4j.interfaces.DtoCreator;
+import org.destirec.destirec.rdf4j.preferences.months.MonthDao;
 import org.destirec.destirec.rdf4j.preferences.months.MonthDto;
+import org.destirec.destirec.rdf4j.preferences.months.MonthDtoCreator;
 import org.eclipse.rdf4j.model.IRI;
 import org.eclipse.rdf4j.model.ValueFactory;
 import org.eclipse.rdf4j.model.impl.SimpleValueFactory;
 import org.springframework.stereotype.Component;
 
 import java.time.Month;
-import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 import java.util.Map;
 import java.util.stream.IntStream;
 
 @Component
 public class PreferenceDtoCreator implements DtoCreator<PreferenceDto, PreferenceModel.Fields> {
     private final ValueFactory valueFactory = SimpleValueFactory.getInstance();
+    private final MonthDao monthDao;
+
+    public PreferenceDtoCreator(MonthDao monthDao) {
+        this.monthDao = monthDao;
+    }
+
     @Override
     public PreferenceDto create(IRI id, Map<PreferenceModel.Fields, String> map) {
+        List<String> monthsString = Arrays.stream(map.get(PreferenceModel.Fields.MONTHS).split(",")).toList();
+        List<MonthDto> months = monthsString
+                .stream()
+                .map(month -> monthDao.getById(monthDao.getValueFactory().createIRI(month)))
+                .toList();
         return new PreferenceDto(
                 id,
                 valueFactory.createIRI(map.get(PreferenceModel.Fields.PREFERENCE_AUTHOR)),
@@ -24,7 +38,7 @@ public class PreferenceDtoCreator implements DtoCreator<PreferenceDto, Preferenc
                 Float.parseFloat(map.get(PreferenceModel.Fields.PRICE_RANGE)),
                 Boolean.getBoolean(map.get(PreferenceModel.Fields.IS_POPULARITY_IMPORTANT)),
                 Float.parseFloat(map.get(PreferenceModel.Fields.POPULARITY_RANGE)),
-                new ArrayList<>()
+                months
         );
     }
 
