@@ -11,7 +11,6 @@ import java.util.List;
 public class TriplesVisitor implements ContainerVisitor<Variable> {
     private final TriplePattern pattern;
     private final ValueContainer<IRI> predicate;
-
     private final boolean combinable;
 
     public TriplesVisitor(TriplePattern pattern, ValueContainer<IRI> predicate, boolean combinable) {

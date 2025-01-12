@@ -84,7 +84,6 @@ public abstract class GenericDao<FieldEnum extends Enum<FieldEnum> & ModelFields
                 TriplesVisitor insertVisitor = new TriplesVisitor(pattern, value, false);
                 variable.accept(insertVisitor);
             });
-            System.out.println(Queries.INSERT(pattern).getQueryString());
             return Queries.INSERT(pattern).getQueryString();
         });
     }
