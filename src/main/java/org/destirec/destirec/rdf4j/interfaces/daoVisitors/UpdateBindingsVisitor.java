@@ -27,6 +27,10 @@ public class UpdateBindingsVisitor implements ContainerVisitor<Variable> {
 
     @Override
     public void visit(Variable visitor) {
+        if (dtoValue == null) {
+            return;
+        }
+
         if (coreDatatype.hasNext()) {
             Literal literal = valueFactory.createLiteral(dtoValue, coreDatatype.next());
             builder
@@ -39,6 +43,9 @@ public class UpdateBindingsVisitor implements ContainerVisitor<Variable> {
 
     @Override
     public void visit(List<Variable> visitor) {
+        if (dtoValue == null) {
+            return;
+        }
         String[] arrayString = dtoValue.split(",");
         CoreDatatype datatype = coreDatatype.hasNext() ? coreDatatype.next() : null;
         for (int i = 0; i < visitor.size(); i++) {
