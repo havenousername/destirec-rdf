@@ -5,10 +5,10 @@ import org.eclipse.rdf4j.spring.support.RDF4JTemplate;
 import org.springframework.stereotype.Repository;
 
 @Repository
-public class MonthDao extends GenericDao<MonthModel.Fields, MonthDto> {
+public class MonthDao extends GenericDao<MonthConfig.Fields, MonthDto> {
     public MonthDao(
             RDF4JTemplate rdf4JTemplate,
-            MonthModel modelFields,
+            MonthConfig modelFields,
             MonthMigration migration,
             MonthDtoCreator dtoCreator
     ) {

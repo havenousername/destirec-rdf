@@ -4,7 +4,7 @@ import org.destirec.destirec.rdf4j.model.ModelRDF;
 import org.destirec.destirec.rdf4j.model.resource.User;
 import org.destirec.destirec.rdf4j.model.resource.UserPreferences;
 import org.destirec.destirec.rdf4j.preferences.PreferenceDtoCreator;
-import org.destirec.destirec.rdf4j.preferences.PreferenceModel;
+import org.destirec.destirec.rdf4j.preferences.PreferenceConfig;
 import org.destirec.destirec.rdf4j.preferences.months.MonthDao;
 import org.destirec.destirec.rdf4j.services.UserPreferenceService;
 import org.destirec.destirec.rdf4j.user.UserDto;
@@ -93,10 +93,10 @@ public class TestModelController {
                 new UserDto("Andrei", "andrei997", "andrei.cristea@gmail.com", "Worker")
         );
         var preferences = Map.of(
-                PreferenceModel.Fields.PRICE_RANGE, "50",
-                PreferenceModel.Fields.IS_PRICE_IMPORTANT, "true",
-                PreferenceModel.Fields.POPULARITY_RANGE, "79",
-                PreferenceModel.Fields.IS_POPULARITY_IMPORTANT, "false"
+                PreferenceConfig.Fields.PRICE_RANGE, "50",
+                PreferenceConfig.Fields.IS_PRICE_IMPORTANT, "true",
+                PreferenceConfig.Fields.POPULARITY_RANGE, "79",
+                PreferenceConfig.Fields.IS_POPULARITY_IMPORTANT, "false"
         );
 
         Float[] randomNumbers = new Random()

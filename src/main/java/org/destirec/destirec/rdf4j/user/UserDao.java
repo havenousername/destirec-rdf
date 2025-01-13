@@ -5,10 +5,10 @@ import org.eclipse.rdf4j.spring.support.RDF4JTemplate;
 import org.springframework.stereotype.Repository;
 
 @Repository
-public class UserDao extends GenericDao<UserModel.Fields, UserDto> {
+public class UserDao extends GenericDao<UserConfig.Fields, UserDto> {
     public UserDao(
             RDF4JTemplate rdf4JTemplate,
-            UserModel model,
+            UserConfig model,
             UserMigration userMigration,
             UserDtoCreator userDtoCreator
     ) {

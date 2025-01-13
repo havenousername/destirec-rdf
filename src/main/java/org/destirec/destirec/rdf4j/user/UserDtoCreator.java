@@ -9,28 +9,28 @@ import org.springframework.stereotype.Component;
 import java.util.Map;
 
 @Component
-public class UserDtoCreator implements DtoCreator<UserDto, UserModel.Fields> {
+public class UserDtoCreator implements DtoCreator<UserDto, UserConfig.Fields> {
     private final ValueFactory valueFactory = SimpleValueFactory.getInstance();
-    private final UserModel userModel;
+    private final UserConfig userConfig;
 
-    public UserDtoCreator(UserModel userModel) {
-        this.userModel = userModel;
+    public UserDtoCreator(UserConfig userConfig) {
+        this.userConfig = userConfig;
     }
 
     @Override
-    public UserDto create(IRI id, Map<UserModel.Fields, String> map) {
+    public UserDto create(IRI id, Map<UserConfig.Fields, String> map) {
         return new UserDto(
                 id,
-                map.get(UserModel.Fields.NAME),
-                map.get(UserModel.Fields.USERNAME),
-                map.get(UserModel.Fields.EMAIL),
-                map.get(UserModel.Fields.OCCUPATION)
+                map.get(UserConfig.Fields.NAME),
+                map.get(UserConfig.Fields.USERNAME),
+                map.get(UserConfig.Fields.EMAIL),
+                map.get(UserConfig.Fields.OCCUPATION)
         );
     }
 
     public UserDto create(ExternalUserDto externalUserDto) {
         return new UserDto(
-                valueFactory.createIRI(userModel.getResourceLocation() + externalUserDto.id()),
+                valueFactory.createIRI(userConfig.getResourceLocation() + externalUserDto.id()),
                 externalUserDto.name(),
                 externalUserDto.username(),
                 externalUserDto.email(),
@@ -39,7 +39,7 @@ public class UserDtoCreator implements DtoCreator<UserDto, UserModel.Fields> {
     }
 
     @Override
-    public UserDto create(Map<UserModel.Fields, String> map) {
+    public UserDto create(Map<UserConfig.Fields, String> map) {
         return create(null, map);
     }
 }

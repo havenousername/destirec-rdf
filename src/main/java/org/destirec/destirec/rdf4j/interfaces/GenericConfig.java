@@ -11,10 +11,10 @@ import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-public abstract class GenericModel<T extends Enum<T> & ModelFields.Field> implements ModelFields<T> {
+public abstract class GenericConfig<T extends Enum<T> & ConfigFields.Field> implements ConfigFields<T> {
     private final Variable id;
-    public GenericModel(String idName) {
-        id = SparqlBuilder.var("version_id");
+    public GenericConfig(String idName) {
+        id = SparqlBuilder.var(idName);
     }
 
     @Override
@@ -49,5 +49,16 @@ public abstract class GenericModel<T extends Enum<T> & ModelFields.Field> implem
     public Map<T, ValueContainer<CoreDatatype>> getTypes() {
         return Arrays.stream(getValues())
                 .collect(Collectors.toMap(Function.identity(), this::getType));
+    }
+
+    @Override
+    public Boolean getIsOptional(T field) {
+        return false;
+    }
+
+    @Override
+    public Map<T, Boolean> getIsOptionals() {
+        return Arrays.stream(getValues())
+                .collect(Collectors.toMap(Function.identity(), this::getIsOptional));
     }
 }

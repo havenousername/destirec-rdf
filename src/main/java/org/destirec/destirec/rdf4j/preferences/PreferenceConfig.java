@@ -2,7 +2,7 @@ package org.destirec.destirec.rdf4j.preferences;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
-import org.destirec.destirec.rdf4j.interfaces.GenericModel;
+import org.destirec.destirec.rdf4j.interfaces.GenericConfig;
 import org.destirec.destirec.utils.ValueContainer;
 import org.destirec.destirec.rdf4j.vocabulary.DESTIREC;
 import org.eclipse.rdf4j.model.IRI;
@@ -18,10 +18,10 @@ import java.util.stream.IntStream;
 
 @Getter
 @Component
-public class PreferenceModel extends GenericModel<PreferenceModel.Fields> {
+public class PreferenceConfig extends GenericConfig<PreferenceConfig.Fields> {
     private final PreferenceMigration preferenceMigration;
 
-    public PreferenceModel(PreferenceMigration preferenceMigration) {
+    public PreferenceConfig(PreferenceMigration preferenceMigration) {
         super("preference_id");
         this.preferenceMigration = preferenceMigration;
     }

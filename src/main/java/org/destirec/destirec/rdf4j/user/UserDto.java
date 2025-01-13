@@ -3,7 +3,7 @@ package org.destirec.destirec.rdf4j.user;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import org.destirec.destirec.rdf4j.interfaces.Dto;
-import org.destirec.destirec.rdf4j.interfaces.ModelFields;
+import org.destirec.destirec.rdf4j.interfaces.ConfigFields;
 import org.eclipse.rdf4j.model.IRI;
 import org.springframework.lang.NonNull;
 import org.springframework.lang.Nullable;
@@ -40,17 +40,17 @@ public record UserDto(
         this.occupation = occupation;
     }
 
-   public Map<ModelFields.Field, String> getMap() {
-        Map<ModelFields.Field, String> requiredFields = new java.util.HashMap<>(Map.ofEntries(
-                Map.entry(UserModel.Fields.USERNAME, username),
-                Map.entry(UserModel.Fields.EMAIL, email)
+   public Map<ConfigFields.Field, String> getMap() {
+        Map<ConfigFields.Field, String> requiredFields = new java.util.HashMap<>(Map.ofEntries(
+                Map.entry(UserConfig.Fields.USERNAME, username),
+                Map.entry(UserConfig.Fields.EMAIL, email)
         ));
         if (name != null) {
-            requiredFields.put(UserModel.Fields.NAME, username);
+            requiredFields.put(UserConfig.Fields.NAME, username);
         }
 
         if (occupation != null) {
-            requiredFields.put(UserModel.Fields.OCCUPATION, occupation);
+            requiredFields.put(UserConfig.Fields.OCCUPATION, occupation);
         }
         return requiredFields;
    }

@@ -7,7 +7,7 @@ import org.eclipse.rdf4j.sparqlbuilder.core.Variable;
 
 import java.util.Map;
 
-public interface ModelFields<T extends Enum<T> & ModelFields.Field> {
+public interface ConfigFields<T extends Enum<T> & ConfigFields.Field> {
     interface Field {
         String getName();
 
@@ -18,6 +18,8 @@ public interface ModelFields<T extends Enum<T> & ModelFields.Field> {
     Map<T, ValueContainer<Variable>> getVariableNames();
     Map<T, ValueContainer<IRI>> getPredicates();
 
+    Map<T, Boolean> getIsOptionals();
+
     Map<T, ValueContainer<IRI>> getReadPredicates();
 
     Map<T, ValueContainer<CoreDatatype>> getTypes();
@@ -27,6 +29,8 @@ public interface ModelFields<T extends Enum<T> & ModelFields.Field> {
     ValueContainer<Variable> getVariable(T field);
 
     ValueContainer<CoreDatatype> getType(T field);
+
+    Boolean getIsOptional(T field);
 
     String getResourceLocation();
 }

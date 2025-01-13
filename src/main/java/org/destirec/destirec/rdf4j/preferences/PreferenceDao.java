@@ -5,10 +5,10 @@ import org.eclipse.rdf4j.spring.support.RDF4JTemplate;
 import org.springframework.stereotype.Repository;
 
 @Repository
-public class PreferenceDao extends GenericDao<PreferenceModel.Fields, PreferenceDto> {
+public class PreferenceDao extends GenericDao<PreferenceConfig.Fields, PreferenceDto> {
     public PreferenceDao(
             RDF4JTemplate rdf4JTemplate,
-            PreferenceModel modelFields,
+            PreferenceConfig modelFields,
             PreferenceMigration migration,
             PreferenceDtoCreator dtoCreator
     ) {

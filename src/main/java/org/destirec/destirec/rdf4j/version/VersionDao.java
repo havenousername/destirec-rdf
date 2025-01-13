@@ -5,10 +5,10 @@ import org.eclipse.rdf4j.spring.support.RDF4JTemplate;
 import org.springframework.stereotype.Repository;
 
 @Repository
-public class VersionDao extends GenericDao<VersionModel.Fields, VersionDto> {
+public class VersionDao extends GenericDao<VersionConfig.Fields, VersionDto> {
     public VersionDao(
             RDF4JTemplate rdf4JTemplate,
-            VersionModel model,
+            VersionConfig model,
             SchemaVersionMigration migration,
             VersionDtoCreator creator
     ) {

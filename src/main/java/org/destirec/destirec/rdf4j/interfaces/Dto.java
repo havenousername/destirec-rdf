@@ -5,6 +5,6 @@ import org.eclipse.rdf4j.model.IRI;
 import java.util.Map;
 
 public interface Dto {
-    Map<ModelFields.Field, String> getMap();
+    Map<ConfigFields.Field, String> getMap();
     IRI id();
 }

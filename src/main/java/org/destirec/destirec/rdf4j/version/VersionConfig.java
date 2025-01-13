@@ -2,8 +2,8 @@ package org.destirec.destirec.rdf4j.version;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
-import org.destirec.destirec.rdf4j.interfaces.GenericModel;
-import org.destirec.destirec.rdf4j.interfaces.ModelFields;
+import org.destirec.destirec.rdf4j.interfaces.GenericConfig;
+import org.destirec.destirec.rdf4j.interfaces.ConfigFields;
 import org.destirec.destirec.utils.ValueContainer;
 import org.eclipse.rdf4j.model.IRI;
 import org.eclipse.rdf4j.model.base.CoreDatatype;
@@ -12,9 +12,9 @@ import org.eclipse.rdf4j.sparqlbuilder.core.Variable;
 import org.springframework.stereotype.Component;
 
 @Component
-public class VersionModel extends GenericModel<VersionModel.Fields> {
+public class VersionConfig extends GenericConfig<VersionConfig.Fields> {
     private final SchemaPredicateMigration schemaPredicate;
-    public VersionModel(SchemaPredicateMigration schemaPredicate) {
+    public VersionConfig(SchemaPredicateMigration schemaPredicate) {
         super("version_id");
         this.schemaPredicate = schemaPredicate;
     }
@@ -47,7 +47,7 @@ public class VersionModel extends GenericModel<VersionModel.Fields> {
 
     @Getter
     @AllArgsConstructor
-    public enum Fields implements ModelFields.Field {
+    public enum Fields implements ConfigFields.Field {
         VERSION("version", true);
 
         private final String name;

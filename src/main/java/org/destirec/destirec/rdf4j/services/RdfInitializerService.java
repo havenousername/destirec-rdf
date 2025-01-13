@@ -2,7 +2,7 @@ package org.destirec.destirec.rdf4j.services;
 
 import org.destirec.destirec.rdf4j.version.VersionDao;
 import org.destirec.destirec.rdf4j.version.VersionDto;
-import org.destirec.destirec.rdf4j.version.VersionModel;
+import org.destirec.destirec.rdf4j.version.VersionConfig;
 import org.eclipse.rdf4j.model.IRI;
 import org.springframework.stereotype.Service;
 
@@ -23,7 +23,7 @@ public class RdfInitializerService {
     public IRI initializeRdfVersion() {
         VersionDto versionDto = versionDao
                 .getDtoCreator()
-                .create(Map.of(VersionModel.Fields.VERSION, "1"));
+                .create(Map.of(VersionConfig.Fields.VERSION, "1"));
         return versionDao.saveAndReturnId(versionDto);
     }
 }

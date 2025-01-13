@@ -7,15 +7,15 @@ import org.springframework.stereotype.Component;
 import java.util.Map;
 
 @Component
-public class VersionDtoCreator implements DtoCreator<VersionDto, VersionModel.Fields> {
+public class VersionDtoCreator implements DtoCreator<VersionDto, VersionConfig.Fields> {
 
     @Override
-    public VersionDto create(IRI id, Map<VersionModel.Fields, String> map) {
-        return new VersionDto(id, Float.parseFloat(map.get(VersionModel.Fields.VERSION)));
+    public VersionDto create(IRI id, Map<VersionConfig.Fields, String> map) {
+        return new VersionDto(id, Float.parseFloat(map.get(VersionConfig.Fields.VERSION)));
     }
 
     @Override
-    public VersionDto create(Map<VersionModel.Fields, String> map) {
+    public VersionDto create(Map<VersionConfig.Fields, String> map) {
         return create(null, map);
     }
 }

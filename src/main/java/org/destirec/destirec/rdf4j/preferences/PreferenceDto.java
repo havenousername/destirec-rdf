@@ -5,7 +5,7 @@ import lombok.Getter;
 import lombok.Setter;
 import lombok.ToString;
 import org.destirec.destirec.rdf4j.interfaces.Dto;
-import org.destirec.destirec.rdf4j.interfaces.ModelFields;
+import org.destirec.destirec.rdf4j.interfaces.ConfigFields;
 import org.destirec.destirec.rdf4j.preferences.months.MonthDto;
 import org.eclipse.rdf4j.model.IRI;
 
@@ -26,14 +26,14 @@ public class PreferenceDto implements Dto {
     @Setter
     private List<MonthDto> monthsDto;
 
-    public Map<ModelFields.Field, String> getMap() {
+    public Map<ConfigFields.Field, String> getMap() {
         return Map.of(
-          PreferenceModel.Fields.IS_PRICE_IMPORTANT, Boolean.toString(isPriceImportant),
-          PreferenceModel.Fields.PRICE_RANGE, Float.toString(priceRange),
-          PreferenceModel.Fields.IS_POPULARITY_IMPORTANT, Boolean.toString(isPopularityImportant),
-          PreferenceModel.Fields.POPULARITY_RANGE, Float.toString(popularityRange),
-          PreferenceModel.Fields.PREFERENCE_AUTHOR, preferenceAuthor.stringValue(),
-          PreferenceModel.Fields.MONTHS, monthsDto.stream()
+          PreferenceConfig.Fields.IS_PRICE_IMPORTANT, Boolean.toString(isPriceImportant),
+          PreferenceConfig.Fields.PRICE_RANGE, Float.toString(priceRange),
+          PreferenceConfig.Fields.IS_POPULARITY_IMPORTANT, Boolean.toString(isPopularityImportant),
+          PreferenceConfig.Fields.POPULARITY_RANGE, Float.toString(popularityRange),
+          PreferenceConfig.Fields.PREFERENCE_AUTHOR, preferenceAuthor.stringValue(),
+          PreferenceConfig.Fields.MONTHS, monthsDto.stream()
                         .map(month -> month.id() + ",")
                         .collect(Collectors.joining())
         );
