@@ -1,6 +1,6 @@
-package org.destirec.destirec.rdf4j.user;
+package org.destirec.destirec.rdf4j.user.apiDto;
 
-public record ExternalUserDto (
+public record CreateUserDto(
         String id,
         String name,
         String username,

@@ -4,10 +4,10 @@ import org.destirec.destirec.rdf4j.preferences.PreferenceDao;
 import org.destirec.destirec.rdf4j.preferences.PreferenceDto;
 import org.destirec.destirec.rdf4j.preferences.months.MonthDao;
 import org.destirec.destirec.rdf4j.preferences.months.MonthDto;
-import org.destirec.destirec.rdf4j.user.ExternalUserDto;
 import org.destirec.destirec.rdf4j.user.UserDao;
 import org.destirec.destirec.rdf4j.user.UserDto;
 import org.destirec.destirec.rdf4j.user.UserDtoCreator;
+import org.destirec.destirec.rdf4j.user.apiDto.CreateUserDto;
 import org.eclipse.rdf4j.model.IRI;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -27,6 +27,8 @@ public class UserPreferenceService {
 
     protected Logger logger = LoggerFactory.getLogger(getClass());
 
+    private final UserDtoCreator creator;
+
 
     public UserPreferenceService(
             UserDao userDao,
@@ -36,13 +38,13 @@ public class UserPreferenceService {
         this.userDao = userDao;
         this.preferenceDao = preferenceDao;
         this.monthDao = monthDao;
+        creator =  (UserDtoCreator)userDao
+                .getDtoCreator();
     }
 
     @Transactional
-    public IRI createUser(ExternalUserDto externalUserDto) {
-        UserDtoCreator creator =  (UserDtoCreator)userDao
-                .getDtoCreator();
-        UserDto userDto = creator.create(externalUserDto);
+    public IRI createUser(CreateUserDto createUserDto) {
+        UserDto userDto = creator.create(createUserDto);
 
         Optional<UserDto> existUser = userDao.getByIdOptional(userDto.id());
         if (existUser.isPresent()) {
@@ -58,12 +60,16 @@ public class UserPreferenceService {
     }
 
     @Transactional
-    public IRI updateUser(IRI id, UserDto user) {
-        Optional<UserDto> userDtoOptional = userDao.getByIdOptional(id);
+    public IRI updateUser(String id, CreateUserDto user) {
+        UserDto userDto = creator.create(id, user);
+        Optional<UserDto> userDtoOptional = userDao.getByIdOptional(userDto.id());
         if (userDtoOptional.isEmpty()) {
             throw new IllegalArgumentException("Cannot find user for updating it");
         }
-        return userDao.saveAndReturnId(user, id);
+        logger.info("Update user with DTO " + userDto);
+        IRI userId = userDao.saveAndReturnId(userDto, userDtoOptional.get().id());
+        logger.info("User with id " + userId + " was updated");
+        return userId;
     }
 
     @Transactional
@@ -72,8 +78,8 @@ public class UserPreferenceService {
     }
 
     @Transactional
-    public UserDto getUser(IRI userIRI) {
-        return userDao.getById(userIRI);
+    public UserDto getUser(String id) {
+        return userDao.getById(creator.createId(id));
     }
 
     @Transactional

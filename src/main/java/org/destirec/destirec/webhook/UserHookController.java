@@ -1,10 +1,11 @@
 package org.destirec.destirec.webhook;
 
 import org.destirec.destirec.rdf4j.services.UserPreferenceService;
-import org.destirec.destirec.rdf4j.user.ExternalUserDto;
+import org.destirec.destirec.rdf4j.user.apiDto.CreateUserDto;
 import org.destirec.destirec.utils.ResponseData;
 import org.eclipse.rdf4j.model.IRI;
-import org.springframework.http.HttpStatus;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -12,13 +13,14 @@ import org.springframework.web.bind.annotation.*;
 @RequestMapping("/api/hook/user")
 public class UserHookController {
     private final UserPreferenceService userService;
+    protected Logger logger = LoggerFactory.getLogger(getClass());
 
     public UserHookController(UserPreferenceService userService) {
         this.userService = userService;
     }
 
     @PostMapping
-    public ResponseEntity<ResponseData<String>> createUser(@RequestBody ExternalUserDto dto) {
+    public ResponseEntity<ResponseData<String>> createUser(@RequestBody CreateUserDto dto) {
         try {
             IRI userIRI = userService.createUser(dto);
             var response = new ResponseData<String>();
@@ -35,10 +37,19 @@ public class UserHookController {
     }
 
     @PutMapping(value = "/{userId}")
-    public ResponseEntity<String> updateUser(@PathVariable String userId, @RequestBody ExternalUserDto user) {
-        System.out.println("Id is " + userId);
-        System.out.println("User is" + user);
-
-        return new ResponseEntity<>("Success", HttpStatus.ACCEPTED);
+    public ResponseEntity<ResponseData<String>> updateUser(@PathVariable String userId, @RequestBody CreateUserDto user) {
+        try {
+            IRI updatedUserIRI = userService.updateUser(userId, user);
+            var response = new ResponseData<String>();
+            response.setData(updatedUserIRI.stringValue());
+            return ResponseEntity.ok(response);
+        }
+        catch (Exception exception) {
+            var response  = new ResponseData<String>();
+            response.setError(exception.getMessage());
+            return ResponseEntity.
+                    badRequest()
+                    .body(response);
+        }
     }
 }

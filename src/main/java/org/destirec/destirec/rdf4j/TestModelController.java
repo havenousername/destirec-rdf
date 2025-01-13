@@ -10,6 +10,7 @@ import org.destirec.destirec.rdf4j.services.UserPreferenceService;
 import org.destirec.destirec.rdf4j.user.UserDto;
 import org.eclipse.rdf4j.model.IRI;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.ArrayList;
@@ -115,5 +116,10 @@ public class TestModelController {
         createUserPreferencesResources();
 
         return modelRDF.toString();
+    }
+
+    @GetMapping(path = "/users/{userId}")
+    public UserDto getUser(@PathVariable String userId) {
+        return userService.getUser(userId);
     }
 }

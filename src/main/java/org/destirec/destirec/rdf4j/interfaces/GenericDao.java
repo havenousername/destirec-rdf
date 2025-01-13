@@ -22,6 +22,7 @@ import org.eclipse.rdf4j.spring.util.QueryResultUtils;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
@@ -154,10 +155,14 @@ public abstract class GenericDao<FieldEnum extends Enum<FieldEnum> & ConfigField
                 .stream()
                 .map((key) -> {
                     var variableContainer = configFields.getVariable(key);
+                    if (configFields.getIsOptional(key)) {
+                        return null;
+                    }
                     QueryStringVisitor visitor = new QueryStringVisitor(querySolution);
                     variableContainer.accept(visitor);
                     return Map.entry(key, visitor.getQueryString().toString());
                 })
+                .filter(Objects::nonNull)
                 .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
         return dtoCreator.create(id, map);
     }
