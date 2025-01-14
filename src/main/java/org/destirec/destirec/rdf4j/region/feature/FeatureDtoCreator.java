@@ -21,4 +21,8 @@ public class FeatureDtoCreator implements DtoCreator<FeatureDto, FeatureConfig.F
     public FeatureDto create(Map<FeatureConfig.Fields, String> map) {
         return create(null, map);
     }
+
+    public FeatureDto create(Map.Entry<String, Integer> entry) {
+        return new FeatureDto(null, entry.getKey(), entry.getValue());
+    }
 }

@@ -14,4 +14,9 @@ public class MonthDao extends GenericDao<MonthConfig.Fields, MonthDto> {
     ) {
         super(rdf4JTemplate, modelFields, migration, dtoCreator);
     }
+
+    @Override
+    public MonthDtoCreator getDtoCreator() {
+        return (MonthDtoCreator) super.getDtoCreator();
+    }
 }

@@ -18,4 +18,12 @@ public class MonthDtoCreator implements DtoCreator<MonthDto, MonthConfig.Fields>
     public MonthDto create(Map<MonthConfig.Fields, String> map) {
         return create(null, map);
     }
+
+    public MonthDto create(Map.Entry<Month, Integer> month) {
+        return new MonthDto(null, month.getKey(), month.getValue());
+    }
+
+    public MonthDto create(Month month, int value) {
+        return new MonthDto(null, month, value);
+    }
 }

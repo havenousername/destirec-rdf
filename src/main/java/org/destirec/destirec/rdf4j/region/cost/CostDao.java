@@ -13,4 +13,9 @@ public class CostDao extends GenericDao<CostConfig.Fields, CostDto> {
             CostDtoCreator dtoCreator) {
         super(rdf4JTemplate, configFields, migration, dtoCreator);
     }
+
+    @Override
+    public CostDtoCreator getDtoCreator() {
+        return (CostDtoCreator) super.getDtoCreator();
+    }
 }

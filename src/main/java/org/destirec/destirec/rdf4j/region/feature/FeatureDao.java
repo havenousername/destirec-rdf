@@ -14,4 +14,9 @@ public class FeatureDao extends GenericDao<FeatureConfig.Fields, FeatureDto> {
     ) {
         super(rdf4JTemplate, configFields, migration, dtoCreator);
     }
+
+    @Override
+    public FeatureDtoCreator getDtoCreator() {
+        return (FeatureDtoCreator) super.getDtoCreator();
+    }
 }

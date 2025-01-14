@@ -21,4 +21,9 @@ public class CostDtoCreator implements DtoCreator<CostDto, CostConfig.Fields> {
     public CostDto create(Map<CostConfig.Fields, String> map) {
         return create(null, map);
     }
+
+
+    public CostDto create(int costPerWeek, int budgetLevel) {
+        return new CostDto(null, costPerWeek, budgetLevel);
+    }
 }
