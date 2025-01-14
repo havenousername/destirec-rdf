@@ -1,7 +1,7 @@
 package org.destirec.destirec.rdf4j.user;
 
 import org.destirec.destirec.rdf4j.interfaces.DtoCreator;
-import org.destirec.destirec.rdf4j.user.apiDto.CreateUserDto;
+import org.destirec.destirec.rdf4j.user.apiDto.ExternalUserDto;
 import org.eclipse.rdf4j.model.IRI;
 import org.eclipse.rdf4j.model.ValueFactory;
 import org.eclipse.rdf4j.model.impl.SimpleValueFactory;
@@ -29,13 +29,13 @@ public class UserDtoCreator implements DtoCreator<UserDto, UserConfig.Fields> {
         );
     }
 
-    public UserDto create(CreateUserDto createUserDto) {
+    public UserDto create(ExternalUserDto externalUserDto) {
         return new UserDto(
-                createId(userConfig.getResourceLocation() + createUserDto.id()),
-                createUserDto.name(),
-                createUserDto.username(),
-                createUserDto.email(),
-                createUserDto.occupation()
+                createId(externalUserDto.id()),
+                externalUserDto.name(),
+                externalUserDto.username(),
+                externalUserDto.email(),
+                externalUserDto.occupation()
         );
     }
 
@@ -43,13 +43,13 @@ public class UserDtoCreator implements DtoCreator<UserDto, UserConfig.Fields> {
         return valueFactory.createIRI(userConfig.getResourceLocation() + id);
     }
 
-    public UserDto create(String id, CreateUserDto createUserDto) {
+    public UserDto create(String id, ExternalUserDto externalUserDto) {
         return new UserDto(
                 createId(id),
-                createUserDto.name(),
-                createUserDto.username(),
-                createUserDto.email(),
-                createUserDto.occupation()
+                externalUserDto.name(),
+                externalUserDto.username(),
+                externalUserDto.email(),
+                externalUserDto.occupation()
         );
     }
 

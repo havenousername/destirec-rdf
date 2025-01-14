@@ -4,7 +4,7 @@ import org.destirec.destirec.rdf4j.months.MonthDao;
 import org.destirec.destirec.rdf4j.months.MonthDto;
 import org.destirec.destirec.rdf4j.preferences.PreferenceDao;
 import org.destirec.destirec.rdf4j.preferences.PreferenceDto;
-import org.destirec.destirec.rdf4j.user.apiDto.CreateUserDto;
+import org.destirec.destirec.rdf4j.user.apiDto.ExternalUserDto;
 import org.eclipse.rdf4j.model.IRI;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -41,9 +41,8 @@ public class UserPreferenceService {
     }
 
     @Transactional
-    public IRI createUser(CreateUserDto createUserDto) {
-        UserDto userDto = creator.create(createUserDto);
-
+    public IRI createUser(ExternalUserDto externalUserDto) {
+        UserDto userDto = creator.create(externalUserDto);
         Optional<UserDto> existUser = userDao.getByIdOptional(userDto.id());
         if (existUser.isPresent()) {
             String msg = "User with ID " + existUser.get().id() + " is already present in the RDF database";
@@ -58,8 +57,9 @@ public class UserPreferenceService {
     }
 
     @Transactional
-    public IRI updateUser(String id, CreateUserDto user) {
+    public IRI updateUser(String id, ExternalUserDto user) {
         UserDto userDto = creator.create(id, user);
+        System.out.println(userDto.id() + " IS ID\n");
         Optional<UserDto> userDtoOptional = userDao.getByIdOptional(userDto.id());
         if (userDtoOptional.isEmpty()) {
             throw new IllegalArgumentException("Cannot find user for updating it");

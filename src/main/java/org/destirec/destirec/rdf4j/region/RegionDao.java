@@ -29,6 +29,11 @@ public class RegionDao extends GenericDao<RegionConfig.Fields, RegionDto> {
 
 
     @Override
+    public String getReadQuery() {
+        return super.getReadQuery();
+    }
+
+    @Override
     public RegionConfig getConfigFields() {
         return (RegionConfig) super.getConfigFields();
     }

@@ -48,7 +48,7 @@ public class UpdateBindingsVisitor implements ContainerVisitor<Variable> {
         }
         String[] arrayString = dtoValue.split(",");
         CoreDatatype datatype = coreDatatype.hasNext() ? coreDatatype.next() : null;
-        for (int i = 0; i < arrayString.length; i++) {
+        for (int i = 0; i < arrayString.length && i < visitor.size(); i++) {
             if (coreDatatype.hasNext()) {
                 datatype = coreDatatype.next();
             }

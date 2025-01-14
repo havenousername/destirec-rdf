@@ -1,6 +1,6 @@
 package org.destirec.destirec.rdf4j.user;
 
-import org.destirec.destirec.rdf4j.user.apiDto.CreateUserDto;
+import org.destirec.destirec.rdf4j.user.apiDto.ExternalUserDto;
 import org.destirec.destirec.utils.ResponseData;
 import org.eclipse.rdf4j.model.IRI;
 import org.slf4j.Logger;
@@ -19,7 +19,7 @@ public class UserController {
     }
 
     @PostMapping
-    public ResponseEntity<ResponseData<String>> createUser(@RequestBody CreateUserDto dto) {
+    public ResponseEntity<ResponseData<String>> createUser(@RequestBody ExternalUserDto dto) {
         try {
             IRI userIRI = userService.createUser(dto);
             var response = new ResponseData<String>();
@@ -36,7 +36,7 @@ public class UserController {
     }
 
     @PutMapping(value = "/{userId}")
-    public ResponseEntity<ResponseData<String>> updateUser(@PathVariable String userId, @RequestBody CreateUserDto user) {
+    public ResponseEntity<ResponseData<String>> updateUser(@PathVariable String userId, @RequestBody ExternalUserDto user) {
         try {
             IRI updatedUserIRI = userService.updateUser(userId, user);
             var response = new ResponseData<String>();
