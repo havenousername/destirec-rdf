@@ -19,6 +19,8 @@ import java.util.Map;
 @AllArgsConstructor
 public class RegionDto implements Dto {
     public final IRI id;
+    private final String name;
+    private final IRI parentRegion;
     private CostDto cost;
     private List<MonthDto> months;
     private List<FeatureDto> features;
@@ -28,7 +30,9 @@ public class RegionDto implements Dto {
         return Map.of(
                 RegionConfig.Fields.FEATURES, SimpleDtoTransformations.toStringIds(features),
                 RegionConfig.Fields.MONTHS, SimpleDtoTransformations.toStringIds(months),
-                RegionConfig.Fields.COST, cost.id().stringValue()
+                RegionConfig.Fields.COST, cost.id().stringValue(),
+                RegionConfig.Fields.PARENT_REGION, parentRegion.stringValue(),
+                RegionConfig.Fields.NAME, name
         );
     }
 

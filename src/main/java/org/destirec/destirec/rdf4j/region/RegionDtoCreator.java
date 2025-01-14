@@ -3,6 +3,7 @@ package org.destirec.destirec.rdf4j.region;
 import org.destirec.destirec.rdf4j.interfaces.DtoCreator;
 import org.destirec.destirec.rdf4j.months.MonthDao;
 import org.destirec.destirec.rdf4j.months.MonthDto;
+import org.destirec.destirec.rdf4j.region.apiDto.ExternalRegionDto;
 import org.destirec.destirec.rdf4j.region.cost.CostDao;
 import org.destirec.destirec.rdf4j.region.cost.CostDto;
 import org.destirec.destirec.rdf4j.region.feature.FeatureDao;
@@ -23,10 +24,13 @@ public class RegionDtoCreator implements DtoCreator<RegionDto, RegionConfig.Fiel
     private final MonthDao monthDao;
     private final CostDao costDao;
 
-    public RegionDtoCreator(FeatureDao featureDao, MonthDao monthDao, CostDao costDao) {
+    private final RegionConfig regionConfig;
+
+    public RegionDtoCreator(FeatureDao featureDao, MonthDao monthDao, CostDao costDao, RegionConfig regionConfig) {
         this.featureDao = featureDao;
         this.monthDao = monthDao;
         this.costDao = costDao;
+        this.regionConfig = regionConfig;
     }
 
     @Override
@@ -45,6 +49,28 @@ public class RegionDtoCreator implements DtoCreator<RegionDto, RegionConfig.Fiel
         CostDto cost = costDao.getById(valueFactory.createIRI(map.get(RegionConfig.Fields.COST)));
         return new RegionDto(
                 id,
+                map.get(RegionConfig.Fields.NAME),
+                valueFactory.createIRI(map.get(RegionConfig.Fields.PARENT_REGION)),
+                cost,
+                months,
+                features
+        );
+    }
+
+    public IRI createId(String id) {
+        return valueFactory.createIRI(regionConfig.getResourceLocation() + id);
+    }
+
+    public RegionDto create(
+            ExternalRegionDto regionDto,
+            List<FeatureDto> features,
+            List<MonthDto> months,
+            CostDto cost
+    ) {
+        return new RegionDto(
+                createId(regionDto.id()),
+                regionDto.getName(),
+                createId(regionDto.parentRegion()),
                 cost,
                 months,
                 features

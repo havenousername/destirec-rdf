@@ -2,21 +2,28 @@ package org.destirec.destirec.rdf4j.region;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
+import lombok.Setter;
 import org.destirec.destirec.rdf4j.interfaces.GenericConfig;
 import org.destirec.destirec.rdf4j.vocabulary.DESTIREC;
 import org.destirec.destirec.utils.ValueContainer;
 import org.eclipse.rdf4j.model.IRI;
 import org.eclipse.rdf4j.model.base.CoreDatatype;
+import org.eclipse.rdf4j.model.vocabulary.FOAF;
+import org.eclipse.rdf4j.model.vocabulary.GEO;
 import org.eclipse.rdf4j.sparqlbuilder.core.SparqlBuilder;
 import org.eclipse.rdf4j.sparqlbuilder.core.Variable;
 import org.springframework.stereotype.Component;
 
+import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 @Component
 public class RegionConfig extends GenericConfig<RegionConfig.Fields> {
     private final RegionMigration regionMigration;
+
+    @Setter
+    private List<String> featureNames;
     public RegionConfig(RegionMigration regionMigration) {
         super("region_id");
         this.regionMigration = regionMigration;
@@ -28,6 +35,8 @@ public class RegionConfig extends GenericConfig<RegionConfig.Fields> {
             case FEATURES -> regionMigration.getHasFeatures().get();
             case MONTHS -> regionMigration.getHasMonths().get();
             case COST -> regionMigration.getHasCost().get();
+            case NAME -> FOAF.NAME;
+            case PARENT_REGION -> GEO.sfWithin;
             case null -> throw new IllegalArgumentException("Field is not defined");
         };
         return new ValueContainer<>(values);
@@ -35,6 +44,13 @@ public class RegionConfig extends GenericConfig<RegionConfig.Fields> {
 
     @Override
     public ValueContainer<Variable> getVariable(Fields field) {
+        if (field == Fields.FEATURES && featureNames != null) {
+            return new ValueContainer<>(featureNames
+                    .stream()
+                    .map(SparqlBuilder::var)
+                    .toList()
+            );
+        }
         switch (field) {
             case MONTHS, FEATURES -> {
                 return new ValueContainer<>(IntStream
@@ -42,7 +58,7 @@ public class RegionConfig extends GenericConfig<RegionConfig.Fields> {
                         .mapToObj(i -> SparqlBuilder.var(field.name() + i))
                         .collect(Collectors.toList()));
             }
-            case COST -> {
+            case COST, NAME, PARENT_REGION -> {
                 return new ValueContainer<>(SparqlBuilder.var(field.name()));
             }
             case null -> throw new IllegalArgumentException("Field is not defined");
@@ -67,6 +83,8 @@ public class RegionConfig extends GenericConfig<RegionConfig.Fields> {
     @Getter
     @AllArgsConstructor
     public enum Fields implements Field {
+        NAME("name", true),
+        PARENT_REGION("parentRegion", true),
         FEATURES("features", true),
         MONTHS("months", true),
         COST("costs", true);
