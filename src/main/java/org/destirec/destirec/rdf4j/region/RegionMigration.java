@@ -18,6 +18,9 @@ public class RegionMigration extends Migration {
     private PredicateInstance hasFeatures;
     protected RegionMigration(RDF4JTemplate rdf4jMethods) {
         super(rdf4jMethods, "Region");
+        initHasCost();
+        initHasFeatures();
+        initHasMonths();
     }
 
     private void initHasCost() {
