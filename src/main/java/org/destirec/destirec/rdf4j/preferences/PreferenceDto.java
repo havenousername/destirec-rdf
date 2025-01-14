@@ -1,4 +1,4 @@
-package org.destirec.destirec.rdf4j.user.preferences;
+package org.destirec.destirec.rdf4j.preferences;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -19,7 +19,7 @@ import java.util.Map;
 public final class PreferenceDto implements Dto {
     private final IRI id;
     private final IRI preferenceAuthor;
-    private final boolean  isPriceImportant;
+    private final boolean isPriceImportant;
     private final float priceRange;
     private final boolean isPopularityImportant;
     private float popularityRange;

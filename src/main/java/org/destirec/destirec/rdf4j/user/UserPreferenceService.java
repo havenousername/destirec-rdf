@@ -1,12 +1,9 @@
-package org.destirec.destirec.rdf4j.services;
+package org.destirec.destirec.rdf4j.user;
 
-import org.destirec.destirec.rdf4j.user.preferences.PreferenceDao;
-import org.destirec.destirec.rdf4j.user.preferences.PreferenceDto;
 import org.destirec.destirec.rdf4j.months.MonthDao;
 import org.destirec.destirec.rdf4j.months.MonthDto;
-import org.destirec.destirec.rdf4j.user.UserDao;
-import org.destirec.destirec.rdf4j.user.UserDto;
-import org.destirec.destirec.rdf4j.user.UserDtoCreator;
+import org.destirec.destirec.rdf4j.preferences.PreferenceDao;
+import org.destirec.destirec.rdf4j.preferences.PreferenceDto;
 import org.destirec.destirec.rdf4j.user.apiDto.CreateUserDto;
 import org.eclipse.rdf4j.model.IRI;
 import org.slf4j.Logger;
@@ -18,6 +15,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
+// TODO Separation of concerns between user and preference services
 @Service
 public class UserPreferenceService {
     private final UserDao userDao;

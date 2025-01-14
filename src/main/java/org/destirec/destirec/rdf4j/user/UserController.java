@@ -1,6 +1,5 @@
-package org.destirec.destirec.webhook;
+package org.destirec.destirec.rdf4j.user;
 
-import org.destirec.destirec.rdf4j.services.UserPreferenceService;
 import org.destirec.destirec.rdf4j.user.apiDto.CreateUserDto;
 import org.destirec.destirec.utils.ResponseData;
 import org.eclipse.rdf4j.model.IRI;
@@ -10,12 +9,12 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
-@RequestMapping("/api/hook/user")
-public class UserHookController {
+@RequestMapping("/api/user")
+public class UserController {
     private final UserPreferenceService userService;
     protected Logger logger = LoggerFactory.getLogger(getClass());
 
-    public UserHookController(UserPreferenceService userService) {
+    public UserController(UserPreferenceService userService) {
         this.userService = userService;
     }
 

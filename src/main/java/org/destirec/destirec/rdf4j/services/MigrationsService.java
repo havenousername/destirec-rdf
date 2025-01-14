@@ -5,7 +5,7 @@ import org.destirec.destirec.rdf4j.months.MonthMigration;
 import org.destirec.destirec.rdf4j.region.cost.CostMigration;
 import org.destirec.destirec.rdf4j.region.feature.FeatureMigration;
 import org.destirec.destirec.rdf4j.user.UserMigration;
-import org.destirec.destirec.rdf4j.user.preferences.PreferenceMigration;
+import org.destirec.destirec.rdf4j.preferences.PreferenceMigration;
 import org.destirec.destirec.rdf4j.version.SchemaVersionMigration;
 import org.eclipse.rdf4j.model.vocabulary.OWL;
 import org.eclipse.rdf4j.model.vocabulary.RDF;
