@@ -1,31 +1,31 @@
-package org.destirec.destirec.rdf4j.preferences.months;
+package org.destirec.destirec.rdf4j.region.feature;
+
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
-import org.destirec.destirec.rdf4j.interfaces.GenericConfig;
 import org.destirec.destirec.rdf4j.interfaces.ConfigFields;
+import org.destirec.destirec.rdf4j.interfaces.GenericConfig;
 import org.destirec.destirec.rdf4j.vocabulary.DESTIREC;
 import org.destirec.destirec.utils.ValueContainer;
 import org.eclipse.rdf4j.model.IRI;
 import org.eclipse.rdf4j.model.base.CoreDatatype;
+import org.eclipse.rdf4j.model.vocabulary.OWL;
+import org.eclipse.rdf4j.model.vocabulary.SKOS;
 import org.eclipse.rdf4j.sparqlbuilder.core.SparqlBuilder;
 import org.eclipse.rdf4j.sparqlbuilder.core.Variable;
 import org.springframework.stereotype.Component;
 
 @Component
-public class MonthConfig extends GenericConfig<MonthConfig.Fields> {
-    private final MonthMigration monthMigration;
-
-    public MonthConfig(MonthMigration monthMigration) {
-        super("month_id");
-        this.monthMigration = monthMigration;
+public class FeatureConfig extends GenericConfig<FeatureConfig.Fields> {
+    public FeatureConfig() {
+        super("feature_id");
     }
 
     @Override
     public ValueContainer<IRI> getPredicate(Fields field) {
         var predicate = switch (field) {
-            case RANGE -> monthMigration.getValueRange().get();
-            case MONTH -> monthMigration.getMonth().get();
+            case KIND -> SKOS.CONCEPT;
+            case VALUE -> OWL.HASVALUE;
         };
         return new ValueContainer<>(predicate);
     }
@@ -38,15 +38,15 @@ public class MonthConfig extends GenericConfig<MonthConfig.Fields> {
     @Override
     public ValueContainer<CoreDatatype> getType(Fields field) {
         var type = switch (field) {
-            case MONTH -> CoreDatatype.XSD.GMONTH;
-            case RANGE -> CoreDatatype.XSD.FLOAT;
+            case KIND -> CoreDatatype.XSD.STRING;
+            case VALUE -> CoreDatatype.XSD.FLOAT;
         };
         return new ValueContainer<>(type);
     }
 
     @Override
     public String getResourceLocation() {
-        return DESTIREC.NAMESPACE + "/resource/month/";
+        return DESTIREC.NAMESPACE + "/resource/feature/";
     }
 
     @Override
@@ -57,8 +57,8 @@ public class MonthConfig extends GenericConfig<MonthConfig.Fields> {
     @AllArgsConstructor
     @Getter
     public enum Fields implements ConfigFields.Field {
-        MONTH("month", true),
-        RANGE("monthRange", true);
+        VALUE("value", true),
+        KIND("kind", true);
         private final String name;
         private final boolean isRead;
     }

@@ -1,4 +1,4 @@
-package org.destirec.destirec.rdf4j.preferences;
+package org.destirec.destirec.rdf4j.user.preferences;
 
 import lombok.Getter;
 import org.destirec.destirec.rdf4j.interfaces.Migration;
@@ -18,7 +18,6 @@ public class PreferenceMigration extends Migration {
     private PredicateInstance priceRange;
 
     private PredicateInstance isPopularityImportant;
-
     private PredicateInstance popularityRange;
 
     private PredicateInstance monthPreference;

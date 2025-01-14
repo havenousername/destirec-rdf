@@ -1,4 +1,4 @@
-package org.destirec.destirec.rdf4j.preferences.months;
+package org.destirec.destirec.rdf4j.months;
 
 import org.destirec.destirec.rdf4j.interfaces.Dto;
 import org.destirec.destirec.rdf4j.interfaces.ConfigFields;

@@ -19,5 +19,7 @@ public class WIKIDATA {
 
     public static final IRI RDF = new InternedIRI(NAMESPACE, "Q54872");
 
+    public static final IRI WEEK = new InternedIRI(NAMESPACE, "Q23387");
+
     private WIKIDATA() {}
 }

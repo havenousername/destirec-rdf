@@ -1,9 +1,9 @@
 package org.destirec.destirec.rdf4j.services;
 
-import org.destirec.destirec.rdf4j.preferences.PreferenceDao;
-import org.destirec.destirec.rdf4j.preferences.PreferenceDto;
-import org.destirec.destirec.rdf4j.preferences.months.MonthDao;
-import org.destirec.destirec.rdf4j.preferences.months.MonthDto;
+import org.destirec.destirec.rdf4j.user.preferences.PreferenceDao;
+import org.destirec.destirec.rdf4j.user.preferences.PreferenceDto;
+import org.destirec.destirec.rdf4j.months.MonthDao;
+import org.destirec.destirec.rdf4j.months.MonthDto;
 import org.destirec.destirec.rdf4j.user.UserDao;
 import org.destirec.destirec.rdf4j.user.UserDto;
 import org.destirec.destirec.rdf4j.user.UserDtoCreator;

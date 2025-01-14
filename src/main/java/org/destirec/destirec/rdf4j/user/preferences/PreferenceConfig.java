@@ -1,4 +1,4 @@
-package org.destirec.destirec.rdf4j.preferences;
+package org.destirec.destirec.rdf4j.user.preferences;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;

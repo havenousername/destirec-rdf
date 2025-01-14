@@ -1,15 +1,15 @@
-package org.destirec.destirec.rdf4j.preferences;
+package org.destirec.destirec.rdf4j.user.preferences;
 
 import org.destirec.destirec.rdf4j.interfaces.DtoCreator;
-import org.destirec.destirec.rdf4j.preferences.months.MonthDao;
-import org.destirec.destirec.rdf4j.preferences.months.MonthDto;
+import org.destirec.destirec.rdf4j.months.MonthDao;
+import org.destirec.destirec.rdf4j.months.MonthDto;
+import org.destirec.destirec.utils.SimpleDtoTransformations;
 import org.eclipse.rdf4j.model.IRI;
 import org.eclipse.rdf4j.model.ValueFactory;
 import org.eclipse.rdf4j.model.impl.SimpleValueFactory;
 import org.springframework.stereotype.Component;
 
 import java.time.Month;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.IntStream;
@@ -25,7 +25,7 @@ public class PreferenceDtoCreator implements DtoCreator<PreferenceDto, Preferenc
 
     @Override
     public PreferenceDto create(IRI id, Map<PreferenceConfig.Fields, String> map) {
-        List<String> monthsString = Arrays.stream(map.get(PreferenceConfig.Fields.MONTHS).split(",")).toList();
+        List<String> monthsString = SimpleDtoTransformations.toListString(map.get(PreferenceConfig.Fields.MONTHS));
         List<MonthDto> months = monthsString
                 .stream()
                 .map(month -> monthDao.getById(monthDao.getValueFactory().createIRI(month)))

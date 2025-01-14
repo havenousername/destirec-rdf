@@ -22,5 +22,4 @@ public class SparqlHelperMethods {
     public static Variable createConcatVariable(Variable variable) {
         return SparqlBuilder.var("concat_" + variable.getVarName());
     }
-
 }

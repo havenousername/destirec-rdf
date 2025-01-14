@@ -1,4 +1,4 @@
-package org.destirec.destirec.rdf4j.preferences.months;
+package org.destirec.destirec.rdf4j.months;
 
 import org.destirec.destirec.rdf4j.interfaces.GenericDao;
 import org.eclipse.rdf4j.spring.support.RDF4JTemplate;

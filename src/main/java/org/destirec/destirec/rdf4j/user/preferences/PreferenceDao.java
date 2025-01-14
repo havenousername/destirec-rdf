@@ -1,4 +1,4 @@
-package org.destirec.destirec.rdf4j.preferences;
+package org.destirec.destirec.rdf4j.user.preferences;
 
 import org.destirec.destirec.rdf4j.interfaces.GenericDao;
 import org.eclipse.rdf4j.spring.support.RDF4JTemplate;
