@@ -31,8 +31,9 @@ public class UpdateBindingsVisitor implements ContainerVisitor<Variable> {
             return;
         }
 
-        if (coreDatatype.hasNext()) {
-            Literal literal = valueFactory.createLiteral(dtoValue, coreDatatype.next());
+        CoreDatatype next;
+        if (coreDatatype.hasNext() && (next = coreDatatype.next()) != null) {
+            Literal literal = valueFactory.createLiteral(dtoValue, next);
             builder
                     .add(visitor, literal);
         } else {

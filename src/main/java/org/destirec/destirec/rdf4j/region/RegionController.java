@@ -35,13 +35,20 @@ public class RegionController {
     }
 
     @PutMapping(value = "/{regionId}")
-    public ResponseEntity<ResponseData<String>> updateRegion(@RequestBody ExternalRegionDto dto) {
-//        try {
+    public ResponseEntity<ResponseData<String>> updateRegion(@RequestBody ExternalRegionDto dto, @PathVariable String regionId) {
+        try {
             IRI updatedRegionIRI = regionService.updateRegion(dto);
             var response = new ResponseData<String>();
             response.setData(updatedRegionIRI.stringValue());
             return ResponseEntity.ok(response);
-//        }
+        }  catch (Exception exception) {
+            var response = new ResponseData<String>();
+            response.setData(exception.getMessage());
+
+            return ResponseEntity
+                    .badRequest()
+                    .body(response);
+        }
     }
 
     @GetMapping(value = "/sparql/select")

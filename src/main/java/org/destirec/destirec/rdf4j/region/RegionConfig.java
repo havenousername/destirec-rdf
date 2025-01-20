@@ -67,6 +67,9 @@ public class RegionConfig extends GenericConfig<RegionConfig.Fields> {
 
     @Override
     public ValueContainer<CoreDatatype> getType(Fields field) {
+        if (field == Fields.NAME) {
+            return new ValueContainer<>(CoreDatatype.XSD.STRING);
+        }
         return new ValueContainer<>(null);
     }
 
