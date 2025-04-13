@@ -30,18 +30,23 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter-web")
     implementation("org.springframework.boot:spring-boot-starter-batch")
 
-    // .dotenv
-    implementation("io.github.cdimascio:dotenv-java:3.1.0")
 
     implementation("org.eclipse.rdf4j:rdf4j-spring:+")
     implementation(platform("org.eclipse.rdf4j:rdf4j-bom:+"))
     implementation("org.eclipse.rdf4j:rdf4j-storage")
+    implementation("org.springframework.boot:spring-boot-devtools")
+
+    // OWL API core
+    implementation("net.sourceforge.owlapi:owlapi-distribution:5.5.0")
+    implementation("net.sourceforge.owlapi:owlapi-rio:5.5.0")
+    implementation("net.sourceforge.owlapi:org.semanticweb.hermit:1.4.5.519")
 
     runtimeOnly("com.h2database:h2:2.3.+")
-    compileOnly("org.projectlombok:lombok")
     runtimeOnly("org.postgresql:postgresql")
+
     annotationProcessor("org.springframework.boot:spring-boot-configuration-processor")
     annotationProcessor("org.projectlombok:lombok")
+
     testImplementation("org.springframework.boot:spring-boot-starter-test")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 }
