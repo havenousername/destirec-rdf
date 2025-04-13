@@ -3,11 +3,14 @@ package org.destirec.destirec.rdf4j.region;
 import lombok.Getter;
 import org.destirec.destirec.rdf4j.interfaces.IriMigration;
 import org.destirec.destirec.rdf4j.interfaces.IriMigrationInstance;
-import org.destirec.destirec.rdf4j.vocabulary.DBPEDIA;
+import org.destirec.destirec.rdf4j.ontology.DestiRecOntology;
+import org.destirec.destirec.rdf4j.ontology.TopOntologyMigration;
+import org.eclipse.rdf4j.model.vocabulary.GEO;
 import org.eclipse.rdf4j.model.vocabulary.OWL;
 import org.eclipse.rdf4j.model.vocabulary.RDF;
 import org.eclipse.rdf4j.model.vocabulary.RDFS;
 import org.eclipse.rdf4j.spring.support.RDF4JTemplate;
+import org.semanticweb.owlapi.model.*;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -16,11 +19,107 @@ public class RegionMigration extends IriMigration {
     private IriMigrationInstance hasCost;
     private IriMigrationInstance hasMonths;
     private IriMigrationInstance hasFeatures;
-    protected RegionMigration(RDF4JTemplate rdf4jMethods) {
+    private final TopOntologyMigration topOntologyMigration;
+    private final DestiRecOntology destiRecOntology;
+    private final IRI parentRegion = IRI.create("ParentRegion");
+    private final IRI leafRegion = IRI.create("LeafRegion");
+    private final IRI rootRegion = IRI.create("RootRegion");
+
+    protected RegionMigration(RDF4JTemplate rdf4jMethods, TopOntologyMigration topOntologyMigration, DestiRecOntology destiRecOntology) {
         super(rdf4jMethods, "Region");
+        this.topOntologyMigration = topOntologyMigration;
+        this.destiRecOntology = destiRecOntology;
         initHasCost();
         initHasFeatures();
         initHasMonths();
+        defineOntology();
+    }
+
+    class RegionOntology {
+        OWLClass region = destiRecOntology.getFactory().getOWLClass(get().stringValue());
+        OWLClass object = destiRecOntology.getFactory().getOWLClass(topOntologyMigration.get().stringValue());
+
+        OWLClass parentRegion = destiRecOntology.getFactory().getOWLClass(getParentRegion());
+        OWLClass leafRegion = destiRecOntology.getFactory().getOWLClass(getLeafRegion());
+
+        public void defineRegion() {
+            // Region \sqsubseteq Object, region is subclass of object
+            destiRecOntology.getManager().addAxiom(
+                    destiRecOntology.getOntology(),
+                    destiRecOntology.getFactory().getOWLSubClassOfAxiom(region, object)
+            );
+        }
+
+        public void defineRegionParentOrLeaf() {
+            // Region is either a parent region or a leaf region
+            OWLClassExpression unionLeafParent = destiRecOntology.getFactory().getOWLObjectUnionOf(parentRegion, leafRegion);
+            destiRecOntology.getManager().addAxiom(
+                    destiRecOntology.getOntology(),
+                    destiRecOntology.getFactory().getOWLEquivalentClassesAxiom(region, unionLeafParent)
+            );
+        }
+
+        public void defineLeafRegion() {
+            OWLObjectProperty sfWithin = destiRecOntology.getFactory().getOWLObjectProperty(GEO.NAMESPACE + "sfWithin");
+            OWLObjectPropertyExpression sfContains = destiRecOntology.getFactory().getOWLObjectInverseOf(sfWithin);
+            //  \exists sfWithin^{-1}.Region
+            OWLClassExpression someSubregionsInRegion = destiRecOntology
+                    .getFactory()
+                    .getOWLObjectSomeValuesFrom(sfContains, region);
+            //  \neg \exists sfWithin^{-1}.Region
+            OWLClassExpression noSubRegions = destiRecOntology
+                    .getFactory()
+                    .getOWLObjectComplementOf(someSubregionsInRegion);
+
+            // (=1 \ sfWithin.Region)
+            OWLClassExpression insideOneRegion = destiRecOntology
+                    .getFactory()
+                    .getOWLObjectExactCardinality(1, sfWithin, region);
+
+            OWLClassExpression leafDefinition = destiRecOntology.getFactory()
+                    .getOWLObjectIntersectionOf(region, insideOneRegion, noSubRegions);
+
+            // Define LeafRegion
+            destiRecOntology.getManager()
+                    .addAxiom(
+                            destiRecOntology.getOntology(),
+                            destiRecOntology.getFactory()
+                                    .getOWLEquivalentClassesAxiom(leafRegion, leafDefinition)
+                    );
+        }
+
+        public void defineParentRegion() {
+            OWLObjectProperty sfWithin = destiRecOntology.getFactory().getOWLObjectProperty(GEO.NAMESPACE + "sfWithin");
+            OWLObjectPropertyExpression sfContains = destiRecOntology.getFactory().getOWLObjectInverseOf(sfWithin);
+            // \forall sfWithin^{-1}.Region, all sfWithin contain regions
+            OWLClassExpression containsOnlyRegions = destiRecOntology.getFactory().getOWLObjectAllValuesFrom(sfContains, region);
+            OWLClassExpression containsMoreThanZero = destiRecOntology
+                    .getFactory()
+                    .getOWLObjectMinCardinality(1, sfContains, region);
+            OWLClassExpression insideOneOrLess = destiRecOntology
+                    .getFactory()
+                    .getOWLObjectMaxCardinality(1, sfWithin, region);
+
+            OWLClassExpression parentDefinition = destiRecOntology
+                    .getFactory()
+                    .getOWLObjectIntersectionOf(region, containsOnlyRegions, containsMoreThanZero, insideOneOrLess);
+
+            // Define equivalence
+            destiRecOntology.getManager()
+                    .addAxiom(
+                            destiRecOntology.getOntology(),
+                            destiRecOntology.getFactory()
+                                    .getOWLEquivalentClassesAxiom(parentRegion, parentDefinition)
+                    );
+        }
+    }
+
+    private void defineOntology() {
+        RegionOntology ontology = new RegionOntology();
+        ontology.defineRegion();
+        ontology.defineRegionParentOrLeaf();
+        ontology.defineLeafRegion();
+        ontology.defineParentRegion();
     }
 
     private void initHasCost() {
@@ -59,10 +158,11 @@ public class RegionMigration extends IriMigration {
 
     @Override
     protected void setupProperties() {
+        // Region \sqsubseteq Object
         builder
                 .add(get(), RDF.TYPE, OWL.CLASS)
-                .add(get(), RDFS.SUBPROPERTYOF, DBPEDIA.REGION)
-                .add(get(), RDFS.RANGE, RDFS.RESOURCE);
+                .add(get(), RDFS.SUBCLASSOF, topOntologyMigration.getObjectClass().get());
+
     }
 
     @Override
