@@ -77,7 +77,7 @@ public abstract class GenericDao<FieldEnum extends Enum<FieldEnum> & ConfigField
     public NamedSparqlSupplier getInsertSparql(DTO userDto) {
         return NamedSparqlSupplier.of(KEY_PREFIX_INSERT, () -> {
             TriplePattern pattern = configFields.getId()
-                    .isA(migration.get());
+                    .isA(migration.getResource());
             configFields.getPredicates().forEach((key, value) -> {
                 ValueContainer<Variable> variable = configFields.getVariable(key);
                 TriplesInsertVisitor insertVisitor = new TriplesInsertVisitor(pattern, value);
@@ -117,7 +117,7 @@ public abstract class GenericDao<FieldEnum extends Enum<FieldEnum> & ConfigField
 //        TriplePattern pattern = configFields.getId()
 //                .isA(migration.get());
         List<GraphPattern> graphPatterns = new ArrayList<>();
-        graphPatterns.add(configFields.getId().isA(migration.get()));
+        graphPatterns.add(configFields.getId().isA(migration.getResource()));
 
         configFields.getReadPredicates().forEach((key, value) -> {
             TriplesSelectVisitor visitor = new TriplesSelectVisitor(value, configFields.getId(), configFields.getIsOptional(key));

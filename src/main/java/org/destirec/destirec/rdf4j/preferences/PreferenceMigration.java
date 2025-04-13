@@ -1,8 +1,8 @@
 package org.destirec.destirec.rdf4j.preferences;
 
 import lombok.Getter;
-import org.destirec.destirec.rdf4j.interfaces.Migration;
-import org.destirec.destirec.rdf4j.interfaces.PredicateInstance;
+import org.destirec.destirec.rdf4j.interfaces.IriMigration;
+import org.destirec.destirec.rdf4j.interfaces.IriMigrationInstance;
 import org.destirec.destirec.rdf4j.vocabulary.WIKIDATA;
 import org.eclipse.rdf4j.model.vocabulary.OWL;
 import org.eclipse.rdf4j.model.vocabulary.RDF;
@@ -13,14 +13,14 @@ import org.springframework.stereotype.Component;
 
 @Component
 @Getter
-public class PreferenceMigration extends Migration {
-    private PredicateInstance isPriceImportant;
-    private PredicateInstance priceRange;
+public class PreferenceMigration extends IriMigration {
+    private IriMigrationInstance isPriceImportant;
+    private IriMigrationInstance priceRange;
 
-    private PredicateInstance isPopularityImportant;
-    private PredicateInstance popularityRange;
+    private IriMigrationInstance isPopularityImportant;
+    private IriMigrationInstance popularityRange;
 
-    private PredicateInstance monthPreference;
+    private IriMigrationInstance monthPreference;
 
     public PreferenceMigration(RDF4JTemplate rdf4jMethods) {
         super(rdf4jMethods, "Preference");
@@ -31,7 +31,7 @@ public class PreferenceMigration extends Migration {
     }
 
     private void initPrice() {
-        isPriceImportant = new PredicateInstance(
+        isPriceImportant = new IriMigrationInstance(
                 rdf4jMethods, "isPriceImportant",
                 (instance) -> instance.builder()
                         .add(instance.predicate(), RDF.TYPE, OWL.DATATYPEPROPERTY)
@@ -41,7 +41,7 @@ public class PreferenceMigration extends Migration {
         );
 
 
-        priceRange = new PredicateInstance(
+        priceRange = new IriMigrationInstance(
                 rdf4jMethods, "priceRange",
                 instance -> instance.builder()
                         .add(instance.predicate(), RDF.TYPE, OWL.DATATYPEPROPERTY)
@@ -53,7 +53,7 @@ public class PreferenceMigration extends Migration {
 
 
     private void initPopularity() {
-        isPopularityImportant = new PredicateInstance(
+        isPopularityImportant = new IriMigrationInstance(
                 rdf4jMethods, "isPopularityImportant",
                 (instance) -> instance.builder()
                         .add(instance.predicate(), RDF.TYPE, OWL.DATATYPEPROPERTY)
@@ -63,7 +63,7 @@ public class PreferenceMigration extends Migration {
         );
 
 
-        popularityRange = new PredicateInstance(
+        popularityRange = new IriMigrationInstance(
                 rdf4jMethods, "popularityRange",
                 instance -> instance.builder()
                         .add(instance.predicate(), RDF.TYPE, OWL.DATATYPEPROPERTY)
@@ -74,7 +74,7 @@ public class PreferenceMigration extends Migration {
     }
 
     private void initMonthPreference() {
-        monthPreference = new PredicateInstance(
+        monthPreference = new IriMigrationInstance(
                 rdf4jMethods, "monthsPreferences",
                 instance -> instance.builder()
                         .add(instance.predicate(), RDF.TYPE, OWL.CLASS)

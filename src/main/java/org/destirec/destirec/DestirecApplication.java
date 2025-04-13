@@ -2,6 +2,7 @@ package org.destirec.destirec;
 
 import org.destirec.destirec.rdf4j.services.MigrationsService;
 import org.destirec.destirec.rdf4j.services.RdfInitializerService;
+import org.destirec.destirec.reasoning.RegionReasoning;
 import org.eclipse.rdf4j.model.IRI;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -20,7 +21,8 @@ public class DestirecApplication {
     @Bean
     CommandLineRunner commandLineRunner(
             MigrationsService migration,
-            RdfInitializerService initializerService
+            RdfInitializerService initializerService,
+            RegionReasoning regionReasoning
     ) {
         return args -> {
             logger.info("Application has started. Next initial configuration will be set");
@@ -28,6 +30,10 @@ public class DestirecApplication {
             logger.info("Migrations have been finished. Next initialization of some basic RDF resources will be set");
             IRI version = initializerService.initializeRdfVersion();
             logger.info("RDF resource version with " + version + " iri has been be set");
+
+            // set up the reasoner and start inference process
+
+//            regionReasoning.initialize();
         };
     }
 }

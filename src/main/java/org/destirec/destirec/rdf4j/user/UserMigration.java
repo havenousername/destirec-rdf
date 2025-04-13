@@ -1,6 +1,6 @@
 package org.destirec.destirec.rdf4j.user;
 
-import org.destirec.destirec.rdf4j.interfaces.Migration;
+import org.destirec.destirec.rdf4j.interfaces.IriMigration;
 import org.eclipse.rdf4j.model.vocabulary.FOAF;
 import org.eclipse.rdf4j.model.vocabulary.OWL;
 import org.eclipse.rdf4j.model.vocabulary.RDF;
@@ -9,7 +9,7 @@ import org.eclipse.rdf4j.spring.support.RDF4JTemplate;
 import org.springframework.stereotype.Component;
 
 @Component
-public class UserMigration extends Migration {
+public class UserMigration extends IriMigration {
     public UserMigration(RDF4JTemplate template) {
         super(template, "User");
     }

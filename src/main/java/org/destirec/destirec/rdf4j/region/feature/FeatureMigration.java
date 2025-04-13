@@ -1,7 +1,7 @@
 package org.destirec.destirec.rdf4j.region.feature;
 
 import lombok.Getter;
-import org.destirec.destirec.rdf4j.interfaces.Migration;
+import org.destirec.destirec.rdf4j.interfaces.IriMigration;
 import org.destirec.destirec.rdf4j.vocabulary.DBPEDIA;
 import org.eclipse.rdf4j.model.vocabulary.OWL;
 import org.eclipse.rdf4j.model.vocabulary.RDF;
@@ -11,7 +11,7 @@ import org.springframework.stereotype.Component;
 
 @Component
 @Getter
-public class FeatureMigration extends Migration {
+public class FeatureMigration extends IriMigration {
     public FeatureMigration(RDF4JTemplate rdf4JTemplate) {
         super(rdf4JTemplate, "Feature");
     }

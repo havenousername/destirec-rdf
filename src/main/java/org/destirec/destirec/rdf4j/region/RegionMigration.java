@@ -1,8 +1,8 @@
 package org.destirec.destirec.rdf4j.region;
 
 import lombok.Getter;
-import org.destirec.destirec.rdf4j.interfaces.Migration;
-import org.destirec.destirec.rdf4j.interfaces.PredicateInstance;
+import org.destirec.destirec.rdf4j.interfaces.IriMigration;
+import org.destirec.destirec.rdf4j.interfaces.IriMigrationInstance;
 import org.destirec.destirec.rdf4j.vocabulary.DBPEDIA;
 import org.eclipse.rdf4j.model.vocabulary.OWL;
 import org.eclipse.rdf4j.model.vocabulary.RDF;
@@ -12,10 +12,10 @@ import org.springframework.stereotype.Component;
 
 @Component
 @Getter
-public class RegionMigration extends Migration {
-    private PredicateInstance hasCost;
-    private PredicateInstance hasMonths;
-    private PredicateInstance hasFeatures;
+public class RegionMigration extends IriMigration {
+    private IriMigrationInstance hasCost;
+    private IriMigrationInstance hasMonths;
+    private IriMigrationInstance hasFeatures;
     protected RegionMigration(RDF4JTemplate rdf4jMethods) {
         super(rdf4jMethods, "Region");
         initHasCost();
@@ -24,7 +24,7 @@ public class RegionMigration extends Migration {
     }
 
     private void initHasCost() {
-        hasCost = new PredicateInstance(
+        hasCost = new IriMigrationInstance(
                 rdf4jMethods, "hasCost",
                 (instance) -> instance
                         .builder()
@@ -36,7 +36,7 @@ public class RegionMigration extends Migration {
 
 
     private void initHasMonths() {
-        hasMonths = new PredicateInstance(
+        hasMonths = new IriMigrationInstance(
                 rdf4jMethods, "hasMonths",
                 (instance) -> instance
                         .builder()
@@ -47,7 +47,7 @@ public class RegionMigration extends Migration {
     }
 
     private void initHasFeatures() {
-        hasFeatures = new PredicateInstance(
+        hasFeatures = new IriMigrationInstance(
                 rdf4jMethods, "hasFeatures",
                 (instance) -> instance
                         .builder()

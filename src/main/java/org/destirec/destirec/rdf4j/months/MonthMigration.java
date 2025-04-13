@@ -2,8 +2,8 @@ package org.destirec.destirec.rdf4j.months;
 
 
 import lombok.Getter;
-import org.destirec.destirec.rdf4j.interfaces.Migration;
-import org.destirec.destirec.rdf4j.interfaces.PredicateInstance;
+import org.destirec.destirec.rdf4j.interfaces.IriMigration;
+import org.destirec.destirec.rdf4j.interfaces.IriMigrationInstance;
 import org.destirec.destirec.rdf4j.vocabulary.WIKIDATA;
 import org.eclipse.rdf4j.model.vocabulary.OWL;
 import org.eclipse.rdf4j.model.vocabulary.RDF;
@@ -14,9 +14,9 @@ import org.springframework.stereotype.Component;
 
 @Component
 @Getter
-public class MonthMigration extends Migration {
-    protected PredicateInstance month;
-    protected PredicateInstance valueRange;
+public class MonthMigration extends IriMigration {
+    protected IriMigrationInstance month;
+    protected IriMigrationInstance valueRange;
 
     public MonthMigration(RDF4JTemplate rdf4jMethods) {
         super(rdf4jMethods, "Month");
@@ -24,7 +24,7 @@ public class MonthMigration extends Migration {
     }
 
     protected void initMonth() {
-        month = new PredicateInstance(
+        month = new IriMigrationInstance(
                 rdf4jMethods, "month",
                 instance -> instance.builder()
                         .add(instance.predicate(), RDF.TYPE, OWL.DATATYPEPROPERTY)
@@ -33,7 +33,7 @@ public class MonthMigration extends Migration {
                         .add(instance.predicate(), RDFS.RANGE, XSD.GMONTH)
         );
 
-        valueRange = new PredicateInstance(
+        valueRange = new IriMigrationInstance(
                 rdf4jMethods, "monthRange",
                 instance -> instance.builder()
                         .add(instance.predicate(), RDF.TYPE, OWL.DATATYPEPROPERTY)

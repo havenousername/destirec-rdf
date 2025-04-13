@@ -1,8 +1,8 @@
 package org.destirec.destirec.rdf4j.region.cost;
 
 import lombok.Getter;
-import org.destirec.destirec.rdf4j.interfaces.Migration;
-import org.destirec.destirec.rdf4j.interfaces.PredicateInstance;
+import org.destirec.destirec.rdf4j.interfaces.IriMigration;
+import org.destirec.destirec.rdf4j.interfaces.IriMigrationInstance;
 import org.destirec.destirec.rdf4j.vocabulary.DBPEDIA;
 import org.destirec.destirec.rdf4j.vocabulary.SCHEMA;
 import org.eclipse.rdf4j.model.vocabulary.OWL;
@@ -14,9 +14,9 @@ import org.springframework.stereotype.Component;
 
 @Component
 @Getter
-public class CostMigration extends Migration {
-    private PredicateInstance costPerWeekPredicate;
-    private PredicateInstance budgetLevelPredicate;
+public class CostMigration extends IriMigration {
+    private IriMigrationInstance costPerWeekPredicate;
+    private IriMigrationInstance budgetLevelPredicate;
     public CostMigration(RDF4JTemplate rdf4jMethods) {
         super(rdf4jMethods, "Cost");
         initBudgetLevelPredicate();
@@ -24,7 +24,7 @@ public class CostMigration extends Migration {
     }
 
     protected void initCostPerWeekPredicate() {
-        costPerWeekPredicate = new PredicateInstance(
+        costPerWeekPredicate = new IriMigrationInstance(
                 rdf4jMethods, "hasCostPerWeek",
                 instance -> instance.builder()
                         .add(instance.predicate(), RDF.TYPE, OWL.DATATYPEPROPERTY)
@@ -36,7 +36,7 @@ public class CostMigration extends Migration {
     }
 
     protected void initBudgetLevelPredicate() {
-        budgetLevelPredicate = new PredicateInstance(
+        budgetLevelPredicate = new IriMigrationInstance(
                 rdf4jMethods, "hasBudgetLevel",
                 instance -> instance.builder()
                         .add(instance.predicate(), RDF.TYPE, OWL.DATATYPEPROPERTY)

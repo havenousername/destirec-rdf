@@ -1,19 +1,21 @@
 package org.destirec.destirec.rdf4j.interfaces;
 
 import lombok.Getter;
+import lombok.NonNull;
 import org.destirec.destirec.rdf4j.vocabulary.DESTIREC;
 import org.destirec.destirec.utils.ModelClause;
-import org.eclipse.rdf4j.model.IRI;
 import org.eclipse.rdf4j.model.Model;
 import org.eclipse.rdf4j.model.Namespace;
+import org.eclipse.rdf4j.model.Resource;
 import org.eclipse.rdf4j.model.ValueFactory;
 import org.eclipse.rdf4j.model.impl.SimpleValueFactory;
 import org.eclipse.rdf4j.model.util.ModelBuilder;
+import org.eclipse.rdf4j.repository.RepositoryConnection;
 import org.eclipse.rdf4j.sparqlbuilder.core.SparqlBuilder;
 import org.eclipse.rdf4j.sparqlbuilder.core.Variable;
 import org.eclipse.rdf4j.sparqlbuilder.core.query.ModifyQuery;
-import org.eclipse.rdf4j.sparqlbuilder.core.query.Queries;
 import org.eclipse.rdf4j.sparqlbuilder.graphpattern.TriplePattern;
+import org.eclipse.rdf4j.sparqlbuilder.rdf.RdfResource;
 import org.eclipse.rdf4j.spring.support.RDF4JTemplate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -25,7 +27,7 @@ public abstract class Migration implements Predicate {
     protected Logger logger = LoggerFactory.getLogger(getClass());
     protected final RDF4JTemplate rdf4jMethods;
 
-    protected final IRI iri;
+    protected final Resource iri;
     @Getter
     protected ValueFactory valueFactory = SimpleValueFactory.getInstance();
 
@@ -44,8 +46,12 @@ public abstract class Migration implements Predicate {
     @Getter
     protected boolean isMigrated;
 
-    protected Migration(RDF4JTemplate rdf4jMethods, String iriName) {
+    @Getter
+    protected RDFResource rdfEntity;
+
+    protected Migration(RDF4JTemplate rdf4jMethods, String iriName, @NonNull RDFResource entity) {
         this.rdf4jMethods = rdf4jMethods;
+        rdfEntity = entity;
         this.iri = createMigrationIRI(iriName);
 
         builder = new ModelBuilder();
@@ -54,9 +60,18 @@ public abstract class Migration implements Predicate {
         isMigrated = false;
     }
 
-    private IRI createMigrationIRI(String name) {
+    protected Migration(RDF4JTemplate rdf4jMethods, String iriName) {
+        this(rdf4jMethods, iriName, RDFResource.URI);
+    }
+
+    private Resource createMigrationIRI(String name) {
         try {
-            var iri = valueFactory.createIRI(DESTIREC.NAMESPACE, name);
+            Resource iri;
+            if (rdfEntity == RDFResource.B_NODE) {
+                iri = valueFactory.createBNode(name);
+            } else  {
+                iri = valueFactory.createIRI(DESTIREC.NAMESPACE, name);
+            }
             logger.info("Created iri " + iri + " for: " + name);
             return iri;
         } catch (Exception e) {
@@ -66,7 +81,7 @@ public abstract class Migration implements Predicate {
     }
 
     @Override
-    public IRI get() {
+    public Resource get() {
         return iri;
     }
 
@@ -85,6 +100,15 @@ public abstract class Migration implements Predicate {
         isSetup = true;
         logger.info("Setup is complete. Model created:\n" + builder.build().toString());
     }
+
+    protected abstract ModifyQuery handleMigrateQuery(
+            RepositoryConnection connection,
+            TriplePattern[] patterns,
+            Variable subject,
+            Variable object
+    );
+
+    public abstract RdfResource getResource();
 
     @Override
     public void migrate() {
@@ -105,9 +129,7 @@ public abstract class Migration implements Predicate {
                 Variable subject = SparqlBuilder.var("s");
                 Variable object = SparqlBuilder.var("o");
 
-                ModifyQuery query = Queries.INSERT()
-                        .delete(subject.has(get(), object))
-                        .insert(patterns);
+                ModifyQuery query = handleMigrateQuery(repositoryConnection, patterns, subject, object);
 
                 logger.info("Query for update: \n" + query.getQueryString());
                 repositoryConnection.prepareUpdate(query.getQueryString()).execute();

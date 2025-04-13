@@ -1,16 +1,19 @@
 package org.destirec.destirec.rdf4j.services;
 
+import org.destirec.destirec.rdf4j.functions.IsPalindrome;
 import org.destirec.destirec.rdf4j.interfaces.Migration;
 import org.destirec.destirec.rdf4j.months.MonthMigration;
+import org.destirec.destirec.rdf4j.ontology.TopOntologyMigration;
+import org.destirec.destirec.rdf4j.preferences.PreferenceMigration;
 import org.destirec.destirec.rdf4j.region.cost.CostMigration;
 import org.destirec.destirec.rdf4j.region.feature.FeatureMigration;
 import org.destirec.destirec.rdf4j.user.UserMigration;
-import org.destirec.destirec.rdf4j.preferences.PreferenceMigration;
 import org.destirec.destirec.rdf4j.version.SchemaVersionMigration;
 import org.eclipse.rdf4j.model.vocabulary.OWL;
 import org.eclipse.rdf4j.model.vocabulary.RDF;
 import org.eclipse.rdf4j.model.vocabulary.RDFS;
 import org.eclipse.rdf4j.model.vocabulary.XSD;
+import org.eclipse.rdf4j.query.algebra.evaluation.function.FunctionRegistry;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
@@ -28,8 +31,10 @@ public class MigrationsService {
             PreferenceMigration preferenceMigration,
             MonthMigration monthMigration,
             CostMigration costMigration,
-            FeatureMigration featureMigration
+            FeatureMigration featureMigration,
+            TopOntologyMigration topOntologyMigration
     ) {
+        migrations.add(topOntologyMigration);
         migrations.add(userMigration);
         migrations.add(versionMigration);
         migrations.add(preferenceMigration);
@@ -45,5 +50,6 @@ public class MigrationsService {
 
     public void runMigrations() {
         migrations.forEach(Migration::setupAndMigrate);
+        FunctionRegistry.getInstance().add(new IsPalindrome());
     }
 }
