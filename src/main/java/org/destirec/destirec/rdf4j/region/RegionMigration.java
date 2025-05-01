@@ -3,8 +3,10 @@ package org.destirec.destirec.rdf4j.region;
 import lombok.Getter;
 import org.destirec.destirec.rdf4j.interfaces.IriMigration;
 import org.destirec.destirec.rdf4j.interfaces.IriMigrationInstance;
+import org.destirec.destirec.rdf4j.interfaces.OntologyDefiner;
 import org.destirec.destirec.rdf4j.ontology.DestiRecOntology;
-import org.destirec.destirec.rdf4j.ontology.TopOntologyMigration;
+import org.destirec.destirec.utils.rdfDictionary.RegionNames;
+import org.destirec.destirec.utils.rdfDictionary.TopOntologyNames;
 import org.eclipse.rdf4j.model.vocabulary.GEO;
 import org.eclipse.rdf4j.model.vocabulary.OWL;
 import org.eclipse.rdf4j.model.vocabulary.RDF;
@@ -15,19 +17,17 @@ import org.springframework.stereotype.Component;
 
 @Component
 @Getter
-public class RegionMigration extends IriMigration {
+public class RegionMigration extends IriMigration implements OntologyDefiner {
     private IriMigrationInstance hasCost;
     private IriMigrationInstance hasMonths;
     private IriMigrationInstance hasFeatures;
-    private final TopOntologyMigration topOntologyMigration;
     private final DestiRecOntology destiRecOntology;
-    private final IRI parentRegion = IRI.create("ParentRegion");
-    private final IRI leafRegion = IRI.create("LeafRegion");
-    private final IRI rootRegion = IRI.create("RootRegion");
+    private final IRI parentRegion = IRI.create(RegionNames.Classes.PARENT_REGION);
+    private final IRI leafRegion = IRI.create(RegionNames.Classes.LEAF_REGION);
+    private final IRI rootRegion = IRI.create(RegionNames.Classes.ROOT_REGION);
 
-    protected RegionMigration(RDF4JTemplate rdf4jMethods, TopOntologyMigration topOntologyMigration, DestiRecOntology destiRecOntology) {
+    protected RegionMigration(RDF4JTemplate rdf4jMethods, DestiRecOntology destiRecOntology) {
         super(rdf4jMethods, "Region");
-        this.topOntologyMigration = topOntologyMigration;
         this.destiRecOntology = destiRecOntology;
         initHasCost();
         initHasFeatures();
@@ -37,7 +37,7 @@ public class RegionMigration extends IriMigration {
 
     class RegionOntology {
         OWLClass region = destiRecOntology.getFactory().getOWLClass(get().stringValue());
-        OWLClass object = destiRecOntology.getFactory().getOWLClass(topOntologyMigration.get().stringValue());
+        OWLClass object = destiRecOntology.getFactory().getOWLClass(TopOntologyNames.Classes.OBJECT);
 
         OWLClass parentRegion = destiRecOntology.getFactory().getOWLClass(getParentRegion());
         OWLClass leafRegion = destiRecOntology.getFactory().getOWLClass(getLeafRegion());
@@ -161,7 +161,7 @@ public class RegionMigration extends IriMigration {
         // Region \sqsubseteq Object
         builder
                 .add(get(), RDF.TYPE, OWL.CLASS)
-                .add(get(), RDFS.SUBCLASSOF, topOntologyMigration.getObjectClass().get());
+                .add(get(), RDFS.SUBCLASSOF, TopOntologyNames.Classes.OBJECT);
 
     }
 

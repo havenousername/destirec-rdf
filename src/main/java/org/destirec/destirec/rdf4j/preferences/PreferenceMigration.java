@@ -4,6 +4,7 @@ import lombok.Getter;
 import org.destirec.destirec.rdf4j.interfaces.IriMigration;
 import org.destirec.destirec.rdf4j.interfaces.IriMigrationInstance;
 import org.destirec.destirec.rdf4j.vocabulary.WIKIDATA;
+import org.destirec.destirec.utils.rdfDictionary.TopOntologyNames;
 import org.eclipse.rdf4j.model.vocabulary.OWL;
 import org.eclipse.rdf4j.model.vocabulary.RDF;
 import org.eclipse.rdf4j.model.vocabulary.RDFS;
@@ -106,8 +107,9 @@ public class PreferenceMigration extends IriMigration {
     @Override
     protected void setupProperties() {
         builder
-                .add(get(), RDF.TYPE, OWL.DATATYPEPROPERTY)
-                .add(get(), RDFS.SUBPROPERTYOF, WIKIDATA.PREFERENCE)
+                .add(get(), RDF.TYPE, OWL.CLASS)
+                .add(get(), RDFS.SUBCLASSOF, WIKIDATA.PREFERENCE)
+                .add(get(), RDFS.SUBCLASSOF, TopOntologyNames.Classes.CONCEPT)
                 .add(get(), RDFS.RANGE, RDFS.RESOURCE);
     }
 }
