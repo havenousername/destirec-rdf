@@ -64,13 +64,13 @@ public abstract class Migration implements Predicate {
         this(rdf4jMethods, iriName, RDFResource.URI);
     }
 
-    private Resource createMigrationIRI(String name) {
+    protected Resource createMigrationIRI(String name) {
         try {
             Resource iri;
             if (rdfEntity == RDFResource.B_NODE) {
-                iri = valueFactory.createBNode(name);
+                iri = valueFactory.createBNode(DESTIREC.wrapNamespace(name, DESTIREC.UriType.B_NODE));
             } else  {
-                iri = valueFactory.createIRI(DESTIREC.NAMESPACE, name);
+                iri = valueFactory.createIRI(DESTIREC.wrapNamespace(name));
             }
             logger.info("Created iri " + iri + " for: " + name);
             return iri;
