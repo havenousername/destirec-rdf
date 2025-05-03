@@ -114,7 +114,8 @@ public class RegionMigration extends IriMigration implements OntologyDefiner {
         }
     }
 
-    private void defineOntology() {
+    @Override
+    public void defineOntology() {
         RegionOntology ontology = new RegionOntology();
         ontology.defineRegion();
         ontology.defineRegionParentOrLeaf();

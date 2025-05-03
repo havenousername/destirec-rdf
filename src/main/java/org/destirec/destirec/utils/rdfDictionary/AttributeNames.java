@@ -12,6 +12,8 @@ public final class AttributeNames {
         public final static String PREFERENCE_ATTRIBUTE = DESTIREC.wrapNamespace("RegionAttribute");
 
         public final static String ATTRIBUTE = DESTIREC.wrapNamespace("Attribute");
+
+        public final static String MONTH = DESTIREC.wrapNamespace("Month");
     }
 
     public final static class Properties {
@@ -19,5 +21,11 @@ public final class AttributeNames {
         public final static String IS_ACTIVE = DESTIREC.wrapNamespace("isActive");
 
         public final static String HAS_ATTRIBUTE = DESTIREC.wrapNamespace("hasAttribute");
+
+        public final static String NAME = DESTIREC.wrapNamespace("name");
+
+        public final static String POSITION = DESTIREC.wrapNamespace("position");
+
+        public final static String NEXT = DESTIREC.wrapNamespace("next");
     }
 }

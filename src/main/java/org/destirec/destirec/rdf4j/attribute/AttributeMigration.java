@@ -12,15 +12,20 @@ import org.destirec.destirec.utils.rdfDictionary.UserNames;
 import org.eclipse.rdf4j.model.vocabulary.OWL;
 import org.eclipse.rdf4j.model.vocabulary.RDF;
 import org.eclipse.rdf4j.model.vocabulary.RDFS;
+import org.eclipse.rdf4j.model.vocabulary.XSD;
 import org.eclipse.rdf4j.spring.support.RDF4JTemplate;
 import org.semanticweb.owlapi.model.*;
+import org.semanticweb.owlapi.vocab.OWLFacet;
 import org.springframework.stereotype.Component;
+
+import static org.destirec.destirec.utils.rdfDictionary.AttributeNames.Properties.HAS_SCORE;
+import static org.destirec.destirec.utils.rdfDictionary.AttributeNames.Properties.IS_ACTIVE;
 
 @Getter
 @Component
 public class AttributeMigration extends IriMigration implements OntologyDefiner {
-    private final org.eclipse.rdf4j.model.IRI hasScore = valueFactory.createIRI(DESTIREC.NAMESPACE + "hasScore");
-    private final org.eclipse.rdf4j.model.IRI isActive = valueFactory.createIRI(DESTIREC.NAMESPACE + "isActive");
+    private final org.eclipse.rdf4j.model.IRI hasScore = valueFactory.createIRI(HAS_SCORE);
+    private final org.eclipse.rdf4j.model.IRI isActive = valueFactory.createIRI(IS_ACTIVE);
     private final DestiRecOntology destiRecOntology;
 
     protected AttributeMigration(
@@ -76,14 +81,37 @@ public class AttributeMigration extends IriMigration implements OntologyDefiner 
 
         // ScoredAttribute \equiv Concept \ \sqcap (1= hasScore.Integer) \ \sqcap (1= isActive.Boolean)
         public void defineScoredAttribute() {
-            OWLDataProperty hasScoreProperty = destiRecOntology.getFactory().getOWLDataProperty(hasScoreOWL);
+            OWLDatatype booleanDatatype = destiRecOntology.getFactory().getOWLDatatype(XSD.BOOLEAN.stringValue());
+            OWLDatatype integerDatatype = destiRecOntology.getFactory().getOWLDatatype(XSD.INTEGER.stringValue());
+
+            OWLDataPropertyExpression hasScoreProperty = destiRecOntology.getFactory().getOWLDataProperty(hasScoreOWL);
             OWLClassExpression hasExactlyOneScore = destiRecOntology.getFactory().getOWLDataExactCardinality(1, hasScoreProperty);
+            OWLLiteral minScoreValue = destiRecOntology.getFactory().getOWLLiteral(0);
+            OWLLiteral maxScoreValue = destiRecOntology.getFactory().getOWLLiteral(100);
+
+            OWLFacetRestriction minRestriction = destiRecOntology.getFactory().getOWLFacetRestriction(OWLFacet.MIN_INCLUSIVE, minScoreValue);
+            OWLFacetRestriction maxRestriction = destiRecOntology.getFactory().getOWLFacetRestriction(OWLFacet.MAX_INCLUSIVE, maxScoreValue);
+
+            OWLDatatypeRestriction scoreRangeType = destiRecOntology.getFactory().getOWLDatatypeRestriction(
+                    integerDatatype,
+                    minRestriction,
+                    maxRestriction
+            );
+
+            OWLDataPropertyRangeAxiom rangeAxiomForScore = destiRecOntology.getFactory()
+                    .getOWLDataPropertyRangeAxiom(
+                            hasScoreProperty,
+                            scoreRangeType
+                    );
+
             OWLDataProperty isActiveProperty = destiRecOntology.getFactory().getOWLDataProperty(isActiveOWL);
             OWLClassExpression isExactlyOneActive = destiRecOntology.getFactory().getOWLDataExactCardinality(1, isActiveProperty);
+            OWLDataAllValuesFrom isActiveBoolean = destiRecOntology.getFactory().getOWLDataAllValuesFrom(isActiveProperty, booleanDatatype);
 
             OWLClassExpression intersectionScoredAttribute = destiRecOntology.getFactory().getOWLObjectIntersectionOf(
                     destiRecOntology.getFactory().getOWLClass(TopOntologyNames.Classes.CONCEPT),
                     hasExactlyOneScore,
+                    isActiveBoolean,
                     isExactlyOneActive
             );
             destiRecOntology.getManager()
@@ -94,6 +122,9 @@ public class AttributeMigration extends IriMigration implements OntologyDefiner 
                                     intersectionScoredAttribute
                             )
                     );
+
+            destiRecOntology.getManager()
+                    .addAxiom(getDestiRecOntology().getOntology(), rangeAxiomForScore);
         }
 
         public void defineRegionAttribute() {
