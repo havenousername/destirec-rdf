@@ -4,7 +4,6 @@ import lombok.Getter;
 import org.destirec.destirec.rdf4j.interfaces.IriMigration;
 import org.destirec.destirec.rdf4j.interfaces.OntologyDefiner;
 import org.destirec.destirec.rdf4j.ontology.DestiRecOntology;
-import org.destirec.destirec.rdf4j.vocabulary.DESTIREC;
 import org.destirec.destirec.utils.rdfDictionary.AttributeNames;
 import org.destirec.destirec.utils.rdfDictionary.RegionNames;
 import org.destirec.destirec.utils.rdfDictionary.TopOntologyNames;
@@ -24,15 +23,15 @@ import static org.destirec.destirec.utils.rdfDictionary.AttributeNames.Propertie
 @Getter
 @Component
 public class AttributeMigration extends IriMigration implements OntologyDefiner {
-    private final org.eclipse.rdf4j.model.IRI hasScore = valueFactory.createIRI(HAS_SCORE);
-    private final org.eclipse.rdf4j.model.IRI isActive = valueFactory.createIRI(IS_ACTIVE);
+    private final org.eclipse.rdf4j.model.IRI hasScore = valueFactory.createIRI(HAS_SCORE.pseudoUri());
+    private final org.eclipse.rdf4j.model.IRI isActive = valueFactory.createIRI(IS_ACTIVE.pseudoUri());
     private final DestiRecOntology destiRecOntology;
 
     protected AttributeMigration(
             RDF4JTemplate rdf4jMethods,
             DestiRecOntology destiRecOntology
     ) {
-        super(rdf4jMethods, "Attribute");
+        super(rdf4jMethods, AttributeNames.Classes.ATTRIBUTE.str());
         this.destiRecOntology = destiRecOntology;
     }
 
@@ -55,15 +54,15 @@ public class AttributeMigration extends IriMigration implements OntologyDefiner 
 
     class AttributeOntology {
         OWLClass scoredAttribute = destiRecOntology.getFactory()
-                .getOWLClass(IRI.create(AttributeNames.Classes.SCORED_ATTRIBUTE));
+                .getOWLClass(IRI.create(AttributeNames.Classes.SCORED_ATTRIBUTE.pseudoUri()));
         OWLClass regionAttribute = destiRecOntology.getFactory()
-                .getOWLClass(IRI.create(AttributeNames.Classes.REGION_ATTRIBUTE));
+                .getOWLClass(IRI.create(AttributeNames.Classes.REGION_ATTRIBUTE.pseudoUri()));
 
         OWLClass preferenceAttribute = destiRecOntology.getFactory()
-                .getOWLClass(IRI.create(AttributeNames.Classes.PREFERENCE_ATTRIBUTE));
+                .getOWLClass(IRI.create(AttributeNames.Classes.PREFERENCE_ATTRIBUTE.pseudoUri()));
 
         OWLClass region = destiRecOntology.getFactory()
-                .getOWLClass(RegionNames.Classes.REGION);
+                .getOWLClass(RegionNames.Classes.REGION.pseudoUri());
 
         OWLClass user = destiRecOntology
                 .getFactory()
@@ -72,12 +71,12 @@ public class AttributeMigration extends IriMigration implements OntologyDefiner 
 
         OWLClass attribute = destiRecOntology
                 .getFactory()
-                .getOWLClass(AttributeNames.Classes.ATTRIBUTE);
+                .getOWLClass(AttributeNames.Classes.ATTRIBUTE.pseudoUri());
 
         IRI hasScoreOWL = IRI.create(hasScore.stringValue());
         IRI isActiveOWL = IRI.create(isActive.stringValue());
 
-        OWLObjectProperty hasConcept = destiRecOntology.getFactory().getOWLObjectProperty(DESTIREC.wrapNamespace("hasConcept"));
+        OWLObjectProperty hasConcept = destiRecOntology.getFactory().getOWLObjectProperty(TopOntologyNames.Properties.HAS_CONCEPT.pseudoUri());
 
         // ScoredAttribute \equiv Concept \ \sqcap (1= hasScore.Integer) \ \sqcap (1= isActive.Boolean)
         public void defineScoredAttribute() {

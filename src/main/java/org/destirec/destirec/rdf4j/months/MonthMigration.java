@@ -7,6 +7,7 @@ import org.destirec.destirec.rdf4j.interfaces.IriMigrationInstance;
 import org.destirec.destirec.rdf4j.interfaces.OntologyDefiner;
 import org.destirec.destirec.rdf4j.ontology.DestiRecOntology;
 import org.destirec.destirec.utils.rdfDictionary.AttributeNames;
+import org.destirec.destirec.utils.rdfDictionary.TopOntologyNames;
 import org.eclipse.rdf4j.model.vocabulary.OWL;
 import org.eclipse.rdf4j.model.vocabulary.RDF;
 import org.eclipse.rdf4j.model.vocabulary.RDFS;
@@ -23,38 +24,38 @@ import static org.destirec.destirec.utils.rdfDictionary.AttributeNames.Propertie
 public class MonthMigration extends IriMigration implements OntologyDefiner {
     protected IriMigrationInstance monthInstance;
     protected IriMigrationInstance valueRangeInstance;
-    private final org.eclipse.rdf4j.model.IRI hasScore = valueFactory.createIRI(HAS_SCORE);
-    private final org.eclipse.rdf4j.model.IRI isActive = valueFactory.createIRI(IS_ACTIVE);
-    private final org.eclipse.rdf4j.model.IRI monthName = valueFactory.createIRI(NAME);
-    private final org.eclipse.rdf4j.model.IRI position = valueFactory.createIRI(POSITION);
-    private final org.eclipse.rdf4j.model.IRI next = valueFactory.createIRI(NEXT);
+    private final org.eclipse.rdf4j.model.IRI hasScore = valueFactory.createIRI(HAS_SCORE.pseudoUri());
+    private final org.eclipse.rdf4j.model.IRI isActive = valueFactory.createIRI(IS_ACTIVE.pseudoUri());
+    private final org.eclipse.rdf4j.model.IRI monthName = valueFactory.createIRI(NAME.pseudoUri());
+    private final org.eclipse.rdf4j.model.IRI position = valueFactory.createIRI(POSITION.pseudoUri());
+    private final org.eclipse.rdf4j.model.IRI next = valueFactory.createIRI(NEXT.pseudoUri());
     private final DestiRecOntology destiRecOntology;
     protected IriMigrationInstance month;
     protected IriMigrationInstance valueRange;
 
     public MonthMigration(RDF4JTemplate rdf4jMethods, DestiRecOntology destiRecOntology) {
-        super(rdf4jMethods, "Month");
+        super(rdf4jMethods, AttributeNames.Classes.MONTH.str());
         this.destiRecOntology = destiRecOntology;
         initMonth();;
     }
 
     protected void initMonth() {
         month = new IriMigrationInstance(
-                rdf4jMethods, "name",
+                rdf4jMethods, NAME.str(),
                 instance -> instance.builder()
                         .add(instance.predicate(), RDF.TYPE, OWL.DATATYPEPROPERTY)
                         .add(instance.predicate(), RDFS.DOMAIN, get())
                         .add(instance.predicate(), RDFS.COMMENT, "month of the year")
-                        .add(instance.predicate(), RDFS.RANGE, XSD.GMONTH)
+                        .add(instance.predicate(), RDFS.RANGE, XSD.STRING)
         );
 
         valueRange = new IriMigrationInstance(
-                rdf4jMethods, "position",
+                rdf4jMethods, POSITION.str(),
                 instance -> instance.builder()
                         .add(instance.predicate(), RDF.TYPE, OWL.DATATYPEPROPERTY)
                         .add(instance.predicate(), RDFS.DOMAIN, get())
                         .add(instance.predicate(), RDFS.COMMENT, "index of the month in the calendar")
-                        .add(instance.predicate(), RDFS.RANGE, XSD.FLOAT)
+                        .add(instance.predicate(), RDFS.RANGE, XSD.INTEGER)
         );
     }
 
@@ -67,10 +68,10 @@ public class MonthMigration extends IriMigration implements OntologyDefiner {
     class MonthOntology {
         OWLClass attribute = destiRecOntology
                 .getFactory()
-                .getOWLClass(AttributeNames.Classes.ATTRIBUTE);
+                .getOWLClass(AttributeNames.Classes.ATTRIBUTE.pseudoUri());
         OWLClass month = destiRecOntology
                 .getFactory()
-                .getOWLClass(AttributeNames.Classes.MONTH);
+                .getOWLClass(AttributeNames.Classes.MONTH.pseudoUri());
 
 
         private OWLDatatypeRestriction createMonthDataRange() {
@@ -102,8 +103,10 @@ public class MonthMigration extends IriMigration implements OntologyDefiner {
             OWLClassExpression hasExactlyOneNext = destiRecOntology
                     .getFactory()
                     .getOWLObjectExactCardinality(1, hasNextProperty);
-            OWLClassExpression hasNextValue = destiRecOntology
-                    .getFactory().getOWLObjectAllValuesFrom(hasNextProperty, month);
+            OWLClassExpression nextIsMonth = destiRecOntology.getFactory().getOWLObjectAllValuesFrom(
+                    hasNextProperty,
+                    month
+            );
 
             OWLDataProperty hasPositionProperty = destiRecOntology.getFactory().getOWLDataProperty(position.stringValue());
             OWLClassExpression hasExactlyOnePositionProperty = destiRecOntology
@@ -124,8 +127,8 @@ public class MonthMigration extends IriMigration implements OntologyDefiner {
                     attribute,
                     hasExactlyOneName,
                     hasExactlyOneNext,
+                    nextIsMonth,
                     hasExactlyOnePositionProperty,
-                    hasNextValue,
                     allNameString
             );
 
@@ -144,7 +147,7 @@ public class MonthMigration extends IriMigration implements OntologyDefiner {
     protected void setupProperties() {
         builder
                 .add(get(), RDF.TYPE, OWL.CLASS)
-                .add(get(), RDFS.SUBPROPERTYOF, AttributeNames.Classes.ATTRIBUTE);
+                .add(get(), RDFS.SUBCLASSOF, TopOntologyNames.Classes.CONCEPT);
     }
 
 

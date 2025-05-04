@@ -5,6 +5,7 @@ import org.destirec.destirec.rdf4j.interfaces.IriMigration;
 import org.destirec.destirec.rdf4j.interfaces.IriMigrationInstance;
 import org.destirec.destirec.rdf4j.interfaces.OntologyDefiner;
 import org.destirec.destirec.rdf4j.ontology.DestiRecOntology;
+import org.destirec.destirec.utils.rdfDictionary.AttributeNames;
 import org.destirec.destirec.utils.rdfDictionary.RegionNames;
 import org.destirec.destirec.utils.rdfDictionary.TopOntologyNames;
 import org.eclipse.rdf4j.model.vocabulary.GEO;
@@ -22,17 +23,65 @@ public class RegionMigration extends IriMigration implements OntologyDefiner {
     private IriMigrationInstance hasMonths;
     private IriMigrationInstance hasFeatures;
     private final DestiRecOntology destiRecOntology;
-    private final IRI parentRegion = IRI.create(RegionNames.Classes.PARENT_REGION);
-    private final IRI leafRegion = IRI.create(RegionNames.Classes.LEAF_REGION);
-    private final IRI rootRegion = IRI.create(RegionNames.Classes.ROOT_REGION);
+    private final IRI parentRegion = IRI.create(RegionNames.Classes.PARENT_REGION.pseudoUri());
+    private final IRI leafRegion = IRI.create(RegionNames.Classes.LEAF_REGION.pseudoUri());
+    private final IRI rootRegion = IRI.create(RegionNames.Classes.ROOT_REGION.pseudoUri());
 
     protected RegionMigration(RDF4JTemplate rdf4jMethods, DestiRecOntology destiRecOntology) {
-        super(rdf4jMethods, "Region");
+        super(rdf4jMethods, RegionNames.Classes.REGION.str());
         this.destiRecOntology = destiRecOntology;
         initHasCost();
         initHasFeatures();
         initHasMonths();
         defineOntology();
+    }
+
+    class RegionPropertiesOntology {
+        OWLDataFactory factory = destiRecOntology.getFactory();
+        OWLOntologyManager manager = destiRecOntology.getManager();
+        OWLClass region = destiRecOntology.getFactory().getOWLClass(get().stringValue());
+        OWLOntology ontology = destiRecOntology.getOntology();
+        OWLObjectProperty sfWithin = factory.getOWLObjectProperty(GEO.NAMESPACE + "sfWithin");
+        OWLObjectProperty sfDirectlyWithin = factory.getOWLObjectProperty(GEO.NAMESPACE + "sfDirectlyWithin");
+        OWLObjectProperty sfDirectlyContains = factory.getOWLObjectProperty(GEO.NAMESPACE + "sfDirectlyContains");
+
+
+        // sfWithin ⊑ Region×Region
+        public void defineSfWithinMapping() {
+            manager.addAxiom(ontology, factory.getOWLObjectPropertyDomainAxiom(sfWithin, region));
+            manager.addAxiom(ontology, factory.getOWLObjectPropertyRangeAxiom(sfWithin, region));
+        }
+
+        // sfWithin^−1≡sfContains
+        public void defineSfWithinOpposite() {
+            OWLObjectProperty sfContains = factory.getOWLObjectProperty(GEO.NAMESPACE + "sfContains");
+            OWLObjectInverseOf inverseSfWithin = factory.getOWLObjectInverseOf(sfWithin);
+            manager.addAxiom(ontology, factory.getOWLEquivalentObjectPropertiesAxiom(inverseSfWithin, sfContains));
+        }
+
+        // sfDirectlyWithin
+        public void defineSfDirectlyWithin() {
+            manager.addAxiom(ontology, factory.getOWLSubObjectPropertyOfAxiom(sfDirectlyWithin, sfWithin));
+            manager.addAxiom(ontology, factory.getOWLObjectPropertyDomainAxiom(sfDirectlyWithin, region));
+            manager.addAxiom(ontology, factory.getOWLObjectPropertyRangeAxiom(sfDirectlyWithin, region));
+            // ≤1sfDirectlyWithin
+            manager.addAxiom(ontology, factory.getOWLFunctionalObjectPropertyAxiom(sfDirectlyWithin));
+
+            OWLObjectInverseOf inverseSfDirectlyWithin = factory.getOWLObjectInverseOf(sfWithin);
+            manager.addAxiom(ontology, factory.getOWLEquivalentObjectPropertiesAxiom(inverseSfDirectlyWithin, sfDirectlyContains));
+        }
+
+
+        // sfWithin⊑+sfWithin
+        public void defineSfWithinTransitive() {
+            manager.addAxiom(ontology, factory.getOWLTransitiveObjectPropertyAxiom(sfWithin));
+        }
+
+        // ∀x.¬sfWithin(x,x) - irreflexive, region cannot contain itself - Germany cannot contain Germany
+        public void defineSfWithinIrreflexive(){
+            manager.addAxiom(ontology, factory.getOWLIrreflexiveObjectPropertyAxiom(sfWithin));
+        }
+
     }
 
     class RegionOntology {
@@ -41,6 +90,8 @@ public class RegionMigration extends IriMigration implements OntologyDefiner {
 
         OWLClass parentRegion = destiRecOntology.getFactory().getOWLClass(getParentRegion());
         OWLClass leafRegion = destiRecOntology.getFactory().getOWLClass(getLeafRegion());
+
+        OWLClass feature = destiRecOntology.getFactory().getOWLClass(AttributeNames.Classes.FEATURE.owlIri());
 
         public void defineRegion() {
             // Region \sqsubseteq Object, region is subclass of object
@@ -79,12 +130,33 @@ public class RegionMigration extends IriMigration implements OntologyDefiner {
             OWLClassExpression leafDefinition = destiRecOntology.getFactory()
                     .getOWLObjectIntersectionOf(region, insideOneRegion, noSubRegions);
 
+            // define for now that only leaf region has cost, months, and features
+            OWLObjectProperty hasCost = destiRecOntology.getFactory().getOWLObjectProperty(AttributeNames.Properties.HAS_COST.owlIri());
+            OWLClassExpression exactOneCost = destiRecOntology.getFactory()
+                            .getOWLObjectExactCardinality(1, hasCost);
+
+            OWLObjectProperty hasMonth = destiRecOntology.getFactory().getOWLObjectProperty(AttributeNames.Properties.HAS_MONTH.owlIri());
+            OWLClassExpression exact12Months =destiRecOntology.getFactory()
+                    .getOWLObjectExactCardinality(12, hasMonth);
+
+
+            OWLObjectProperty hasFeature = destiRecOntology.getFactory().getOWLObjectProperty(AttributeNames.Properties.HAS_FEATURE.owlIri());
+            OWLClassExpression existsFeature =  destiRecOntology.getFactory()
+                    .getOWLObjectSomeValuesFrom(hasFeature, feature);
+
+            OWLClassExpression leafProperties = destiRecOntology.getFactory()
+                            .getOWLObjectIntersectionOf(exact12Months, exactOneCost, existsFeature);
+
+
+            OWLClassExpression leafRegionFull = destiRecOntology.getFactory()
+                            .getOWLObjectIntersectionOf(leafProperties, leafDefinition);
+
             // Define LeafRegion
             destiRecOntology.getManager()
                     .addAxiom(
                             destiRecOntology.getOntology(),
                             destiRecOntology.getFactory()
-                                    .getOWLEquivalentClassesAxiom(leafRegion, leafDefinition)
+                                    .getOWLEquivalentClassesAxiom(leafRegion, leafRegionFull)
                     );
         }
 
@@ -125,11 +197,12 @@ public class RegionMigration extends IriMigration implements OntologyDefiner {
 
     private void initHasCost() {
         hasCost = new IriMigrationInstance(
-                rdf4jMethods, "hasCost",
+                rdf4jMethods, RegionNames.Properties.HAS_COST.str(),
                 (instance) -> instance
                         .builder()
-                        .add(instance.predicate(), RDF.TYPE, OWL.DATATYPEPROPERTY)
+                        .add(instance.predicate(), RDF.TYPE, OWL.OBJECTPROPERTY)
                         .add(instance.predicate(), RDFS.DOMAIN, get())
+                        .add(instance.predicate(), RDFS.RANGE, AttributeNames.Classes.COST.rdfIri())
                         .add(instance.predicate(), RDFS.LABEL, "connect to cost")
         );
     }
@@ -137,22 +210,24 @@ public class RegionMigration extends IriMigration implements OntologyDefiner {
 
     private void initHasMonths() {
         hasMonths = new IriMigrationInstance(
-                rdf4jMethods, "hasMonths",
+                rdf4jMethods, RegionNames.Properties.HAS_MONTH.str(),
                 (instance) -> instance
                         .builder()
-                        .add(instance.predicate(), RDF.TYPE, OWL.DATATYPEPROPERTY)
+                        .add(instance.predicate(), RDF.TYPE, OWL.OBJECTPROPERTY)
                         .add(instance.predicate(), RDFS.DOMAIN, get())
+                        .add(instance.predicate(), RDFS.RANGE, AttributeNames.Classes.MONTH.rdfIri())
                         .add(instance.predicate(), RDFS.LABEL, "connect to region months")
         );
     }
 
     private void initHasFeatures() {
         hasFeatures = new IriMigrationInstance(
-                rdf4jMethods, "hasFeatures",
+                rdf4jMethods, RegionNames.Properties.HAS_FEATURE.str(),
                 (instance) -> instance
                         .builder()
-                        .add(instance.predicate(), RDF.TYPE, OWL.DATATYPEPROPERTY)
+                        .add(instance.predicate(), RDF.TYPE, OWL.OBJECTPROPERTY)
                         .add(instance.predicate(), RDFS.DOMAIN, get())
+                        .add(instance.predicate(), RDFS.RANGE, AttributeNames.Classes.FEATURE.rdfIri())
                         .add(instance.predicate(), RDFS.LABEL, "connect to region features")
         );
     }

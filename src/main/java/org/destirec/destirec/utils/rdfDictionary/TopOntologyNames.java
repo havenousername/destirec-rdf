@@ -21,6 +21,6 @@ public final class TopOntologyNames {
     }
 
     public final static class Properties {
-        public final static String HAS_CONCEPT = DESTIREC.wrapNamespace("hasConcept");
+        public final static DESTIREC.NamespaceWrapper HAS_CONCEPT = DESTIREC.wrap("hasConcept");
     }
 }
