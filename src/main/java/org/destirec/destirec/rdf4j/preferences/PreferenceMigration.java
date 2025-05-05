@@ -1,115 +1,91 @@
 package org.destirec.destirec.rdf4j.preferences;
 
+import jakarta.annotation.PostConstruct;
 import lombok.Getter;
 import org.destirec.destirec.rdf4j.interfaces.IriMigration;
-import org.destirec.destirec.rdf4j.interfaces.IriMigrationInstance;
+import org.destirec.destirec.rdf4j.interfaces.OntologyDefiner;
+import org.destirec.destirec.rdf4j.ontology.DestiRecOntology;
 import org.destirec.destirec.rdf4j.vocabulary.WIKIDATA;
+import org.destirec.destirec.utils.rdfDictionary.AttributeNames;
+import org.destirec.destirec.utils.rdfDictionary.PreferenceNames;
 import org.destirec.destirec.utils.rdfDictionary.TopOntologyNames;
+import org.destirec.destirec.utils.rdfDictionary.UserNames;
 import org.eclipse.rdf4j.model.vocabulary.OWL;
 import org.eclipse.rdf4j.model.vocabulary.RDF;
 import org.eclipse.rdf4j.model.vocabulary.RDFS;
-import org.eclipse.rdf4j.model.vocabulary.XSD;
+import org.eclipse.rdf4j.model.vocabulary.SKOS;
 import org.eclipse.rdf4j.spring.support.RDF4JTemplate;
+import org.semanticweb.owlapi.model.*;
 import org.springframework.stereotype.Component;
 
 @Component
 @Getter
-public class PreferenceMigration extends IriMigration {
-    private IriMigrationInstance isPriceImportant;
-    private IriMigrationInstance priceRange;
-
-    private IriMigrationInstance isPopularityImportant;
-    private IriMigrationInstance popularityRange;
-
-    private IriMigrationInstance monthPreference;
-
-    public PreferenceMigration(RDF4JTemplate rdf4jMethods) {
-        super(rdf4jMethods, "Preference");
-
-        initPrice();
-        initPopularity();
-        initMonthPreference();
+public class PreferenceMigration extends IriMigration implements OntologyDefiner {
+    private final DestiRecOntology destiRecOntology;
+    public PreferenceMigration(RDF4JTemplate rdf4jMethods, DestiRecOntology destiRecOntology) {
+        super(rdf4jMethods, PreferenceNames.Classes.PREFERENCE.str());
+        this.destiRecOntology = destiRecOntology;
     }
 
-    private void initPrice() {
-        isPriceImportant = new IriMigrationInstance(
-                rdf4jMethods, "isPriceImportant",
-                (instance) -> instance.builder()
-                        .add(instance.predicate(), RDF.TYPE, OWL.DATATYPEPROPERTY)
-                        .add(instance.predicate(), RDFS.DOMAIN, get())
-                        .add(instance.predicate(), RDFS.LABEL, "consider price or not")
-                        .add(instance.predicate(), RDFS.RANGE, XSD.BOOLEAN)
-        );
+    @PostConstruct
+    public void init() {
+        defineOntology();
+    }
 
-
-        priceRange = new IriMigrationInstance(
-                rdf4jMethods, "priceRange",
-                instance -> instance.builder()
-                        .add(instance.predicate(), RDF.TYPE, OWL.DATATYPEPROPERTY)
-                        .add(instance.predicate(), RDFS.DOMAIN, get())
-                        .add(instance.predicate(), RDFS.COMMENT, "range of the price")
-                        .add(instance.predicate(), RDFS.RANGE, XSD.FLOAT)
-        );
+    @Override
+    public void defineOntology() {
+        var ontology = new PreferenceOntology();
+        ontology.definePreference();
     }
 
 
-    private void initPopularity() {
-        isPopularityImportant = new IriMigrationInstance(
-                rdf4jMethods, "isPopularityImportant",
-                (instance) -> instance.builder()
-                        .add(instance.predicate(), RDF.TYPE, OWL.DATATYPEPROPERTY)
-                        .add(instance.predicate(), RDFS.DOMAIN, get())
-                        .add(instance.predicate(), RDFS.COMMENT, "consider popularity or not")
-                        .add(instance.predicate(), RDFS.RANGE, XSD.BOOLEAN)
-        );
+    class PreferenceOntology {
+        private final OWLDataFactory factory = destiRecOntology.getFactory();
+        private final OWLOntologyManager manager = destiRecOntology.getManager();
+        private final OWLOntology ontology = destiRecOntology.getOntology();
 
+        private final OWLClass preference = factory.getOWLClass(PreferenceNames.Classes.PREFERENCE.owlIri());
+        private final OWLClass user = factory.getOWLClass(UserNames.Classes.USER.owlIri());
 
-        popularityRange = new IriMigrationInstance(
-                rdf4jMethods, "popularityRange",
-                instance -> instance.builder()
-                        .add(instance.predicate(), RDF.TYPE, OWL.DATATYPEPROPERTY)
-                        .add(instance.predicate(), RDFS.DOMAIN, get())
-                        .add(instance.predicate(), RDFS.COMMENT, "range of the popularity")
-                        .add(instance.predicate(), RDFS.RANGE, XSD.FLOAT)
-        );
-    }
+        public void definePreference() {
+            OWLClass attributesCollection = factory
+                    .getOWLClass(AttributeNames.Classes.ATTRIBUTES_COLLECTION.owlIri());
 
-    private void initMonthPreference() {
-        monthPreference = new IriMigrationInstance(
-                rdf4jMethods, "monthsPreferences",
-                instance -> instance.builder()
-                        .add(instance.predicate(), RDF.TYPE, OWL.CLASS)
-                        .add(instance.predicate(), RDFS.DOMAIN, get())
-                        .add(instance.predicate(), RDFS.COMMENT, "points to the months with preference values")
-        );
+            OWLObjectPropertyExpression preferenceAuthor = factory
+                    .getOWLObjectProperty(PreferenceNames.Properties.PREFERENCE_AUTHOR.stringValue());
+            OWLClassExpression hasExactlyOneUserAuthor = factory.getOWLObjectExactCardinality(1, preferenceAuthor, user);
+
+            // define domain and range for preferenceAuthor
+            manager.addAxiom(ontology, factory.getOWLObjectPropertyDomainAxiom(preferenceAuthor, preference));
+            manager.addAxiom(ontology, factory.getOWLObjectPropertyRangeAxiom(preferenceAuthor, user));
+
+            OWLClassExpression properties = factory
+                    .getOWLObjectIntersectionOf(attributesCollection, hasExactlyOneUserAuthor);
+
+            // Define preference
+            manager
+                    .addAxiom(
+                            ontology,
+                            factory.getOWLEquivalentClassesAxiom(preference, properties)
+                    );
+        }
     }
 
     @Override
     public void setup() {
         super.setup();
-        isPriceImportant.setup();
-        priceRange.setup();
-        isPopularityImportant.setup();
-        popularityRange.setup();
-        monthPreference.setup();
     }
 
     @Override
     public void migrate() {
         super.migrate();
-        isPriceImportant.migrate();
-        priceRange.migrate();
-        isPopularityImportant.migrate();
-        popularityRange.migrate();
-        monthPreference.migrate();
     }
 
     @Override
     protected void setupProperties() {
         builder
                 .add(get(), RDF.TYPE, OWL.CLASS)
-                .add(get(), RDFS.SUBCLASSOF, WIKIDATA.PREFERENCE)
-                .add(get(), RDFS.SUBCLASSOF, TopOntologyNames.Classes.CONCEPT)
-                .add(get(), RDFS.RANGE, RDFS.RESOURCE);
+                .add(get(), SKOS.RELATED_MATCH, WIKIDATA.PREFERENCE)
+                .add(get(), RDFS.SUBCLASSOF, TopOntologyNames.Classes.CONCEPT);
     }
 }

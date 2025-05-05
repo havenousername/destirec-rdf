@@ -49,6 +49,80 @@ public class AttributeMigration extends IriMigration implements OntologyDefiner 
         attributeOntology.defineScoredAttribute();
         attributeOntology.definePreferenceAttribute();
         attributeOntology.defineUnionOfAttributes();
+
+        var propertiesOntology = new AttributePropertiesOntology();
+        propertiesOntology.defineHasAttribute();
+        propertiesOntology.defineHasAttributeDescendants();
+        propertiesOntology.defineHasConcept();
+        propertiesOntology.defineHasConceptAsymmetry();
+    }
+
+
+    class AttributePropertiesOntology {
+        private final OWLDataFactory factory = destiRecOntology.getFactory();
+        private final OWLOntologyManager manager = destiRecOntology.getManager();
+
+        private final OWLOntology ontology = destiRecOntology.getOntology();
+
+        private final OWLObjectProperty hasConcept = factory
+                .getOWLObjectProperty(TopOntologyNames.Properties.HAS_CONCEPT.owlIri());
+
+        private final OWLObjectProperty hasAttribute = factory
+                .getOWLObjectProperty(AttributeNames.Properties.HAS_ATTRIBUTE.owlIri());
+
+        private final OWLObjectProperty hasFeature = factory
+                .getOWLObjectProperty(AttributeNames.Properties.HAS_FEATURE.owlIri());
+
+        private final OWLObjectProperty hasMonth = factory
+                .getOWLObjectProperty(AttributeNames.Properties.HAS_MONTH.owlIri());
+
+        private final OWLObjectProperty hasCost = factory
+                .getOWLObjectProperty(AttributeNames.Properties.HAS_COST.owlIri());
+
+        // hasConcept \sqsubseteq (Actor \sqcup Object) \times Concept
+        public void defineHasConcept() {
+            OWLClass object = factory.getOWLClass(TopOntologyNames.Classes.OBJECT);
+            OWLClass actor = factory.getOWLClass(TopOntologyNames.Classes.ACTOR);
+            OWLClass concept = factory.getOWLClass(TopOntologyNames.Classes.CONCEPT);
+
+            OWLClassExpression objectOrActor = factory.getOWLObjectUnionOf(object, actor);
+            manager.addAxiom(ontology, factory.getOWLObjectPropertyDomainAxiom(hasConcept, objectOrActor));
+
+            manager.addAxiom(ontology, factory.getOWLObjectPropertyRangeAxiom(hasConcept, concept));
+        }
+
+        // hasConcept \sqsubseteq \neg hasConcept^{-1}
+        public void defineHasConceptAsymmetry() {
+            OWLAxiom disjointInverse = factory.getOWLDisjointObjectPropertiesAxiom(hasConcept, factory.getOWLObjectInverseOf(hasConcept));
+            manager.addAxiom(ontology, disjointInverse);
+        }
+
+        // hasAttribute \sqsubseteq hasConcept
+        public void defineHasAttribute() {
+            manager.addAxiom(ontology, factory.getOWLSubObjectPropertyOfAxiom(hasAttribute, hasConcept));
+        }
+
+        public void defineHasAttributeDescendants() {
+            OWLClass feature = factory.getOWLClass(AttributeNames.Classes.FEATURE.owlIri());
+            OWLClass month = factory.getOWLClass(AttributeNames.Classes.MONTH.owlIri());
+            OWLClass cost = factory.getOWLClass(AttributeNames.Classes.COST.owlIri());
+            OWLClass object = factory.getOWLClass(TopOntologyNames.Classes.OBJECT);
+            OWLClass actor = factory.getOWLClass(TopOntologyNames.Classes.ACTOR);
+
+            manager.addAxiom(ontology, factory.getOWLSubObjectPropertyOfAxiom(hasFeature, hasAttribute));
+            manager.addAxiom(ontology, factory.getOWLSubObjectPropertyOfAxiom(hasMonth, hasAttribute));
+            manager.addAxiom(ontology, factory.getOWLSubObjectPropertyOfAxiom(hasCost, hasAttribute));
+
+            OWLClassExpression objectOrActor = factory.getOWLObjectUnionOf(object, actor);
+            manager.addAxiom(ontology, factory.getOWLObjectPropertyDomainAxiom(hasFeature, objectOrActor));
+            manager.addAxiom(ontology, factory.getOWLObjectPropertyRangeAxiom(hasFeature, feature));
+
+            manager.addAxiom(ontology, factory.getOWLObjectPropertyDomainAxiom(hasMonth, objectOrActor));
+            manager.addAxiom(ontology, factory.getOWLObjectPropertyRangeAxiom(hasMonth, month));
+
+            manager.addAxiom(ontology, factory.getOWLObjectPropertyDomainAxiom(hasCost, objectOrActor));
+            manager.addAxiom(ontology, factory.getOWLObjectPropertyRangeAxiom(hasCost, cost));
+        }
     }
 
 
@@ -66,7 +140,7 @@ public class AttributeMigration extends IriMigration implements OntologyDefiner 
 
         OWLClass user = destiRecOntology
                 .getFactory()
-                .getOWLClass(UserNames.Classes.USER);
+                .getOWLClass(UserNames.Classes.USER.owlIri());
 
 
         OWLClass attribute = destiRecOntology

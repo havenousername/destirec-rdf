@@ -46,4 +46,8 @@ public class DESTIREC {
     public static NamespaceWrapper wrap(String str) {
         return new NamespaceWrapper(wrapNamespace(str, UriType.ONTOLOGY), str);
     }
+
+    public static String wrapResource(String str) {
+        return DESTIREC.RESOURCE_NS + "/" + str;
+    }
 }

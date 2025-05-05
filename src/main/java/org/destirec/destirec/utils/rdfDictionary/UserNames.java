@@ -7,7 +7,7 @@ public class UserNames {
 
 
     public final static class Classes {
-        public final static String USER = DESTIREC.wrapNamespace("User");
-        public final static String USER_WITH_PREFERENCE = DESTIREC.wrapNamespace("UserWithPreference");
+        public final static DESTIREC.NamespaceWrapper USER = DESTIREC.wrap("User");
+        public final static DESTIREC.NamespaceWrapper USER_WITH_PREFERENCE = DESTIREC.wrap("UserWithPreference");
     }
 }

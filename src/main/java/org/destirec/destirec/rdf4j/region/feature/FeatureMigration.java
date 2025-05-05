@@ -66,6 +66,7 @@ public class FeatureMigration extends IriMigration implements OntologyDefiner {
         var featuresOntology = new FeatureOntology();
         featuresOntology.defineFeature();
         featuresOntology.defineRegionFeatures();
+        featuresOntology.defineHasRegionFeature();
     }
 
     class FeatureOntology {
@@ -81,13 +82,14 @@ public class FeatureMigration extends IriMigration implements OntologyDefiner {
                 .getFactory()
                 .getOWLClass(RegionFeatureNames.Classes.REGION_FEATURE.pseudoUri());
 
+        OWLObjectPropertyExpression hasRegionFeature = destiRecOntology
+                .getFactory()
+                .getOWLObjectProperty(AttributeNames.Properties.HAS_REGION_FEATURE.pseudoUri());
+
 
         public void defineFeature() {
-            OWLObjectPropertyExpression hasRegionFeature = destiRecOntology
-                    .getFactory()
-                    .getOWLObjectProperty(AttributeNames.Properties.HAS_REGION_FEATURE.pseudoUri());
-
             // exist one hasRegionFeature
+
             OWLClassExpression hasExactlyOneRegionFeature = destiRecOntology.getFactory().getOWLObjectExactCardinality(1, hasRegionFeature);
             OWLObjectAllValuesFrom allValuesAreRegionFeature = destiRecOntology.getFactory().getOWLObjectAllValuesFrom(hasRegionFeature, regionFeature);
 
@@ -106,6 +108,24 @@ public class FeatureMigration extends IriMigration implements OntologyDefiner {
                                     intersectionScoredAttribute
                             )
                     );
+        }
+
+        public void defineHasRegionFeature() {
+            destiRecOntology.getManager().addAxiom(
+                    destiRecOntology.getOntology(),
+                    destiRecOntology.getFactory().getOWLFunctionalObjectPropertyAxiom(hasRegionFeature)
+            );
+
+
+            var regionNames = Arrays.stream(RegionFeatureNames.Individuals.RegionFeature.values()).map(i ->
+                    destiRecOntology.getFactory().getOWLNamedIndividual(i.iri().owlIri()))
+                    .collect(Collectors.toSet());
+            OWLClassExpression regionFeatureNominals = destiRecOntology.getFactory().getOWLObjectOneOf(regionNames);
+
+            destiRecOntology.getManager().addAxiom(
+                    destiRecOntology.getOntology(),
+                    destiRecOntology.getFactory().getOWLObjectPropertyRangeAxiom(hasRegionFeature, regionFeatureNominals)
+            );
         }
 
         private OWLClassExpression getRegionFeatures() {

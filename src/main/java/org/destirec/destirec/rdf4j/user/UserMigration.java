@@ -27,7 +27,7 @@ public class UserMigration extends IriMigration implements OntologyDefiner {
     private final PreferenceConfig preferenceConfig;
 
 
-    private final IRI userWithPreference = IRI.create(UserNames.Classes.USER_WITH_PREFERENCE);
+    private final IRI userWithPreference = UserNames.Classes.USER_WITH_PREFERENCE.owlIri();
 
     public UserMigration(
             RDF4JTemplate template,
@@ -36,7 +36,7 @@ public class UserMigration extends IriMigration implements OntologyDefiner {
             PreferenceMigration preferenceMigration,
             PreferenceConfig preferenceConfig
     ) {
-        super(template, "User");
+        super(template, UserNames.Classes.USER.str());
         this.ontology = ontology;
         this.userConfig = config;
         this.preferenceMigration = preferenceMigration;

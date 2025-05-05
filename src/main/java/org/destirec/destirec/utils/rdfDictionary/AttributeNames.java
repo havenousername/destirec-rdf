@@ -6,6 +6,7 @@ public final class AttributeNames {
     private AttributeNames() {}
 
     public final static class Classes {
+        public final static DESTIREC.NamespaceWrapper ATTRIBUTES_COLLECTION = DESTIREC.wrap("AttributesCollection");
         public final static DESTIREC.NamespaceWrapper SCORED_ATTRIBUTE = DESTIREC.wrap("ScoredAttribute");
         public final static DESTIREC.NamespaceWrapper REGION_ATTRIBUTE = DESTIREC.wrap("RegionAttribute");
 
