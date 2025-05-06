@@ -1,6 +1,7 @@
 package org.destirec.destirec.rdf4j.region.feature;
 
 import org.destirec.destirec.rdf4j.interfaces.DtoCreator;
+import org.destirec.destirec.utils.rdfDictionary.RegionFeatureNames;
 import org.eclipse.rdf4j.model.IRI;
 import org.springframework.stereotype.Component;
 
@@ -12,8 +13,9 @@ public class FeatureDtoCreator implements DtoCreator<FeatureDto, FeatureConfig.F
     public FeatureDto create(IRI id, Map<FeatureConfig.Fields, String> map) {
         return new FeatureDto(
                 id,
-                map.get(FeatureConfig.Fields.KIND),
-                Float.parseFloat(map.get(FeatureConfig.Fields.VALUE))
+                Integer.parseInt(map.get(FeatureConfig.Fields.HAS_SCORE)),
+                Boolean.parseBoolean(map.get(FeatureConfig.Fields.IS_ACTIVE)),
+                RegionFeatureNames.Individuals.RegionFeature.fromString(map.get(FeatureConfig.Fields.HAS_REGION_FEATURE))
         );
     }
 
@@ -23,6 +25,11 @@ public class FeatureDtoCreator implements DtoCreator<FeatureDto, FeatureConfig.F
     }
 
     public FeatureDto create(Map.Entry<String, Integer> entry) {
-        return new FeatureDto(null, entry.getKey(), entry.getValue());
+        return new FeatureDto(
+                null,
+                entry.getValue(),
+                true,
+                RegionFeatureNames.Individuals.RegionFeature.fromString(entry.getKey())
+        );
     }
 }

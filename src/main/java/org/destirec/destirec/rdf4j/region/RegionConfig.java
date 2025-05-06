@@ -3,6 +3,7 @@ package org.destirec.destirec.rdf4j.region;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.Setter;
+import org.destirec.destirec.rdf4j.attributesCollection.AttributesCollectionMigration;
 import org.destirec.destirec.rdf4j.interfaces.GenericConfig;
 import org.destirec.destirec.rdf4j.vocabulary.DESTIREC;
 import org.destirec.destirec.utils.ValueContainer;
@@ -21,20 +22,22 @@ import java.util.stream.IntStream;
 @Component
 public class RegionConfig extends GenericConfig<RegionConfig.Fields> {
     private final RegionMigration regionMigration;
+    private final AttributesCollectionMigration collectionMigration;
 
     @Setter
     private List<String> featureNames;
-    public RegionConfig(RegionMigration regionMigration) {
+    public RegionConfig(RegionMigration regionMigration, AttributesCollectionMigration collectionMigration) {
         super("region_id");
         this.regionMigration = regionMigration;
+        this.collectionMigration = collectionMigration;
     }
 
     @Override
     public ValueContainer<IRI> getPredicate(Fields field) {
         var values = switch (field) {
-            case FEATURES -> regionMigration.getHasFeatures().get();
-            case MONTHS -> regionMigration.getHasMonths().get();
-            case COST -> regionMigration.getHasCost().get();
+            case FEATURES -> collectionMigration.getHasFeatures().get();
+            case MONTHS -> collectionMigration.getHasMonths().get();
+            case COST -> collectionMigration.getHasCost().get();
             case NAME -> FOAF.NAME;
             case PARENT_REGION -> GEO.sfWithin;
             case null -> throw new IllegalArgumentException("Field is not defined");

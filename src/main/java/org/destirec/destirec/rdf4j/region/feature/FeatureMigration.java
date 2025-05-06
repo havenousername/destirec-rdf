@@ -135,6 +135,7 @@ public class FeatureMigration extends IriMigration implements OntologyDefiner {
                     .collect(Collectors.toSet());
             return destiRecOntology.getFactory().getOWLObjectOneOf(featureIndividuals);
         }
+
         public void defineRegionFeatures() {
             OWLClassExpression regionFeatures = getRegionFeatures();
             OWLEquivalentClassesAxiom axiom = destiRecOntology.getFactory().getOWLEquivalentClassesAxiom(regionFeature, regionFeatures);

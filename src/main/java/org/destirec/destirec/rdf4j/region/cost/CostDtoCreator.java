@@ -12,8 +12,10 @@ public class CostDtoCreator implements DtoCreator<CostDto, CostConfig.Fields> {
     public CostDto create(IRI id, Map<CostConfig.Fields, String> map) {
         return new CostDto(
                 id,
-                Float.parseFloat(map.get(CostConfig.Fields.COST_PER_WEEK)),
-                Float.parseFloat(map.get(CostConfig.Fields.BUDGET_LEVEL))
+                Integer.parseInt(map.get(CostConfig.Fields.HAS_SCORE)),
+                Boolean.parseBoolean(map.get(CostConfig.Fields.IS_ACTIVE)),
+                Integer.parseInt(map.get(CostConfig.Fields.COST_PER_WEEK)),
+                Integer.parseInt(map.get(CostConfig.Fields.BUDGET_LEVEL))
         );
     }
 
@@ -24,6 +26,6 @@ public class CostDtoCreator implements DtoCreator<CostDto, CostConfig.Fields> {
 
 
     public CostDto create(int costPerWeek, int budgetLevel) {
-        return new CostDto(null, costPerWeek, budgetLevel);
+        return new CostDto(null, 100, true, costPerWeek, budgetLevel);
     }
 }

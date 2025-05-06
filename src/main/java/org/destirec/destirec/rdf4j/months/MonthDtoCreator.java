@@ -11,7 +11,13 @@ import java.util.Map;
 public class MonthDtoCreator implements DtoCreator<MonthDto, MonthConfig.Fields> {
     @Override
     public MonthDto create(IRI id, Map<MonthConfig.Fields, String> map) {
-        return new MonthDto(id, Month.of(Integer.parseInt(map.get(MonthConfig.Fields.MONTH).replace("-", ""))), Float.parseFloat(map.get(MonthConfig.Fields.RANGE)));
+        return new MonthDto(
+                id,
+                Integer.parseInt(map.get(MonthConfig.Fields.HAS_SCORE)),
+                Boolean.parseBoolean(map.get(MonthConfig.Fields.IS_ACTIVE)),
+                map.get(MonthConfig.Fields.MONTH_NAME),
+                Integer.parseInt(map.get(MonthConfig.Fields.POSITION))
+        );
     }
 
     @Override
@@ -20,10 +26,10 @@ public class MonthDtoCreator implements DtoCreator<MonthDto, MonthConfig.Fields>
     }
 
     public MonthDto create(Map.Entry<Month, Integer> month) {
-        return new MonthDto(null, month.getKey(), month.getValue());
+        return new MonthDto(null, 100, true, month.getKey().name(), month.getValue());
     }
 
     public MonthDto create(Month month, int value) {
-        return new MonthDto(null, month, value);
+        return new MonthDto(null, 100, true, month.name(), value);
     }
 }

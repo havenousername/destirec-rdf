@@ -89,7 +89,7 @@ public class RegionService {
                 "months",
                 regionDto.getMonths(),
                 existingMonths,
-                (entry) -> entry.getKey().month().equals(entry.getValue()),
+                (entry) -> entry.getKey().getMonth().equals(entry.getValue()),
                 regionDao.getMonthDao(),
                 (entry) -> regionDao.getMonthDao().getDtoCreator().create(entry)
         );
@@ -100,7 +100,7 @@ public class RegionService {
                 "features",
                 regionDto.getFeatures(),
                 existingFeatures,
-                (entry) -> entry.getKey().getKind().equals(entry.getValue()),
+                (entry) -> entry.getKey().getRegionFeature().name().equals(entry.getValue()),
                 regionDao.getFeatureDao(),
                 (entry) -> regionDao.getFeatureDao().getDtoCreator().create(entry)
         );

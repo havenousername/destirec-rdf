@@ -29,6 +29,15 @@ public class RegionFeatureNames {
             public DESTIREC.NamespaceWrapper iri() {
                 return DESTIREC.wrap(name);
             }
+
+            public static RegionFeature fromString(String value) {
+                for (RegionFeature status : RegionFeature.values()) {
+                    if (status.name().equalsIgnoreCase(value)) {
+                        return status;
+                    }
+                }
+                throw new IllegalArgumentException("No enum constant for value: " + value);
+            }
         }
 
     }
