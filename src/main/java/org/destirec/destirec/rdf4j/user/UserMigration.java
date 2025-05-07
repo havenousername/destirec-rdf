@@ -41,7 +41,6 @@ public class UserMigration extends IriMigration implements OntologyDefiner {
         this.userConfig = config;
         this.preferenceMigration = preferenceMigration;
         this.preferenceConfig = preferenceConfig;
-        defineOntology();
     }
 
     public void defineOntology() {

@@ -1,8 +1,8 @@
 package org.destirec.destirec;
 
+import org.destirec.destirec.rdf4j.ontology.DestiRecOntology;
 import org.destirec.destirec.rdf4j.services.MigrationsService;
 import org.destirec.destirec.rdf4j.services.RdfInitializerService;
-import org.destirec.destirec.reasoning.RegionReasoning;
 import org.eclipse.rdf4j.model.IRI;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -22,18 +22,19 @@ public class DestirecApplication {
     CommandLineRunner commandLineRunner(
             MigrationsService migration,
             RdfInitializerService initializerService,
-            RegionReasoning regionReasoning
+            DestiRecOntology ontology
     ) {
         return args -> {
             logger.info("Application has started. Next initial configuration will be set");
             migration.runMigrations();
-            logger.info("Migrations have been finished. Next initialization of some basic RDF resources will be set");
+            logger.info("Migrations have been finished. Next OWL rules initialization follows");
+            migration.runOntologyDefiners();
+            logger.info("Ontology definitions have been written. Next writing rules into the database");
+
+            ontology.migrate();
+            logger.info("Ontology definitions have been migrated. Next initialization of some basic RDF resources will be set");
             IRI version = initializerService.initializeRdfVersion();
             logger.info("RDF resource version with " + version + " iri has been be set");
-
-            // set up the reasoner and start inference process
-
-//            regionReasoning.initialize();
         };
     }
 }

@@ -22,11 +22,11 @@ public class DESTIREC {
 
     public static String wrapNamespace(String str, @NonNull UriType type) {
         if (type == UriType.RESOURCE) {
-            return RESOURCE_NS + str;
+            return RESOURCE_NS + "/" +  str;
         } else if (type == UriType.B_NODE) {
-            return RESOURCE_NS + "_" + str;
+            return RESOURCE_NS + "/_" + str;
         }
-        return ONTOLOGY_NS + str;
+        return ONTOLOGY_NS + "/" + str;
     }
 
     public record NamespaceWrapper(String pseudoUri, String str) {

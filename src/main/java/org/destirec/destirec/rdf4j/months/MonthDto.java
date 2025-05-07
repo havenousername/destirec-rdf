@@ -1,5 +1,6 @@
 package org.destirec.destirec.rdf4j.months;
 
+import lombok.Getter;
 import org.destirec.destirec.rdf4j.attribute.AttributeDto;
 import org.destirec.destirec.rdf4j.interfaces.ConfigFields;
 import org.destirec.destirec.rdf4j.interfaces.Dto;
@@ -8,6 +9,7 @@ import org.eclipse.rdf4j.model.IRI;
 import java.time.Month;
 import java.util.Map;
 
+@Getter
 public class MonthDto extends AttributeDto implements Dto {
     private final String name;
     private final int position;

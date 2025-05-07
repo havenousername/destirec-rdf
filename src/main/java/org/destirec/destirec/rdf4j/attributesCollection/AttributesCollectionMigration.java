@@ -34,7 +34,6 @@ public class AttributesCollectionMigration extends IriMigration implements Ontol
         initHasCost();
         initHasFeatures();
         initHasMonths();
-        defineOntology();
     }
 
 

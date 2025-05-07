@@ -68,10 +68,10 @@ public class MonthMigration extends IriMigration implements OntologyDefiner {
     class MonthOntology {
         OWLClass attribute = destiRecOntology
                 .getFactory()
-                .getOWLClass(AttributeNames.Classes.ATTRIBUTE.pseudoUri());
+                .getOWLClass(AttributeNames.Classes.ATTRIBUTE.owlIri());
         OWLClass month = destiRecOntology
                 .getFactory()
-                .getOWLClass(AttributeNames.Classes.MONTH.pseudoUri());
+                .getOWLClass(AttributeNames.Classes.MONTH.owlIri());
 
 
         private OWLDatatypeRestriction createMonthDataRange() {

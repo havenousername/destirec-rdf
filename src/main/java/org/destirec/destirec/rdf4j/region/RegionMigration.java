@@ -26,7 +26,6 @@ public class RegionMigration extends IriMigration implements OntologyDefiner {
     protected RegionMigration(RDF4JTemplate rdf4jMethods, DestiRecOntology destiRecOntology) {
         super(rdf4jMethods, RegionNames.Classes.REGION.str());
         this.destiRecOntology = destiRecOntology;
-        defineOntology();
     }
 
     class RegionPropertiesOntology {
@@ -109,6 +108,9 @@ public class RegionMigration extends IriMigration implements OntologyDefiner {
 
         public void defineLeafRegion() {
             OWLObjectProperty sfWithin = destiRecOntology.getFactory().getOWLObjectProperty(GEO.NAMESPACE + "sfWithin");
+            OWLObjectProperty sfDirectlyWithin = destiRecOntology.getFactory()
+                    .getOWLObjectProperty(GEO.NAMESPACE + "sfDirectlyWithin");
+
             OWLObjectPropertyExpression sfContains = destiRecOntology.getFactory().getOWLObjectInverseOf(sfWithin);
             //  \exists sfWithin^{-1}.Region
             OWLClassExpression someSubregionsInRegion = destiRecOntology
@@ -119,13 +121,19 @@ public class RegionMigration extends IriMigration implements OntologyDefiner {
                     .getFactory()
                     .getOWLObjectComplementOf(someSubregionsInRegion);
 
-            // (=1 \ sfWithin.Region)
-            OWLClassExpression insideOneRegion = destiRecOntology
+            // (>=1 \ sfWithin.Region)
+            OWLClassExpression insideMoreOrOneRegion = destiRecOntology
                     .getFactory()
-                    .getOWLObjectExactCardinality(1, sfWithin, region);
+                    .getOWLObjectMinCardinality(1, sfWithin, region);
+
+            //  (= 1 \ sfWDirectlyWithin.ParentRegion)
+            OWLClassExpression insideOneRegionDirectly = destiRecOntology
+                    .getFactory()
+                    .getOWLObjectExactCardinality(1, sfDirectlyWithin, region);
 
             OWLClassExpression leafDefinition = destiRecOntology.getFactory()
-                    .getOWLObjectIntersectionOf(region, insideOneRegion, noSubRegions);
+                    .getOWLObjectIntersectionOf(region, insideMoreOrOneRegion,
+                            insideOneRegionDirectly, noSubRegions);
 
             OWLClass attributesCollection = destiRecOntology.getFactory()
                     .getOWLClass(AttributeNames.Classes.ATTRIBUTES_COLLECTION.owlIri());

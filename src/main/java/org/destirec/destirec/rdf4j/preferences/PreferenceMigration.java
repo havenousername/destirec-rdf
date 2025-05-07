@@ -28,9 +28,7 @@ public class PreferenceMigration extends IriMigration implements OntologyDefiner
     }
 
     @PostConstruct
-    public void init() {
-        defineOntology();
-    }
+    public void init() {}
 
     @Override
     public void defineOntology() {

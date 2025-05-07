@@ -82,16 +82,16 @@ public class UserPreferenceService {
 
     @Transactional
     public PreferenceDto addPreference(PreferenceDto preferenceDto) {
-        List<MonthDto> monthDtos = new ArrayList<>(preferenceDto.getMonthsDto());
+        List<MonthDto> monthDtos = new ArrayList<>(preferenceDto.getMonthDtos());
 
         for (int i = 0; i < monthDtos.size(); i++) {
             MonthDto month = monthDtos.get(i);
             IRI id = monthDao.saveAndReturnId(month);
-            MonthDto newMonthDto = new MonthDto(id, month.month(), month.monthRange());
+            MonthDto newMonthDto = new MonthDto(id, month.getHasScore(), month.isActive(), month.getName(), month.getPosition());
             monthDtos.set(i, newMonthDto);
         }
 
-        preferenceDto.setMonthsDto(monthDtos);
+        preferenceDto.setMonthDtos(monthDtos);
 //        PreferenceDto preference = preferenceDao.save(preferenceDto);
 //        System.out.println(preference);
 //        System.out.println(preferenceDao.getReadQuery());

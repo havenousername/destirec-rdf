@@ -8,7 +8,7 @@ import org.eclipse.rdf4j.rio.RDFFormat;
 import org.eclipse.rdf4j.rio.Rio;
 import org.eclipse.rdf4j.spring.support.RDF4JTemplate;
 import org.semanticweb.owlapi.apibinding.OWLManager;
-import org.semanticweb.owlapi.formats.RDFXMLDocumentFormat;
+import org.semanticweb.owlapi.formats.TurtleDocumentFormat;
 import org.semanticweb.owlapi.model.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -54,8 +54,9 @@ public class DestiRecOntology {
         ByteArrayOutputStream output = new ByteArrayOutputStream();
         try {
             getManager()
-                    .saveOntology(getOntology(), new RDFXMLDocumentFormat(), output);
+                    .saveOntology(getOntology(), new TurtleDocumentFormat(), output);
 
+            String modelString = output.toString();
             Model ontologyModel = Rio.parse(new ByteArrayInputStream(output.toByteArray()), "", RDFFormat.TURTLE) ;
             rdf4JMethods.consumeConnection(connection -> {
                 try {
