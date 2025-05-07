@@ -149,6 +149,16 @@ public class RegionService {
     }
 
     @Transactional
+    public List<RegionDto> getRegions() {
+        return regionDao.list();
+    }
+
+    @Transactional
+    public List<RegionDto> getLeafRegions() {
+        return regionDao.listLeaf();
+    }
+
+    @Transactional
     public IRI createRegion(ExternalRegionDto regionDto) {
         if (regionDto.graphId() != null) {
             String msg = "Region with ID " + regionDto.id() + " is already present in the RDF database";

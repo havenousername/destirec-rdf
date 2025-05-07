@@ -21,14 +21,12 @@ import java.util.stream.IntStream;
 
 @Component
 public class RegionConfig extends GenericConfig<RegionConfig.Fields> {
-    private final RegionMigration regionMigration;
     private final AttributesCollectionMigration collectionMigration;
 
     @Setter
     private List<String> featureNames;
-    public RegionConfig(RegionMigration regionMigration, AttributesCollectionMigration collectionMigration) {
+    public RegionConfig(AttributesCollectionMigration collectionMigration) {
         super("region_id");
-        this.regionMigration = regionMigration;
         this.collectionMigration = collectionMigration;
     }
 

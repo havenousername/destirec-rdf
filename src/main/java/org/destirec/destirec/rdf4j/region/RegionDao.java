@@ -5,8 +5,13 @@ import org.destirec.destirec.rdf4j.interfaces.GenericDao;
 import org.destirec.destirec.rdf4j.months.MonthDao;
 import org.destirec.destirec.rdf4j.region.cost.CostDao;
 import org.destirec.destirec.rdf4j.region.feature.FeatureDao;
+import org.destirec.destirec.utils.rdfDictionary.RegionNames;
+import org.eclipse.rdf4j.sparqlbuilder.rdf.Rdf;
+import org.eclipse.rdf4j.spring.dao.support.opbuilder.TupleQueryEvaluationBuilder;
 import org.eclipse.rdf4j.spring.support.RDF4JTemplate;
 import org.springframework.stereotype.Repository;
+
+import java.util.List;
 
 @Getter
 @Repository
@@ -41,5 +46,16 @@ public class RegionDao extends GenericDao<RegionConfig.Fields, RegionDto> {
     @Override
     public RegionDtoCreator getDtoCreator() {
         return (RegionDtoCreator) super.getDtoCreator();
+    }
+
+    public List<RegionDto> listLeaf() {
+        return this.getReadQueryOrUseCached().evaluateAndConvert().toList(this::mapSolution, this::postProcessMappedSolution);
+    }
+
+    private TupleQueryEvaluationBuilder getReadQueryOrUseCached() {
+        return this.getRdf4JTemplate().tupleQuery(
+                this.getClass(),
+                "readQuery",
+                () -> getReadQuery(Rdf.iri((RegionNames.Classes.LEAF_REGION.rdfIri()))));
     }
 }

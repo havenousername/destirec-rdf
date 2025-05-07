@@ -13,6 +13,7 @@ import org.eclipse.rdf4j.sparqlbuilder.core.Variable;
 import org.eclipse.rdf4j.sparqlbuilder.core.query.Queries;
 import org.eclipse.rdf4j.sparqlbuilder.graphpattern.GraphPattern;
 import org.eclipse.rdf4j.sparqlbuilder.graphpattern.TriplePattern;
+import org.eclipse.rdf4j.sparqlbuilder.rdf.RdfResource;
 import org.eclipse.rdf4j.spring.dao.SimpleRDF4JCRUDDao;
 import org.eclipse.rdf4j.spring.dao.support.bindingsBuilder.MutableBindings;
 import org.eclipse.rdf4j.spring.dao.support.sparql.NamedSparqlSupplier;
@@ -74,7 +75,7 @@ public abstract class GenericDao<FieldEnum extends Enum<FieldEnum> & ConfigField
     }
 
     @Override
-    public NamedSparqlSupplier getInsertSparql(DTO userDto) {
+    public NamedSparqlSupplier getInsertSparql(DTO dto) {
         return NamedSparqlSupplier.of(KEY_PREFIX_INSERT, () -> {
             TriplePattern pattern = configFields.getId()
                     .isA(migration.getResource());
@@ -112,12 +113,17 @@ public abstract class GenericDao<FieldEnum extends Enum<FieldEnum> & ConfigField
 
     @Override
     protected String getReadQuery() {
+        return getReadQuery(migration.getResource());
+    }
+
+
+    protected String getReadQuery(RdfResource graph) {
         mapEnteredTimes.set(0);
         List<Map.Entry<VariableType, Projectable>> variables = getReadVariables();
 //        TriplePattern pattern = configFields.getId()
 //                .isA(migration.get());
         List<GraphPattern> graphPatterns = new ArrayList<>();
-        graphPatterns.add(configFields.getId().isA(migration.getResource()));
+        graphPatterns.add(configFields.getId().isA(graph));
 
         configFields.getReadPredicates().forEach((key, value) -> {
             TriplesSelectVisitor visitor = new TriplesSelectVisitor(value, configFields.getId(), configFields.getIsOptional(key));
