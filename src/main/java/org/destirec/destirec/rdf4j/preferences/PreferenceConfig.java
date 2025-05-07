@@ -2,7 +2,7 @@ package org.destirec.destirec.rdf4j.preferences;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
-import org.destirec.destirec.rdf4j.attributesCollection.AttributesCollectionMigration;
+import org.destirec.destirec.rdf4j.attribute.AttributesCollectionMigration;
 import org.destirec.destirec.rdf4j.interfaces.GenericConfig;
 import org.destirec.destirec.rdf4j.vocabulary.DESTIREC;
 import org.destirec.destirec.utils.ValueContainer;

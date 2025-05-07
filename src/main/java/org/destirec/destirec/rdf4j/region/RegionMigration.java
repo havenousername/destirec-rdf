@@ -83,7 +83,7 @@ public class RegionMigration extends IriMigration implements OntologyDefiner {
 
     class RegionOntology {
         OWLClass region = destiRecOntology.getFactory().getOWLClass(get().stringValue());
-        OWLClass object = destiRecOntology.getFactory().getOWLClass(TopOntologyNames.Classes.OBJECT);
+        OWLClass object = destiRecOntology.getFactory().getOWLClass(TopOntologyNames.Classes.OBJECT.owlIri());
 
         OWLClass parentRegion = destiRecOntology.getFactory().getOWLClass(getParentRegion());
         OWLClass leafRegion = destiRecOntology.getFactory().getOWLClass(getLeafRegion());
@@ -198,7 +198,7 @@ public class RegionMigration extends IriMigration implements OntologyDefiner {
         // Region \sqsubseteq Object
         builder
                 .add(get(), RDF.TYPE, OWL.CLASS)
-                .add(get(), RDFS.SUBCLASSOF, TopOntologyNames.Classes.OBJECT);
+                .add(get(), RDFS.SUBCLASSOF, TopOntologyNames.Classes.OBJECT.rdfIri());
 
     }
 }

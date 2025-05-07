@@ -103,7 +103,7 @@ public class CostMigration extends IriMigration implements OntologyDefiner {
     protected void setupProperties() {
         builder
                 .add(get(), RDF.TYPE, OWL.DATATYPEPROPERTY)
-                .add(get(), RDFS.SUBCLASSOF, TopOntologyNames.Classes.CONCEPT)
+                .add(get(), RDFS.SUBCLASSOF, TopOntologyNames.Classes.CONCEPT.rdfIri())
                 .add(get(), SKOS.RELATED_MATCH, DBPEDIA.COST)
                 .add(get(), RDFS.RANGE, RDFS.RESOURCE);
     }

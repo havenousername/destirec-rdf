@@ -147,7 +147,7 @@ public class MonthMigration extends IriMigration implements OntologyDefiner {
     protected void setupProperties() {
         builder
                 .add(get(), RDF.TYPE, OWL.CLASS)
-                .add(get(), RDFS.SUBCLASSOF, TopOntologyNames.Classes.CONCEPT);
+                .add(get(), RDFS.SUBCLASSOF, TopOntologyNames.Classes.CONCEPT.rdfIri());
     }
 
 

@@ -1,4 +1,4 @@
-package org.destirec.destirec.rdf4j.attributesCollection;
+package org.destirec.destirec.rdf4j.attribute;
 
 import jakarta.annotation.PostConstruct;
 import lombok.Getter;
@@ -41,7 +41,7 @@ public class AttributesCollectionMigration extends IriMigration implements Ontol
     protected void setupProperties() {
         builder
                 .add(get(), RDF.TYPE, OWL.CLASS)
-                .add(get(), RDFS.SUBCLASSOF, TopOntologyNames.Classes.CONCEPT);
+                .add(get(), RDFS.SUBCLASSOF, TopOntologyNames.Classes.CONCEPT.rdfIri());
     }
 
     private void initHasCost() {
@@ -99,7 +99,7 @@ public class AttributesCollectionMigration extends IriMigration implements Ontol
 
 
         public void defineAttributes() {
-            OWLClass concept = factory.getOWLClass(TopOntologyNames.Classes.CONCEPT);
+            OWLClass concept = factory.getOWLClass(TopOntologyNames.Classes.CONCEPT.owlIri());
             // define for now that only leaf region has cost, months, and features
             OWLObjectProperty hasCost = factory.getOWLObjectProperty(AttributeNames.Properties.HAS_COST.owlIri());
             OWLClassExpression exactOneCost = factory

@@ -84,6 +84,6 @@ public class PreferenceMigration extends IriMigration implements OntologyDefiner
         builder
                 .add(get(), RDF.TYPE, OWL.CLASS)
                 .add(get(), SKOS.RELATED_MATCH, WIKIDATA.PREFERENCE)
-                .add(get(), RDFS.SUBCLASSOF, TopOntologyNames.Classes.CONCEPT);
+                .add(get(), RDFS.SUBCLASSOF, TopOntologyNames.Classes.CONCEPT.rdfIri());
     }
 }

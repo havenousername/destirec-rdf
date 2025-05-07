@@ -39,7 +39,7 @@ public class AttributeMigration extends IriMigration implements OntologyDefiner 
     protected void setupProperties() {
         builder
                 .add(get(), RDF.TYPE, OWL.CLASS)
-                .add(get(), RDFS.SUBPROPERTYOF, TopOntologyNames.Classes.OBJECT);
+                .add(get(), RDFS.SUBPROPERTYOF, TopOntologyNames.Classes.OBJECT.rdfIri());
     }
 
     @Override
@@ -81,9 +81,9 @@ public class AttributeMigration extends IriMigration implements OntologyDefiner 
 
         // hasConcept \sqsubseteq (Actor \sqcup Object) \times Concept
         public void defineHasConcept() {
-            OWLClass object = factory.getOWLClass(TopOntologyNames.Classes.OBJECT);
-            OWLClass actor = factory.getOWLClass(TopOntologyNames.Classes.ACTOR);
-            OWLClass concept = factory.getOWLClass(TopOntologyNames.Classes.CONCEPT);
+            OWLClass object = factory.getOWLClass(TopOntologyNames.Classes.OBJECT.owlIri());
+            OWLClass actor = factory.getOWLClass(TopOntologyNames.Classes.ACTOR.owlIri());
+            OWLClass concept = factory.getOWLClass(TopOntologyNames.Classes.CONCEPT.owlIri());
 
             OWLClassExpression objectOrActor = factory.getOWLObjectUnionOf(object, actor);
             manager.addAxiom(ontology, factory.getOWLObjectPropertyDomainAxiom(hasConcept, objectOrActor));
@@ -106,8 +106,8 @@ public class AttributeMigration extends IriMigration implements OntologyDefiner 
             OWLClass feature = factory.getOWLClass(AttributeNames.Classes.FEATURE.owlIri());
             OWLClass month = factory.getOWLClass(AttributeNames.Classes.MONTH.owlIri());
             OWLClass cost = factory.getOWLClass(AttributeNames.Classes.COST.owlIri());
-            OWLClass object = factory.getOWLClass(TopOntologyNames.Classes.OBJECT);
-            OWLClass actor = factory.getOWLClass(TopOntologyNames.Classes.ACTOR);
+            OWLClass object = factory.getOWLClass(TopOntologyNames.Classes.OBJECT.owlIri());
+            OWLClass actor = factory.getOWLClass(TopOntologyNames.Classes.ACTOR.owlIri());
 
             manager.addAxiom(ontology, factory.getOWLSubObjectPropertyOfAxiom(hasFeature, hasAttribute));
             manager.addAxiom(ontology, factory.getOWLSubObjectPropertyOfAxiom(hasMonth, hasAttribute));
@@ -182,7 +182,7 @@ public class AttributeMigration extends IriMigration implements OntologyDefiner 
             OWLDataAllValuesFrom isActiveBoolean = destiRecOntology.getFactory().getOWLDataAllValuesFrom(isActiveProperty, booleanDatatype);
 
             OWLClassExpression intersectionScoredAttribute = destiRecOntology.getFactory().getOWLObjectIntersectionOf(
-                    destiRecOntology.getFactory().getOWLClass(TopOntologyNames.Classes.CONCEPT),
+                    destiRecOntology.getFactory().getOWLClass(TopOntologyNames.Classes.CONCEPT.owlIri()),
                     hasExactlyOneScore,
                     isActiveBoolean,
                     isExactlyOneActive

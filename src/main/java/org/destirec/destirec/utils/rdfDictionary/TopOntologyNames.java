@@ -7,16 +7,16 @@ public final class TopOntologyNames {
     private TopOntologyNames() {}
 
     public final static class Classes {
-        public final static String TOP_ONTOLOGY  = DESTIREC.wrapNamespace("TopOntology");
+        public final static DESTIREC.NamespaceWrapper TOP_ONTOLOGY  = DESTIREC.wrap("TopOntology");
 
-        public final static String OBJECT  = DESTIREC.wrapNamespace("Object");
+        public final static DESTIREC.NamespaceWrapper OBJECT  = DESTIREC.wrap("Object");
 
-        public final static String CONCEPT  = DESTIREC.wrapNamespace("Concept");
+        public final static DESTIREC.NamespaceWrapper CONCEPT  = DESTIREC.wrap("Concept");
 
 
-        public final static String ACTOR  = DESTIREC.wrapNamespace("Actor");
+        public final static DESTIREC.NamespaceWrapper ACTOR  = DESTIREC.wrap("Actor");
 
-        public final static String EVENT  = DESTIREC.wrapNamespace("Event");
+        public final static DESTIREC.NamespaceWrapper EVENT  = DESTIREC.wrap("Event");
 
     }
 

@@ -1,7 +1,8 @@
 package org.destirec.destirec.rdf4j.services;
 
 import org.destirec.destirec.rdf4j.attribute.AttributeMigration;
-import org.destirec.destirec.rdf4j.attributesCollection.AttributesCollectionMigration;
+import org.destirec.destirec.rdf4j.attribute.AttributesCollectionMigration;
+import org.destirec.destirec.rdf4j.attribute.QualityMigration;
 import org.destirec.destirec.rdf4j.functions.IsPalindrome;
 import org.destirec.destirec.rdf4j.interfaces.Migration;
 import org.destirec.destirec.rdf4j.interfaces.OntologyDefiner;
@@ -38,7 +39,8 @@ public class MigrationsService {
             FeatureMigration featureMigration,
             TopOntologyMigration topOntologyMigration,
             AttributeMigration attributeMigration,
-            AttributesCollectionMigration attributesCollectionMigration
+            AttributesCollectionMigration attributesCollectionMigration,
+            QualityMigration qualityMigration
 
     ) {
         migrations.add(topOntologyMigration);
@@ -50,6 +52,7 @@ public class MigrationsService {
         migrations.add(featureMigration);
         migrations.add(attributeMigration);
         migrations.add(attributesCollectionMigration);
+        migrations.add(qualityMigration);
 
         migrations.forEach(migration -> {
             migration.setGraphName(DEFAULT_GRAPH);
@@ -65,6 +68,7 @@ public class MigrationsService {
         ontologies.add(featureMigration);
         ontologies.add(attributeMigration);
         ontologies.add(attributesCollectionMigration);
+        ontologies.add(qualityMigration);
     }
 
     public void runMigrations() {

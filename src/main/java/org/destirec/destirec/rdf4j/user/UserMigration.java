@@ -95,7 +95,7 @@ public class UserMigration extends IriMigration implements OntologyDefiner {
     protected void setupProperties() {
         builder.add(get(), RDF.TYPE, OWL.CLASS)
                 .add(get(), RDFS.SUBCLASSOF, FOAF.PERSON)
-                .add(get(), RDFS.SUBCLASSOF, TopOntologyNames.Classes.ACTOR)
+                .add(get(), RDFS.SUBCLASSOF, TopOntologyNames.Classes.ACTOR.rdfIri())
                 .add(get(), RDFS.COMMENT, "A user of an application");
     }
 }
