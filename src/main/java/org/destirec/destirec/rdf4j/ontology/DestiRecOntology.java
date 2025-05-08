@@ -6,6 +6,10 @@ import org.eclipse.rdf4j.model.Model;
 import org.eclipse.rdf4j.repository.RepositoryException;
 import org.eclipse.rdf4j.rio.RDFFormat;
 import org.eclipse.rdf4j.rio.Rio;
+import org.eclipse.rdf4j.sparqlbuilder.core.query.ModifyQuery;
+import org.eclipse.rdf4j.sparqlbuilder.core.query.Queries;
+import org.eclipse.rdf4j.sparqlbuilder.graphpattern.GraphPatterns;
+import org.eclipse.rdf4j.sparqlbuilder.graphpattern.TriplePattern;
 import org.eclipse.rdf4j.spring.support.RDF4JTemplate;
 import org.semanticweb.owlapi.apibinding.OWLManager;
 import org.semanticweb.owlapi.formats.TurtleDocumentFormat;
@@ -17,13 +21,14 @@ import org.springframework.stereotype.Component;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.util.Set;
 
 @Getter
 @Component
 public class DestiRecOntology {
     private final OWLOntologyManager manager;
     private final OWLDataFactory factory;
-    private  OWLOntology ontology;
+    private OWLOntology ontology;
 
     private final RDF4JTemplate rdf4JMethods;
     private boolean isMigrated;
@@ -47,6 +52,11 @@ public class DestiRecOntology {
             System.out.println("Cannot create ontology on the iri " + DESTIREC.NAMESPACE);
         }
     }
+
+    public void resetOntology() {
+        Set<OWLAxiom> axioms = ontology.getAxioms();
+        manager.removeAxioms(ontology, axioms);
+    }
     public void migrate() {
         if (isMigrated) {
             return;
@@ -58,14 +68,42 @@ public class DestiRecOntology {
 
             String modelString = output.toString();
             Model ontologyModel = Rio.parse(new ByteArrayInputStream(output.toByteArray()), "", RDFFormat.TURTLE) ;
+
             rdf4JMethods.consumeConnection(connection -> {
                 try {
-                    logger.info("Start ontology transaction");
                     connection.begin();
+                    logger.info("Start ontology transaction");
+                    ontologyModel.forEach(statement -> {
+                        var object = statement.getObject();
+                        var subject = statement.getSubject();
+                        var predicate = statement.getPredicate();
 
-                    connection.add(ontologyModel);
+                        if (subject.isBNode() || object.isBNode() || predicate.isBNode()) {
+                            connection.remove(subject, predicate, object);
+                            connection.add(statement);
+                        } else {
+                            TriplePattern pattern = GraphPatterns.tp(
+                                    subject,
+                                    predicate,
+                                    object
+                            );
+
+                            ModifyQuery query = Queries.INSERT()
+                                    .delete(pattern)
+                                    .insert(pattern);
+
+                            logger.info("Query for update: \n" + query.getQueryString());
+                            connection.prepareUpdate(query.getQueryString()).execute();
+                        }
+
+                    });
                     connection.commit();
+
                     isMigrated = true;
+//                    connection.begin();
+//                    connection.add(ontologyModel);
+//                    connection.commit();
+//                    isMigrated = true;
 
                     logger.info("Ontology transaction has successfully finished");
 

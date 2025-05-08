@@ -2,7 +2,6 @@ package org.destirec.destirec.rdf4j.region.cost;
 
 import lombok.Getter;
 import lombok.ToString;
-import org.destirec.destirec.rdf4j.attribute.AttributeConfig;
 import org.destirec.destirec.rdf4j.attribute.AttributeDto;
 import org.destirec.destirec.rdf4j.interfaces.ConfigFields;
 import org.destirec.destirec.rdf4j.interfaces.Dto;
@@ -27,8 +26,8 @@ public final class CostDto extends AttributeDto implements Dto {
         return Map.of(
                 CostConfig.Fields.COST_PER_WEEK, String.valueOf(costPerWeek),
                 CostConfig.Fields.BUDGET_LEVEL, String.valueOf(budgetLevel),
-                AttributeConfig.Fields.HAS_SCORE, String.valueOf(hasScore),
-                AttributeConfig.Fields.IS_ACTIVE, String.valueOf(isActive)
+                CostConfig.Fields.HAS_SCORE, String.valueOf(hasScore),
+                CostConfig.Fields.IS_ACTIVE, String.valueOf(isActive)
         );
     }
 }

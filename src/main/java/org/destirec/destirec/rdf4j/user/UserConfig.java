@@ -2,9 +2,8 @@ package org.destirec.destirec.rdf4j.user;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
-import org.destirec.destirec.rdf4j.interfaces.GenericConfig;
 import org.destirec.destirec.rdf4j.interfaces.ConfigFields;
-import org.destirec.destirec.rdf4j.vocabulary.DESTIREC;
+import org.destirec.destirec.rdf4j.interfaces.GenericConfig;
 import org.destirec.destirec.utils.ValueContainer;
 import org.eclipse.rdf4j.model.IRI;
 import org.eclipse.rdf4j.model.base.CoreDatatype;
@@ -18,14 +17,8 @@ import org.springframework.stereotype.Component;
 @Component
 public class UserConfig extends GenericConfig<UserConfig.Fields> {
     public UserConfig() {
-        super("user_id");
+        super("user");
     }
-
-    @Override
-    public String getResourceLocation() {
-        return DESTIREC.NAMESPACE + "resource/user/";
-    }
-
 
     @Override
     public Boolean getIsOptional(Fields field) {

@@ -4,7 +4,6 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import org.destirec.destirec.rdf4j.interfaces.ConfigFields;
 import org.destirec.destirec.rdf4j.interfaces.GenericConfig;
-import org.destirec.destirec.rdf4j.vocabulary.DESTIREC;
 import org.destirec.destirec.utils.ValueContainer;
 import org.destirec.destirec.utils.rdfDictionary.AttributeNames;
 import org.eclipse.rdf4j.model.IRI;
@@ -17,7 +16,7 @@ import org.springframework.stereotype.Component;
 public class CostConfig extends GenericConfig<CostConfig.Fields> {
     private final CostMigration costMigration;
     public CostConfig(CostMigration costMigration) {
-        super("cost_id");
+        super("cost");
         this.costMigration = costMigration;
     }
 
@@ -45,11 +44,6 @@ public class CostConfig extends GenericConfig<CostConfig.Fields> {
             case IS_ACTIVE -> CoreDatatype.XSD.BOOLEAN;
         };
         return new ValueContainer<>(type);
-    }
-
-    @Override
-    public String getResourceLocation() {
-        return DESTIREC.NAMESPACE + "/resource/cost/";
     }
 
     @Override

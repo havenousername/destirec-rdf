@@ -10,7 +10,7 @@ public final class AttributeNames {
         public final static DESTIREC.NamespaceWrapper SCORED_ATTRIBUTE = DESTIREC.wrap("ScoredAttribute");
         public final static DESTIREC.NamespaceWrapper REGION_ATTRIBUTE = DESTIREC.wrap("RegionAttribute");
 
-        public final static DESTIREC.NamespaceWrapper PREFERENCE_ATTRIBUTE = DESTIREC.wrap("RegionAttribute");
+        public final static DESTIREC.NamespaceWrapper PREFERENCE_ATTRIBUTE = DESTIREC.wrap("PreferenceAttribute");
 
         public final static DESTIREC.NamespaceWrapper ATTRIBUTE = DESTIREC.wrap("Attribute");
 
@@ -28,6 +28,7 @@ public final class AttributeNames {
         public final static DESTIREC.NamespaceWrapper HAS_MONTH = DESTIREC.wrap("hasMonth");
 
         public final static DESTIREC.NamespaceWrapper HAS_FEATURE = DESTIREC.wrap("hasFeature");
+        public final static DESTIREC.NamespaceWrapper HAS_QUALITY = DESTIREC.wrap("hasQuality");
         public final static DESTIREC.NamespaceWrapper HAS_SCORE = DESTIREC.wrap("hasScore");
         public final static DESTIREC.NamespaceWrapper IS_ACTIVE = DESTIREC.wrap("isActive");
 

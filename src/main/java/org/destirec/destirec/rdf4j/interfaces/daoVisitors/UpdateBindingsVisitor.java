@@ -18,17 +18,28 @@ public class UpdateBindingsVisitor implements ContainerVisitor<Variable> {
 
     private final ValueContainer<CoreDatatype> coreDatatype;
 
-    public UpdateBindingsVisitor(String dtoValue, ValueFactory valueFactory, MutableBindings builder, ValueContainer<CoreDatatype> coreDatatype) {
+    private final boolean isOptional;
+
+    public UpdateBindingsVisitor(
+            String dtoValue,
+            ValueFactory valueFactory,
+            MutableBindings builder,
+            ValueContainer<CoreDatatype> coreDatatype,
+            boolean isOptional
+    ) {
         this.dtoValue = dtoValue;
         this.valueFactory = valueFactory;
         this.builder = builder;
         this.coreDatatype = coreDatatype;
+        this.isOptional = isOptional;
     }
 
     @Override
     public void visit(Variable visitor) {
-        if (dtoValue == null) {
+        if (dtoValue == null && isOptional) {
             return;
+        } else if (dtoValue == null) {
+            throw new IllegalStateException("Cannot accept empty dtoValue here for the variable " + visitor.getVarName());
         }
 
         CoreDatatype next;

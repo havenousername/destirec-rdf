@@ -1,11 +1,13 @@
 package org.destirec.destirec.rdf4j.region;
 
 import org.destirec.destirec.rdf4j.region.apiDto.ExternalRegionDto;
+import org.destirec.destirec.rdf4j.region.cost.CostDto;
 import org.destirec.destirec.utils.ResponseData;
 import org.eclipse.rdf4j.model.IRI;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
 import java.util.Optional;
 
 @RestController
@@ -34,6 +36,11 @@ public class RegionController {
         }
     }
 
+    @GetMapping("/costs")
+    public ResponseEntity<List<CostDto>> getCosts() {
+        return ResponseEntity.ok(regionService.getCosts());
+    }
+
     @PutMapping(value = "/{regionId}")
     public ResponseEntity<ResponseData<String>> updateRegion(@RequestBody ExternalRegionDto dto, @PathVariable String regionId) {
         try {
@@ -59,5 +66,10 @@ public class RegionController {
     @GetMapping(value = "/{regionId}")
     public Optional<RegionDto> getRegionDto(@PathVariable String regionId) {
         return regionService.getRegion(regionId);
+    }
+
+    @GetMapping
+    public ResponseEntity<List<RegionDto>> getRegions() {
+        return ResponseEntity.ok(regionService.getRegions());
     }
 }

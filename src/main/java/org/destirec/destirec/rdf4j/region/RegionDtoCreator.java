@@ -58,6 +58,9 @@ public class RegionDtoCreator implements DtoCreator<RegionDto, RegionConfig.Fiel
     }
 
     public IRI createId(String id) {
+        if (id == null) {
+            return null;
+        }
         return valueFactory.createIRI(regionConfig.getResourceLocation() + id);
     }
 

@@ -75,6 +75,15 @@ public class RegionConfig extends GenericConfig<RegionConfig.Fields> {
     }
 
     @Override
+    public Boolean getIsOptional(RegionConfig.Fields field) {
+        if (field == Fields.PARENT_REGION) {
+            return true;
+        }
+
+        return false;
+    }
+
+    @Override
     public String getResourceLocation() {
         return DESTIREC.NAMESPACE + "resource/region/";
     }

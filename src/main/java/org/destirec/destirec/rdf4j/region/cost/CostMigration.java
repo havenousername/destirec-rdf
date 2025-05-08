@@ -58,10 +58,10 @@ public class CostMigration extends IriMigration implements OntologyDefiner {
     class BudgetOntology {
         OWLClass attribute = destiRecOntology
                 .getFactory()
-                .getOWLClass(AttributeNames.Classes.ATTRIBUTE.pseudoUri());
+                .getOWLClass(AttributeNames.Classes.ATTRIBUTE.owlIri());
         OWLClass cost = destiRecOntology
                 .getFactory()
-                .getOWLClass(AttributeNames.Classes.COST.pseudoUri());
+                .getOWLClass(AttributeNames.Classes.COST.owlIri());
 
        //  Cost \equiv Attribute \ \sqcap (\exists hasBudgetLevel.Integer) \ \sqcap (=1 \  hasCostPerWeek.Integer)
        public void defineCost() {

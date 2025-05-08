@@ -11,9 +11,11 @@ public class RegionFeatureNames {
     public final static class Individuals {
         public enum RegionFeature {
             NATURE("Nature"),
+            SAFETY("Safety"),
             ARCHITECTURE("Architecture"),
             HIKING("Hiking"),
             WINTERSPORTS("Wintersports"),
+            WATERSPORTS("WATERSPORTS"),
             BEACH("Beach"),
             CULTURE("Culture"),
             CULINARY("Culinary"),

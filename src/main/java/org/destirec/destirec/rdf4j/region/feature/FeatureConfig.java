@@ -5,7 +5,6 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import org.destirec.destirec.rdf4j.interfaces.ConfigFields;
 import org.destirec.destirec.rdf4j.interfaces.GenericConfig;
-import org.destirec.destirec.rdf4j.vocabulary.DESTIREC;
 import org.destirec.destirec.utils.ValueContainer;
 import org.destirec.destirec.utils.rdfDictionary.AttributeNames;
 import org.eclipse.rdf4j.model.IRI;
@@ -17,7 +16,7 @@ import org.springframework.stereotype.Component;
 @Component
 public class FeatureConfig extends GenericConfig<FeatureConfig.Fields> {
     public FeatureConfig() {
-        super("feature_id");
+        super("feature");
     }
 
     @Override
@@ -43,11 +42,6 @@ public class FeatureConfig extends GenericConfig<FeatureConfig.Fields> {
             case HAS_REGION_FEATURE -> null;
         };
         return new ValueContainer<>(type);
-    }
-
-    @Override
-    public String getResourceLocation() {
-        return DESTIREC.NAMESPACE + "/resource/feature/";
     }
 
     @Override

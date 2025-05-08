@@ -64,11 +64,13 @@ public abstract class GenericDao<FieldEnum extends Enum<FieldEnum> & ConfigField
     protected void populateBindingsForUpdate(MutableBindings bindingsBuilder, DTO dto) {
         Map<ConfigFields.Field, String> dtoEntity = dto.getMap();
         configFields.getVariableNames().forEach((field, variable) -> {
+            String value = dtoEntity.get(field);
             UpdateBindingsVisitor visitor = new UpdateBindingsVisitor(
-                    dtoEntity.get(field),
+                    value,
                     valueFactory,
                     bindingsBuilder,
-                    configFields.getType(field)
+                    configFields.getType(field),
+                    configFields.getIsOptional(field)
             );
             variable.accept(visitor);
         });
@@ -113,7 +115,9 @@ public abstract class GenericDao<FieldEnum extends Enum<FieldEnum> & ConfigField
 
     @Override
     protected String getReadQuery() {
-        return getReadQuery(migration.getResource());
+        var query = getReadQuery(migration.getResource());
+        System.out.println(query + " \n\n\n\n\n Read query");
+        return query;
     }
 
 

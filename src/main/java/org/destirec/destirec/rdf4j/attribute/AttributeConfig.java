@@ -4,8 +4,8 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import org.destirec.destirec.rdf4j.interfaces.ConfigFields;
 import org.destirec.destirec.rdf4j.interfaces.GenericConfig;
-import org.destirec.destirec.rdf4j.vocabulary.DESTIREC;
 import org.destirec.destirec.utils.ValueContainer;
+import org.destirec.destirec.utils.rdfDictionary.AttributeNames;
 import org.eclipse.rdf4j.model.IRI;
 import org.eclipse.rdf4j.model.base.CoreDatatype;
 import org.eclipse.rdf4j.sparqlbuilder.core.SparqlBuilder;
@@ -14,17 +14,15 @@ import org.springframework.stereotype.Component;
 
 @Component
 public class AttributeConfig extends GenericConfig<AttributeConfig.Fields> {
-    private final AttributeMigration migration;
-    public AttributeConfig(AttributeMigration migration) {
-        super("attribute_id");
-        this.migration = migration;
+    public AttributeConfig() {
+        super("attribute");
     }
 
     @Override
     public ValueContainer<IRI> getPredicate(Fields field) {
         var predicate = switch (field) {
-            case HAS_SCORE -> migration.getHasScore();
-            case IS_ACTIVE -> migration.getIsActive();
+            case HAS_SCORE -> AttributeNames.Properties.HAS_SCORE.rdfIri();
+            case IS_ACTIVE -> AttributeNames.Properties.IS_ACTIVE.rdfIri();
         };
         return new ValueContainer<>(predicate);
     }
@@ -44,11 +42,6 @@ public class AttributeConfig extends GenericConfig<AttributeConfig.Fields> {
     }
 
     @Override
-    public String getResourceLocation() {
-        return DESTIREC.NAMESPACE + "/resource/attribute";
-    }
-
-    @Override
     protected Fields[] getValues() {
         return Fields.values();
     }
@@ -56,8 +49,8 @@ public class AttributeConfig extends GenericConfig<AttributeConfig.Fields> {
     @AllArgsConstructor
     @Getter
     public enum Fields implements ConfigFields.Field {
-        HAS_SCORE("score", true),
-        IS_ACTIVE("isActive", true);
+        HAS_SCORE(AttributeNames.Properties.HAS_SCORE.str(), true),
+        IS_ACTIVE(AttributeNames.Properties.IS_ACTIVE.str(), true);
         private final String name;
         private final boolean isRead;
     }

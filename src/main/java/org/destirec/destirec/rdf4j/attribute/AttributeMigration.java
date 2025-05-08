@@ -23,8 +23,6 @@ import static org.destirec.destirec.utils.rdfDictionary.AttributeNames.Propertie
 @Getter
 @Component
 public class AttributeMigration extends IriMigration implements OntologyDefiner {
-    private final org.eclipse.rdf4j.model.IRI hasScore = valueFactory.createIRI(HAS_SCORE.pseudoUri());
-    private final org.eclipse.rdf4j.model.IRI isActive = valueFactory.createIRI(IS_ACTIVE.pseudoUri());
     private final DestiRecOntology destiRecOntology;
 
     protected AttributeMigration(
@@ -147,8 +145,9 @@ public class AttributeMigration extends IriMigration implements OntologyDefiner 
                 .getFactory()
                 .getOWLClass(AttributeNames.Classes.ATTRIBUTE.pseudoUri());
 
-        IRI hasScoreOWL = IRI.create(hasScore.stringValue());
-        IRI isActiveOWL = IRI.create(isActive.stringValue());
+        OWLDataProperty hasScoreOWL = destiRecOntology.getFactory().getOWLDataProperty(HAS_SCORE.owlIri());
+
+        OWLDataProperty isActiveOWL = destiRecOntology.getFactory().getOWLDataProperty(IS_ACTIVE.owlIri());
 
         OWLObjectProperty hasConcept = destiRecOntology.getFactory().getOWLObjectProperty(TopOntologyNames.Properties.HAS_CONCEPT.pseudoUri());
 
@@ -157,8 +156,7 @@ public class AttributeMigration extends IriMigration implements OntologyDefiner 
             OWLDatatype booleanDatatype = destiRecOntology.getFactory().getOWLDatatype(XSD.BOOLEAN.stringValue());
             OWLDatatype integerDatatype = destiRecOntology.getFactory().getOWLDatatype(XSD.INTEGER.stringValue());
 
-            OWLDataPropertyExpression hasScoreProperty = destiRecOntology.getFactory().getOWLDataProperty(hasScoreOWL);
-            OWLClassExpression hasExactlyOneScore = destiRecOntology.getFactory().getOWLDataExactCardinality(1, hasScoreProperty);
+            OWLClassExpression hasExactlyOneScore = destiRecOntology.getFactory().getOWLDataExactCardinality(1, hasScoreOWL);
             OWLLiteral minScoreValue = destiRecOntology.getFactory().getOWLLiteral(0);
             OWLLiteral maxScoreValue = destiRecOntology.getFactory().getOWLLiteral(100);
 
@@ -173,13 +171,12 @@ public class AttributeMigration extends IriMigration implements OntologyDefiner 
 
             OWLDataPropertyRangeAxiom rangeAxiomForScore = destiRecOntology.getFactory()
                     .getOWLDataPropertyRangeAxiom(
-                            hasScoreProperty,
+                            hasScoreOWL,
                             scoreRangeType
                     );
 
-            OWLDataProperty isActiveProperty = destiRecOntology.getFactory().getOWLDataProperty(isActiveOWL);
-            OWLClassExpression isExactlyOneActive = destiRecOntology.getFactory().getOWLDataExactCardinality(1, isActiveProperty);
-            OWLDataAllValuesFrom isActiveBoolean = destiRecOntology.getFactory().getOWLDataAllValuesFrom(isActiveProperty, booleanDatatype);
+            OWLClassExpression isExactlyOneActive = destiRecOntology.getFactory().getOWLDataExactCardinality(1, isActiveOWL);
+            OWLDataAllValuesFrom isActiveBoolean = destiRecOntology.getFactory().getOWLDataAllValuesFrom(isActiveOWL, booleanDatatype);
 
             OWLClassExpression intersectionScoredAttribute = destiRecOntology.getFactory().getOWLObjectIntersectionOf(
                     destiRecOntology.getFactory().getOWLClass(TopOntologyNames.Classes.CONCEPT.owlIri()),

@@ -1,14 +1,16 @@
 package org.destirec.destirec.rdf4j.region;
 
+import org.destirec.destirec.rdf4j.attribute.QualityOntology;
 import org.destirec.destirec.rdf4j.interfaces.Dto;
 import org.destirec.destirec.rdf4j.interfaces.GenericDao;
 import org.destirec.destirec.rdf4j.months.MonthDto;
+import org.destirec.destirec.rdf4j.ontology.DestiRecOntology;
 import org.destirec.destirec.rdf4j.region.apiDto.ExternalRegionDto;
+import org.destirec.destirec.rdf4j.region.cost.CostDao;
 import org.destirec.destirec.rdf4j.region.cost.CostDto;
 import org.destirec.destirec.rdf4j.region.feature.FeatureDto;
 import org.eclipse.rdf4j.model.IRI;
-import org.eclipse.rdf4j.model.ValueFactory;
-import org.eclipse.rdf4j.model.impl.SimpleValueFactory;
+import org.eclipse.rdf4j.spring.support.RDF4JTemplate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -25,11 +27,25 @@ import java.util.function.Function;
 public class RegionService {
     private final RegionDao regionDao;
 
-    private final ValueFactory valueFactory = SimpleValueFactory.getInstance();
     protected Logger logger = LoggerFactory.getLogger(getClass());
+    private final QualityOntology qualityOntology;
 
-    public RegionService(RegionDao regionDao) {
+    private final DestiRecOntology destiRecOntology;
+
+    private final CostDao costDao;
+
+
+    public RegionService(RegionDao regionDao, RDF4JTemplate rdf4JTemplate, CostDao costDao) {
         this.regionDao = regionDao;
+
+        destiRecOntology = new DestiRecOntology(rdf4JTemplate);
+        qualityOntology = new QualityOntology(
+                destiRecOntology.getFactory(),
+                destiRecOntology.getManager(),
+                destiRecOntology.getOntology(),
+                regionDao
+        );
+        this.costDao = costDao;
     }
 
     private <DtoT extends Dto, MapKey, MapValue> void updateListEntities(
@@ -100,9 +116,9 @@ public class RegionService {
                 "features",
                 regionDto.getFeatures(),
                 existingFeatures,
-                (entry) -> entry.getKey().getRegionFeature().name().equals(entry.getValue()),
+                (entry) -> entry.getKey().getRegionFeature().name().equals(entry.getValue().name()),
                 regionDao.getFeatureDao(),
-                (entry) -> regionDao.getFeatureDao().getDtoCreator().create(entry)
+                (entry) -> regionDao.getFeatureDao().getDtoCreator().createFromEnum(entry)
         );
     }
 
@@ -154,6 +170,11 @@ public class RegionService {
     }
 
     @Transactional
+    public List<CostDto> getCosts() {
+        return costDao.list();
+    }
+
+    @Transactional
     public List<RegionDto> getLeafRegions() {
         return regionDao.listLeaf();
     }
@@ -164,6 +185,13 @@ public class RegionService {
             String msg = "Region with ID " + regionDto.id() + " is already present in the RDF database";
             throw new IllegalArgumentException(msg);
         }
+        var cost = regionDto.getCost();
+        CostDto cost1 = regionDao.getCostDao()
+                .getDtoCreator().create(cost.get(0), cost.get(1));
+        CostDto costDto = regionDao.getCostDao()
+                .save(cost1);
+
+
         List<MonthDto> monthDtos = regionDto
                 .getMonths()
                 .entrySet()
@@ -172,25 +200,23 @@ public class RegionService {
                 .map(dto -> regionDao.getMonthDao().save(dto))
                 .toList();
 
-        regionDao.getConfigFields()
-                .setFeatureNames(regionDto.getFeatures().keySet().stream().toList());
         List<FeatureDto> featureDtos = regionDto
                 .getFeatures()
                 .entrySet()
                 .stream()
-                .map(feature -> regionDao.getFeatureDao().getDtoCreator().create(feature))
+                .map(feature -> regionDao.getFeatureDao().getDtoCreator().createFromEnum(feature))
                 .map(dto -> regionDao.getFeatureDao().save(dto))
                 .toList();
 
-        var cost = regionDto.getCost();
-        CostDto costDto = regionDao.getCostDao()
-                .save(regionDao.getCostDao()
-                        .getDtoCreator().create(cost.get(0), cost.get(1)));
-
         RegionDto regionDtoForCreate = regionDao.getDtoCreator()
                 .create(regionDto, featureDtos, monthDtos, costDto);
+
         logger.info("Create region with DTO" + regionDtoForCreate);
         IRI regionId = regionDao.saveAndReturnId(regionDtoForCreate);
+
+        qualityOntology.defineRegionQualities();
+        destiRecOntology.migrate();
+        destiRecOntology.resetOntology();
         logger.info("Region with DTO" + regionId + " was created");
         return regionId;
     }

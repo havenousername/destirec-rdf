@@ -4,7 +4,6 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import org.destirec.destirec.rdf4j.attribute.AttributesCollectionMigration;
 import org.destirec.destirec.rdf4j.interfaces.GenericConfig;
-import org.destirec.destirec.rdf4j.vocabulary.DESTIREC;
 import org.destirec.destirec.utils.ValueContainer;
 import org.destirec.destirec.utils.rdfDictionary.AttributeNames;
 import org.destirec.destirec.utils.rdfDictionary.PreferenceNames;
@@ -25,7 +24,7 @@ public class PreferenceConfig extends GenericConfig<PreferenceConfig.Fields> {
     private final AttributesCollectionMigration attributesCollectionMigration;
 
     public PreferenceConfig(PreferenceMigration preferenceMigration, AttributesCollectionMigration attributesCollectionMigration) {
-        super("preference_id");
+        super("preference");
         this.preferenceMigration = preferenceMigration;
         this.attributesCollectionMigration = attributesCollectionMigration;
     }
@@ -87,10 +86,5 @@ public class PreferenceConfig extends GenericConfig<PreferenceConfig.Fields> {
         };
 
         return new ValueContainer<>(type);
-    }
-
-    @Override
-    public String getResourceLocation() {
-        return DESTIREC.wrapResource("preference/");
     }
 }

@@ -10,7 +10,9 @@ import org.destirec.destirec.rdf4j.region.cost.CostDto;
 import org.destirec.destirec.rdf4j.region.feature.FeatureDto;
 import org.destirec.destirec.utils.SimpleDtoTransformations;
 import org.eclipse.rdf4j.model.IRI;
+import org.jetbrains.annotations.Nullable;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -20,20 +22,28 @@ import java.util.Map;
 public class RegionDto implements Dto {
     public final IRI id;
     private final String name;
+
+    @Nullable
     private final IRI parentRegion;
+
     private CostDto cost;
     private List<MonthDto> months;
     private List<FeatureDto> features;
 
     @Override
     public Map<ConfigFields.Field, String> getMap() {
-        return Map.of(
-                RegionConfig.Fields.FEATURES, SimpleDtoTransformations.toStringIds(features),
-                RegionConfig.Fields.MONTHS, SimpleDtoTransformations.toStringIds(months),
-                RegionConfig.Fields.COST, cost.id().stringValue(),
-                RegionConfig.Fields.PARENT_REGION, parentRegion.stringValue(),
-                RegionConfig.Fields.NAME, name
+        Map<ConfigFields.Field, String> requiredFields = new HashMap<>(
+                Map.of(
+                        RegionConfig.Fields.FEATURES, SimpleDtoTransformations.toStringIds(features),
+                        RegionConfig.Fields.MONTHS, SimpleDtoTransformations.toStringIds(months),
+                        RegionConfig.Fields.COST, cost.id().stringValue(),
+                        RegionConfig.Fields.NAME, name
+                )
         );
+        if (parentRegion != null) {
+            requiredFields.put(RegionConfig.Fields.PARENT_REGION, parentRegion.stringValue());
+        }
+        return requiredFields;
     }
 
     @Override

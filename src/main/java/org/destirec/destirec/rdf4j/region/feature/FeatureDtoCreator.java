@@ -24,6 +24,15 @@ public class FeatureDtoCreator implements DtoCreator<FeatureDto, FeatureConfig.F
         return create(null, map);
     }
 
+    public FeatureDto createFromEnum(Map.Entry<RegionFeatureNames.Individuals.RegionFeature, Integer> entry) {
+        return new FeatureDto(
+                null,
+                entry.getValue(),
+                true,
+                entry.getKey()
+        );
+    }
+
     public FeatureDto create(Map.Entry<String, Integer> entry) {
         return new FeatureDto(
                 null,
