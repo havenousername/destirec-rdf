@@ -1,6 +1,8 @@
 package org.destirec.destirec.rdf4j.months;
 
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import lombok.Getter;
+import lombok.ToString;
 import org.destirec.destirec.rdf4j.attribute.AttributeDto;
 import org.destirec.destirec.rdf4j.interfaces.ConfigFields;
 import org.destirec.destirec.rdf4j.interfaces.Dto;
@@ -9,6 +11,8 @@ import org.eclipse.rdf4j.model.IRI;
 import java.time.Month;
 import java.util.Map;
 
+@JsonSerialize
+@ToString
 @Getter
 public class MonthDto extends AttributeDto implements Dto {
     private final String name;

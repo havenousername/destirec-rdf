@@ -43,6 +43,6 @@ public class QualityMigration extends IriMigration implements OntologyDefiner {
         );
         ontology.defineQuality();
         ontology.defineHasQuality();
-        ontology.defineRegionQualities();
+        ontology.defineRegionsQualities();
     }
 }

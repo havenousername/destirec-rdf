@@ -115,9 +115,7 @@ public abstract class GenericDao<FieldEnum extends Enum<FieldEnum> & ConfigField
 
     @Override
     protected String getReadQuery() {
-        var query = getReadQuery(migration.getResource());
-        System.out.println(query + " \n\n\n\n\n Read query");
-        return query;
+        return getReadQuery(migration.getResource());
     }
 
 

@@ -166,7 +166,9 @@ public class RegionService {
 
     @Transactional
     public List<RegionDto> getRegions() {
-        return regionDao.list();
+        List<RegionDto> regionDtos = regionDao.list();
+        System.out.println("Regions: " + regionDtos.toString());
+        return regionDtos;
     }
 
     @Transactional
@@ -214,7 +216,7 @@ public class RegionService {
         logger.info("Create region with DTO" + regionDtoForCreate);
         IRI regionId = regionDao.saveAndReturnId(regionDtoForCreate);
 
-        qualityOntology.defineRegionQualities();
+        qualityOntology.defineRegionsQualities(List.of(regionDtoForCreate));
         destiRecOntology.migrate();
         destiRecOntology.resetOntology();
         logger.info("Region with DTO" + regionId + " was created");

@@ -30,7 +30,7 @@ public class GetVariableVisitor implements ContainerVisitor<Variable> {
     @Override
     public void visit(List<Variable> visitor) {
         Variable variable = SparqlHelperMethods.createVariable(visitor);
-        Aggregate expression = Expressions.group_concat("\",\"", variable);
+        Aggregate expression = Expressions.group_concat("\",\"", variable).distinct();
         Variable groupConcatVariable = SparqlHelperMethods.createConcatVariable(variable);
         variables.add(Map.entry(VariableType.COMPOSITE, SparqlBuilder.as(expression, groupConcatVariable)));
     }

@@ -47,10 +47,13 @@ public class RegionDtoCreator implements DtoCreator<RegionDto, RegionConfig.Fiel
                 .map(feature -> featureDao.getById(valueFactory.createIRI(feature)))
                 .toList();
         CostDto cost = costDao.getById(valueFactory.createIRI(map.get(RegionConfig.Fields.COST)));
+        IRI parent = map.containsKey(RegionConfig.Fields.PARENT_REGION) ?
+                valueFactory.createIRI(map.get(RegionConfig.Fields.PARENT_REGION) ) :
+                null;
         return new RegionDto(
                 id,
                 map.get(RegionConfig.Fields.NAME),
-                valueFactory.createIRI(map.get(RegionConfig.Fields.PARENT_REGION)),
+                parent,
                 cost,
                 months,
                 features

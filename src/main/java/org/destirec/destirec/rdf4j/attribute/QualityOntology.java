@@ -3,6 +3,7 @@ package org.destirec.destirec.rdf4j.attribute;
 import org.apache.commons.lang.StringUtils;
 import org.destirec.destirec.rdf4j.region.RegionDao;
 import org.destirec.destirec.rdf4j.region.RegionDto;
+import org.destirec.destirec.rdf4j.vocabulary.DESTIREC;
 import org.destirec.destirec.utils.rdfDictionary.AttributeNames;
 import org.destirec.destirec.utils.rdfDictionary.QualityNames;
 import org.destirec.destirec.utils.rdfDictionary.TopOntologyNames;
@@ -71,8 +72,7 @@ public class QualityOntology {
         manager.addAxiom(ontology, factory.getOWLEquivalentClassesAxiom(quality,qualityEnumeration));
     }
 
-    public void defineRegionQualities() {
-        List<RegionDto> regions = regionDao.listLeaf();
+    public void defineRegionsQualities(List<RegionDto> regions) {
         OWLObjectProperty sfDirectlyWithin = factory.getOWLObjectProperty(GEO.NAMESPACE + "sfDirectlyWithin");
         for (var region : regions) {
             OWLNamedIndividual regionInd = factory.getOWLNamedIndividual(region.id.stringValue());
@@ -88,10 +88,10 @@ public class QualityOntology {
                         String featureQuality = "has"
                                 + StringUtils.capitalize(feature.getRegionFeature().name())
                                 + "Quality";
-                        OWLObjectProperty hasFQuality = factory.getOWLObjectProperty(featureQuality);
+
+                        OWLObjectProperty hasFQuality = factory.getOWLObjectProperty(DESTIREC.wrap(featureQuality).owlIri());
 
                         manager.addAxiom(ontology, factory.getOWLObjectPropertyAssertionAxiom(hasFQuality, regionInd, qualityInd));
-
 
                         // hasFQuality \sqsubseteq hasQuality
                         manager.addAxiom(ontology, factory.getOWLSubObjectPropertyOfAxiom(hasFQuality, hasQuality));
@@ -104,6 +104,11 @@ public class QualityOntology {
                 }
             }
         }
+    }
+
+    public void defineRegionsQualities() {
+        List<RegionDto> regions = regionDao.list();
+        defineRegionsQualities(regions);
     }
 
     public void defineHasQuality() {
