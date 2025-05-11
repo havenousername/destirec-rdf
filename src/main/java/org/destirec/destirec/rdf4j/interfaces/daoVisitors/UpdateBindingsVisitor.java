@@ -42,15 +42,17 @@ public class UpdateBindingsVisitor implements ContainerVisitor<Variable> {
             throw new IllegalStateException("Cannot accept empty dtoValue here for the variable " + visitor.getVarName());
         }
 
-        CoreDatatype next;
-        if (coreDatatype.hasNext() && (next = coreDatatype.next()) != null) {
+        CoreDatatype next = null;
+        if (coreDatatype.hasNext()) {
+            next = coreDatatype.next();
+        }
+        if (next != null) {
             Literal literal = valueFactory.createLiteral(dtoValue, next);
             builder
                     .add(visitor, literal);
         } else {
-            builder.add(visitor, dtoValue);
+            builder.add(visitor, valueFactory.createIRI(dtoValue));
         }
-
     }
 
     @Override

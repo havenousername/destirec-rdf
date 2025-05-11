@@ -9,6 +9,7 @@ import org.destirec.destirec.rdf4j.interfaces.OntologyDefiner;
 import org.destirec.destirec.rdf4j.months.MonthMigration;
 import org.destirec.destirec.rdf4j.ontology.TopOntologyMigration;
 import org.destirec.destirec.rdf4j.preferences.PreferenceMigration;
+import org.destirec.destirec.rdf4j.region.RegionMigration;
 import org.destirec.destirec.rdf4j.region.cost.CostMigration;
 import org.destirec.destirec.rdf4j.region.feature.FeatureMigration;
 import org.destirec.destirec.rdf4j.user.UserMigration;
@@ -18,6 +19,7 @@ import org.eclipse.rdf4j.model.vocabulary.RDF;
 import org.eclipse.rdf4j.model.vocabulary.RDFS;
 import org.eclipse.rdf4j.model.vocabulary.XSD;
 import org.eclipse.rdf4j.query.algebra.evaluation.function.FunctionRegistry;
+import org.eclipse.rdf4j.spring.support.RDF4JTemplate;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
@@ -30,8 +32,11 @@ public class MigrationsService {
     private final List<Migration> migrations = new ArrayList<>();
     private final List<OntologyDefiner> ontologies = new ArrayList<>();
 
+    private final RDF4JTemplate template;
+
     public MigrationsService(
             UserMigration userMigration,
+            RegionMigration regionMigration,
             SchemaVersionMigration versionMigration,
             PreferenceMigration preferenceMigration,
             MonthMigration monthMigration,
@@ -40,9 +45,11 @@ public class MigrationsService {
             TopOntologyMigration topOntologyMigration,
             AttributeMigration attributeMigration,
             AttributesCollectionMigration attributesCollectionMigration,
-            QualityMigration qualityMigration
+            QualityMigration qualityMigration,
+            RDF4JTemplate template
 
     ) {
+        this.template = template;
         migrations.add(topOntologyMigration);
         migrations.add(userMigration);
         migrations.add(versionMigration);
@@ -53,6 +60,7 @@ public class MigrationsService {
         migrations.add(attributeMigration);
         migrations.add(attributesCollectionMigration);
         migrations.add(qualityMigration);
+        migrations.add(regionMigration);
 
         migrations.forEach(migration -> {
             migration.setGraphName(DEFAULT_GRAPH);
@@ -69,6 +77,26 @@ public class MigrationsService {
         ontologies.add(attributeMigration);
         ontologies.add(attributesCollectionMigration);
         ontologies.add(qualityMigration);
+        ontologies.add(regionMigration);
+    }
+
+    public void runCleanup() {
+        String update = """
+                    PREFIX ont: <http://destirec.com/ontology/>
+                    DELETE {
+                        ?s ?p ?o .
+                    } WHERE {
+                        ?s ?p ?o .
+                        FILTER(
+                        REGEX(STR(?s), "^http://destirec.com/ontology/") ||
+                        REGEX(STR(?p), "^http://destirec.com/ontology/") ||
+                        REGEX(STR(?o), "^http://destirec.com/ontology/"))
+                    }
+                """;
+
+        template.consumeConnection(connection -> {
+            connection.prepareUpdate(update).execute();
+        });
     }
 
     public void runMigrations() {

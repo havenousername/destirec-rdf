@@ -5,8 +5,8 @@ import lombok.Getter;
 import lombok.Setter;
 import org.destirec.destirec.rdf4j.attribute.AttributesCollectionMigration;
 import org.destirec.destirec.rdf4j.interfaces.GenericConfig;
-import org.destirec.destirec.rdf4j.vocabulary.DESTIREC;
 import org.destirec.destirec.utils.ValueContainer;
+import org.destirec.destirec.utils.rdfDictionary.RegionNames;
 import org.eclipse.rdf4j.model.IRI;
 import org.eclipse.rdf4j.model.base.CoreDatatype;
 import org.eclipse.rdf4j.model.vocabulary.FOAF;
@@ -26,7 +26,7 @@ public class RegionConfig extends GenericConfig<RegionConfig.Fields> {
     @Setter
     private List<String> featureNames;
     public RegionConfig(AttributesCollectionMigration collectionMigration) {
-        super("region_id");
+        super("region");
         this.collectionMigration = collectionMigration;
     }
 
@@ -84,11 +84,6 @@ public class RegionConfig extends GenericConfig<RegionConfig.Fields> {
     }
 
     @Override
-    public String getResourceLocation() {
-        return DESTIREC.NAMESPACE + "resource/region/";
-    }
-
-    @Override
     protected Fields[] getValues() {
         return Fields.values();
     }
@@ -96,7 +91,7 @@ public class RegionConfig extends GenericConfig<RegionConfig.Fields> {
     @Getter
     @AllArgsConstructor
     public enum Fields implements Field {
-        NAME("name", true),
+        NAME(RegionNames.Properties.NAME.str(), true),
         PARENT_REGION("parentRegion", true),
         FEATURES("features", true),
         MONTHS("months", true),

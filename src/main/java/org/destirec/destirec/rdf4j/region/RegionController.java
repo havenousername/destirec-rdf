@@ -28,7 +28,7 @@ public class RegionController {
             return ResponseEntity.ok(response);
         } catch (IllegalArgumentException exception) {
             var response = new ResponseData<String>();
-            response.setError(exception.getMessage());
+            response.setError(exception.getMessage());;
 
             return ResponseEntity
                     .badRequest()

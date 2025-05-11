@@ -72,7 +72,7 @@ public abstract class Migration implements Predicate {
             } else  {
                 iri = valueFactory.createIRI(DESTIREC.wrapNamespace(name));
             }
-            logger.info("Created iri " + iri + " for: " + name);
+            logger.debug("Created iri " + iri + " for: " + name);
             return iri;
         } catch (Exception e) {
             logger.error("Cannot create adequate iri value");
@@ -114,9 +114,8 @@ public abstract class Migration implements Predicate {
     public void migrate() {
         rdf4jMethods.consumeConnection(repositoryConnection -> {;
             try {
-                logger.info("[Thread: {}] Transaction for the migration started", Thread.currentThread().getName());
+                logger.debug("[Thread: {}] Transaction for the migration started", Thread.currentThread().getName());
 
-                System.out.println(repositoryConnection);
                 repositoryConnection.begin();
 
                 Model model = builder.build();
@@ -131,11 +130,11 @@ public abstract class Migration implements Predicate {
 
                 ModifyQuery query = handleMigrateQuery(repositoryConnection, patterns, subject, object);
 
-                logger.info("Query for update: \n" + query.getQueryString());
+                logger.debug("Query for update: \n" + query.getQueryString());
                 repositoryConnection.prepareUpdate(query.getQueryString()).execute();
                 repositoryConnection.commit();
                 isMigrated = true;
-                logger.info("Transaction for the migration finished successfully");
+                logger.debug("Transaction for the migration finished successfully");
             } catch (Exception e) {
                 repositoryConnection.rollback();
                 throw new RuntimeException("Migration failed: " + e.getMessage());

@@ -75,6 +75,10 @@ public class QualityOntology {
     public void defineRegionsQualities(List<RegionDto> regions) {
         OWLObjectProperty sfDirectlyWithin = factory.getOWLObjectProperty(GEO.NAMESPACE + "sfDirectlyWithin");
         for (var region : regions) {
+            // do not add hasFQuality to the parents (planned to be using inference)
+            if (region.getParentRegion() != null) {
+                break;
+            }
             OWLNamedIndividual regionInd = factory.getOWLNamedIndividual(region.id.stringValue());
             for (var feature : region.getFeatures()) {
                 int score = feature.getHasScore();

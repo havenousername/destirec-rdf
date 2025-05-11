@@ -56,7 +56,9 @@ public class DestiRecOntology {
     public void resetOntology() {
         Set<OWLAxiom> axioms = ontology.getAxioms();
         manager.removeAxioms(ontology, axioms);
+        isMigrated = false;
     }
+
     public void migrate() {
         if (isMigrated) {
             return;
@@ -92,7 +94,7 @@ public class DestiRecOntology {
                                     .delete(pattern)
                                     .insert(pattern);
 
-                            logger.info("Query for update: \n" + query.getQueryString());
+                            logger.debug("Query for update: \n" + query.getQueryString());
                             connection.prepareUpdate(query.getQueryString()).execute();
                         }
 

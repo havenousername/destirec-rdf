@@ -15,7 +15,7 @@ public class FeatureDtoCreator implements DtoCreator<FeatureDto, FeatureConfig.F
                 id,
                 Integer.parseInt(map.get(FeatureConfig.Fields.HAS_SCORE)),
                 Boolean.parseBoolean(map.get(FeatureConfig.Fields.IS_ACTIVE)),
-                RegionFeatureNames.Individuals.RegionFeature.fromString(map.get(FeatureConfig.Fields.HAS_REGION_FEATURE))
+                RegionFeatureNames.Individuals.RegionFeature.fromIri(map.get(FeatureConfig.Fields.HAS_REGION_FEATURE))
         );
     }
 
@@ -38,7 +38,7 @@ public class FeatureDtoCreator implements DtoCreator<FeatureDto, FeatureConfig.F
                 null,
                 entry.getValue(),
                 true,
-                RegionFeatureNames.Individuals.RegionFeature.fromString(entry.getKey())
+                RegionFeatureNames.Individuals.RegionFeature.fromIri(entry.getKey())
         );
     }
 }

@@ -25,7 +25,7 @@ public final class FeatureDto extends AttributeDto implements Dto {
         return Map.of(
                 FeatureConfig.Fields.HAS_SCORE, String.valueOf(hasScore),
                 FeatureConfig.Fields.IS_ACTIVE, String.valueOf(isActive),
-                FeatureConfig.Fields.HAS_REGION_FEATURE, String.valueOf(regionFeature)
+                FeatureConfig.Fields.HAS_REGION_FEATURE, regionFeature.iri().pseudoUri()
         );
     }
 }

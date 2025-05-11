@@ -2,6 +2,8 @@ package org.destirec.destirec.utils.rdfDictionary;
 
 import org.destirec.destirec.rdf4j.vocabulary.DESTIREC;
 
+import java.util.Arrays;
+
 public class RegionFeatureNames {
     private RegionFeatureNames() {}
     public final static class Classes {
@@ -15,7 +17,7 @@ public class RegionFeatureNames {
             ARCHITECTURE("Architecture"),
             HIKING("Hiking"),
             WINTERSPORTS("Wintersports"),
-            WATERSPORTS("WATERSPORTS"),
+            WATERSPORTS("Watersports"),
             BEACH("Beach"),
             CULTURE("Culture"),
             CULINARY("Culinary"),
@@ -30,6 +32,10 @@ public class RegionFeatureNames {
 
             public DESTIREC.NamespaceWrapper iri() {
                 return DESTIREC.wrap(name);
+            }
+
+            public static RegionFeature fromIri(String value) {
+                return fromString(Arrays.stream(value.split("/")).toList().getLast());
             }
 
             public static RegionFeature fromString(String value) {

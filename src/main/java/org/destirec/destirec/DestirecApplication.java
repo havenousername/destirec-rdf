@@ -6,6 +6,7 @@ import org.destirec.destirec.rdf4j.services.RdfInitializerService;
 import org.eclipse.rdf4j.model.IRI;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -18,6 +19,9 @@ public class DestirecApplication {
         SpringApplication.run(DestirecApplication.class, args);
     }
 
+    @Value("${app.env.graphdb.migrate}")
+    private boolean migrate;
+
     @Bean
     CommandLineRunner commandLineRunner(
             MigrationsService migration,
@@ -26,15 +30,22 @@ public class DestirecApplication {
     ) {
         return args -> {
             logger.info("Application has started. Next initial configuration will be set");
-            migration.runMigrations();
-            logger.info("Migrations have been finished. Next OWL rules initialization follows");
-            migration.runOntologyDefiners();
-            logger.info("Ontology definitions have been written. Next writing rules into the database");
-
-            ontology.migrate();
-            logger.info("Ontology definitions have been migrated. Next initialization of some basic RDF resources will be set");
-            IRI version = initializerService.initializeRdfVersion();
-            logger.info("RDF resource version with " + version + " iri has been be set");
+            var migrated = initializerService.hasVersion();
+            if (migrate && !migrated) {
+                migration.runCleanup();
+                logger.info("Migrations will be set");
+                migration.runMigrations();
+                logger.info("Migrations have been finished. Next OWL rules initialization follows");
+                migration.runOntologyDefiners();
+                logger.info("Ontology definitions have been written. Next writing rules into the database");
+                ontology.migrate();
+                logger.info("Ontology definitions have been migrated. Next initialization of some basic RDF resources will be set");
+                IRI version = initializerService.initializeRdfVersion();
+                logger.info("RDF resource version with " + version + " iri has been be set");
+            } else {
+                var version = initializerService.version();
+                logger.info("RDF resource version with version " + version  + " is running");
+            }
         };
     }
 }
