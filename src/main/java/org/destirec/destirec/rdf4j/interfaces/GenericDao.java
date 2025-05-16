@@ -2,6 +2,7 @@ package org.destirec.destirec.rdf4j.interfaces;
 
 import lombok.Getter;
 import org.destirec.destirec.rdf4j.interfaces.daoVisitors.*;
+import org.destirec.destirec.rdf4j.ontology.AppOntology;
 import org.destirec.destirec.utils.ValueContainer;
 import org.eclipse.rdf4j.model.IRI;
 import org.eclipse.rdf4j.model.ValueFactory;
@@ -36,18 +37,21 @@ public abstract class GenericDao<FieldEnum extends Enum<FieldEnum> & ConfigField
     protected final DtoCreator<DTO, FieldEnum> dtoCreator;
     protected ValueFactory valueFactory = SimpleValueFactory.getInstance();
     protected AtomicInteger mapEnteredTimes = new AtomicInteger(0);
+    protected AppOntology ontology;
 
 
     public GenericDao(
         RDF4JTemplate rdf4JTemplate,
         ConfigFields<FieldEnum> configFields,
         Predicate migration,
-        DtoCreator<DTO, FieldEnum> dtoCreator
+        DtoCreator<DTO, FieldEnum> dtoCreator,
+        AppOntology ontology
     ) {
         super(rdf4JTemplate);
         this.configFields = configFields;
         this.migration = migration;
         this.dtoCreator = dtoCreator;
+        this.ontology = ontology;
     }
 
     @Override
@@ -173,5 +177,23 @@ public abstract class GenericDao<FieldEnum extends Enum<FieldEnum> & ConfigField
                 .filter(Objects::nonNull)
                 .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
         return dtoCreator.create(id, map);
+    }
+
+    @Override
+    public IRI saveAndReturnId(DTO input) {
+        IRI id = super.saveAndReturnId(input);
+        ontology.triggerInference();
+        return id;
+    }
+
+    @Override
+    public IRI saveAndReturnId(DTO dto, IRI iri) {
+        return super.saveAndReturnId(dto, iri);
+    }
+
+    @Override
+    public void delete(IRI iri) {
+        super.delete(iri);
+        ontology.triggerInference();
     }
 }

@@ -214,9 +214,9 @@ public class RegionService {
         logger.info("Create region with DTO " + regionDtoForCreate);
         IRI regionId = regionDao.saveAndReturnId(regionDtoForCreate);
 
-        qualityOntology.defineRegionsQualities(List.of(regionDtoForCreate));
-        destiRecOntology.migrate();
-        destiRecOntology.resetOntology();
+//        qualityOntology.defineRegionsQualities(List.of(regionDtoForCreate));
+//        destiRecOntology.migrate();
+//        destiRecOntology.resetOntology();
         logger.info("Region with DTO " + regionId + " was created");
         return regionId;
     }

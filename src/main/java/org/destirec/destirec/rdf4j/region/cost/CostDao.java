@@ -1,6 +1,7 @@
 package org.destirec.destirec.rdf4j.region.cost;
 
 import org.destirec.destirec.rdf4j.interfaces.GenericDao;
+import org.destirec.destirec.rdf4j.ontology.DestiRecOntology;
 import org.eclipse.rdf4j.model.IRI;
 import org.eclipse.rdf4j.spring.support.RDF4JTemplate;
 import org.springframework.stereotype.Repository;
@@ -11,8 +12,10 @@ public class CostDao extends GenericDao<CostConfig.Fields, CostDto> {
             RDF4JTemplate rdf4JTemplate,
             CostConfig configFields,
             CostMigration migration,
-            CostDtoCreator dtoCreator) {
-        super(rdf4JTemplate, configFields, migration, dtoCreator);
+            CostDtoCreator dtoCreator,
+            DestiRecOntology ontology
+            ) {
+        super(rdf4JTemplate, configFields, migration, dtoCreator, ontology);
     }
 
     @Override

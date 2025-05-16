@@ -3,6 +3,7 @@ package org.destirec.destirec.rdf4j.region;
 import lombok.Getter;
 import org.destirec.destirec.rdf4j.interfaces.GenericDao;
 import org.destirec.destirec.rdf4j.months.MonthDao;
+import org.destirec.destirec.rdf4j.ontology.DestiRecOntology;
 import org.destirec.destirec.rdf4j.region.cost.CostDao;
 import org.destirec.destirec.rdf4j.region.feature.FeatureDao;
 import org.destirec.destirec.utils.rdfDictionary.RegionNames;
@@ -25,8 +26,13 @@ public class RegionDao extends GenericDao<RegionConfig.Fields, RegionDto> {
             RDF4JTemplate rdf4JTemplate,
             RegionConfig configFields,
             RegionMigration migration,
-            RegionDtoCreator dtoCreator, CostDao costDao, FeatureDao featureDao, MonthDao monthDao) {
-        super(rdf4JTemplate, configFields, migration, dtoCreator);
+            RegionDtoCreator dtoCreator,
+            CostDao costDao,
+            FeatureDao featureDao,
+            MonthDao monthDao,
+            DestiRecOntology ontology
+    ) {
+        super(rdf4JTemplate, configFields, migration, dtoCreator, ontology);
         this.costDao = costDao;
         this.featureDao = featureDao;
         this.monthDao = monthDao;

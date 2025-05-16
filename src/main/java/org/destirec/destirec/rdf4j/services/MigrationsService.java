@@ -67,16 +67,16 @@ public class MigrationsService {
             migration.setNamespaces(List.of(RDFS.NS, OWL.NS, RDF.NS, XSD.NS));
         });
 
-        ontologies.add(userMigration);
-        ontologies.add(monthMigration);
-        ontologies.add(attributeMigration);
-        ontologies.add(preferenceMigration);
-        ontologies.add(monthMigration);
-        ontologies.add(costMigration);
-        ontologies.add(featureMigration);
-        ontologies.add(attributeMigration);
-        ontologies.add(attributesCollectionMigration);
-        ontologies.add(qualityMigration);
+//        ontologies.add(userMigration);
+//        ontologies.add(monthMigration);
+//        ontologies.add(attributeMigration);
+//        ontologies.add(preferenceMigration);
+//        ontologies.add(monthMigration);
+//        ontologies.add(costMigration);
+//        ontologies.add(featureMigration);
+//        ontologies.add(attributeMigration);
+//        ontologies.add(attributesCollectionMigration);
+//        ontologies.add(qualityMigration);
         ontologies.add(regionMigration);
     }
 
