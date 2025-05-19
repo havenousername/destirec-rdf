@@ -4,9 +4,12 @@ import org.destirec.destirec.rdf4j.ontology.DestiRecOntology;
 import org.eclipse.rdf4j.model.Statement;
 import org.eclipse.rdf4j.query.*;
 import org.eclipse.rdf4j.spring.support.RDF4JTemplate;
+import org.semanticweb.owlapi.formats.TurtleDocumentFormat;
+import org.semanticweb.owlapi.model.OWLOntologyStorageException;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.io.ByteArrayOutputStream;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -17,11 +20,24 @@ import java.util.Map;
 public class RDFController {
 
     private final RDF4JTemplate rdf4JTemplate;
-    private final DestiRecOntology destiRecOntology;
+    private final DestiRecOntology ontology;
 
     public RDFController(RDF4JTemplate rdf4JTemplate, DestiRecOntology destiRecOntology) {
         this.rdf4JTemplate = rdf4JTemplate;
-        this.destiRecOntology = destiRecOntology;
+        this.ontology = destiRecOntology;
+    }
+
+    @GetMapping("/turtle")
+    public ResponseEntity<String> getTurtle() {
+        ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+        try {
+            ontology.getManager().saveOntology(ontology.getOntology(), new TurtleDocumentFormat(), outputStream);
+        } catch (OWLOntologyStorageException e) {
+            return ResponseEntity.internalServerError().body(e.getMessage());
+        }
+        String output = outputStream.toString();
+        System.out.println("End");
+        return ResponseEntity.ok(output);
     }
 
     @PostMapping("/execute")
@@ -53,7 +69,7 @@ public class RDFController {
                     Update update = connection.prepareUpdate(QueryLanguage.SPARQL, command);
                     update.execute();
                     response.put("message", "Update executed successfully");
-                    destiRecOntology.triggerInference();
+//                    destiRecOntology.triggerInference();
                 } else {
                     // other types like CONSTRUCT etc.
 

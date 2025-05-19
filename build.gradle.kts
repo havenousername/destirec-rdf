@@ -41,7 +41,11 @@ dependencies {
     implementation("net.sourceforge.owlapi:owlapi-distribution:5.5.0")
     implementation("net.sourceforge.owlapi:owlapi-rio:5.5.0")
     implementation("net.sourceforge.owlapi:org.semanticweb.hermit:1.4.5.519")
-    implementation("net.sourceforge.owlapi:owlexplanation:2.0.1")
+    implementation("net.sourceforge.owlapi:owlexplanation:+")
+
+//    implementation("org.drools:drools-core:6.5.0.Final")
+//    implementation("org.drools:drools-compiler:6.5.0.Final")
+//    implementation("org.drools:drools-osgi-integration:6.5.0.Final")
 
     runtimeOnly("com.h2database:h2:2.3.+")
     runtimeOnly("org.postgresql:postgresql")

@@ -12,6 +12,8 @@ public interface Predicate {
 
     void migrate();
 
+    void addRuleset();
+
     void setNamespaces(List<Namespace> namespaces);
 
     void setGraphName(String name);

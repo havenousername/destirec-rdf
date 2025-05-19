@@ -12,6 +12,8 @@ import org.springframework.stereotype.Component;
 
 import java.util.List;
 
+import static org.destirec.destirec.utils.rdfDictionary.TopOntologyNames.Classes.*;
+
 @Component
 @Getter
 public class TopOntologyMigration extends IriMigration {
@@ -19,32 +21,38 @@ public class TopOntologyMigration extends IriMigration {
     private IriMigrationInstance conceptClass;
     private IriMigrationInstance actorClass;
     private IriMigrationInstance eventClass;
+    private IriMigrationInstance configClass;
     private ListMigration listMigration;
 
     protected TopOntologyMigration(RDF4JTemplate rdf4jMethods) {
-        super(rdf4jMethods, "TopOntology");
+        super(rdf4jMethods, TOP_ONTOLOGY.str());
 
         setupClasses();
         setupDisjointness();
     }
 
     private void setupClasses() {
-        objectClass = new IriMigrationInstance(rdf4jMethods, "Object", (instance) -> {
+        objectClass = new IriMigrationInstance(rdf4jMethods, OBJECT.str(), (instance) -> {
             instance.builder()
                     .add(instance.predicate(), RDFS.SUBCLASSOF, OWL.CLASS);
         });
 
-        conceptClass = new IriMigrationInstance(rdf4jMethods, "Concept", (instance) -> {
+        conceptClass = new IriMigrationInstance(rdf4jMethods, CONCEPT.str(), (instance) -> {
             instance.builder()
                     .add(instance.predicate(), RDFS.SUBCLASSOF, OWL.CLASS);
         });
 
-        actorClass = new IriMigrationInstance(rdf4jMethods, "Actor", (instance) -> {
+        actorClass = new IriMigrationInstance(rdf4jMethods, ACTOR.str(), (instance) -> {
             instance.builder()
                     .add(instance.predicate(), RDFS.SUBCLASSOF, OWL.CLASS);
         });
 
-        eventClass = new IriMigrationInstance(rdf4jMethods, "Event", (instance) -> {
+        eventClass = new IriMigrationInstance(rdf4jMethods, EVENT.str(), (instance) -> {
+            instance.builder()
+                    .add(instance.predicate(), RDFS.SUBCLASSOF, OWL.CLASS);
+        });
+
+        configClass = new IriMigrationInstance(rdf4jMethods, CONFIG.str(), (instance) -> {
             instance.builder()
                     .add(instance.predicate(), RDFS.SUBCLASSOF, OWL.CLASS);
         });
@@ -52,8 +60,8 @@ public class TopOntologyMigration extends IriMigration {
 
 
     private void setupDisjointness() {
-        List<IriMigrationInstance> listOfClasses = List.of(objectClass, conceptClass, actorClass, eventClass);
-        listMigration = new ListMigration(rdf4jMethods, "TopOntologyList",
+        List<IriMigrationInstance> listOfClasses = List.of(objectClass, conceptClass, actorClass, eventClass, configClass);
+        listMigration = new ListMigration(rdf4jMethods, TOP_ONTOLOGY_LIST.str(),
                 listOfClasses.stream().map(IriMigration::get).toList());
     }
 
@@ -68,6 +76,7 @@ public class TopOntologyMigration extends IriMigration {
         conceptClass.setup();
         actorClass.setup();
         eventClass.setup();
+        configClass.setup();
         listMigration.setup();
 
         BNode emptyDisjointNode = valueFactory.createBNode();
@@ -85,6 +94,7 @@ public class TopOntologyMigration extends IriMigration {
         conceptClass.migrate();
         actorClass.migrate();
         eventClass.migrate();
+        configClass.migrate();
         listMigration.migrate();
     }
 }

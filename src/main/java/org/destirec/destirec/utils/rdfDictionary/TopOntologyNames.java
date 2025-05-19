@@ -9,9 +9,13 @@ public final class TopOntologyNames {
     public final static class Classes {
         public final static DESTIREC.NamespaceWrapper TOP_ONTOLOGY  = DESTIREC.wrap("TopOntology");
 
+        public final static DESTIREC.NamespaceWrapper TOP_ONTOLOGY_LIST  = DESTIREC.wrap("TopOntologyList");
+
         public final static DESTIREC.NamespaceWrapper OBJECT  = DESTIREC.wrap("Object");
 
         public final static DESTIREC.NamespaceWrapper CONCEPT  = DESTIREC.wrap("Concept");
+
+        public final static DESTIREC.NamespaceWrapper CONFIG  = DESTIREC.wrap("Concept");
 
 
         public final static DESTIREC.NamespaceWrapper ACTOR  = DESTIREC.wrap("Actor");

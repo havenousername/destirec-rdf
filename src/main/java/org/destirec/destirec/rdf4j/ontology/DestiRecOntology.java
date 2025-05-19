@@ -1,8 +1,5 @@
 package org.destirec.destirec.rdf4j.ontology;
 
-import com.clarkparsia.owlapi.explanation.BlackBoxExplanation;
-import com.clarkparsia.owlapi.explanation.HSTExplanationGenerator;
-import jakarta.annotation.PostConstruct;
 import lombok.Getter;
 import org.destirec.destirec.rdf4j.vocabulary.DESTIREC;
 import org.eclipse.rdf4j.model.Literal;
@@ -16,6 +13,7 @@ import org.eclipse.rdf4j.query.Update;
 import org.eclipse.rdf4j.repository.RepositoryConnection;
 import org.eclipse.rdf4j.repository.RepositoryException;
 import org.eclipse.rdf4j.rio.RDFFormat;
+import org.eclipse.rdf4j.rio.Rio;
 import org.eclipse.rdf4j.spring.support.RDF4JTemplate;
 import org.jetbrains.annotations.NotNull;
 import org.semanticweb.HermiT.Configuration;
@@ -27,6 +25,7 @@ import org.semanticweb.owlapi.reasoner.*;
 import org.semanticweb.owlapi.util.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import java.io.ByteArrayInputStream;
@@ -51,6 +50,10 @@ public class DestiRecOntology implements AppOntology {
     private boolean isMigrated;
     private long lastSyncTime;
     private OWLReasoner reasoner;
+
+    @Value("${app.env.graphdb.use_reasoner}")
+    private boolean useReasoner;
+
     private final Logger logger = LoggerFactory.getLogger(getClass());
 
 
@@ -69,14 +72,14 @@ public class DestiRecOntology implements AppOntology {
         lastSyncTime = System.currentTimeMillis();
     }
 
-    @PostConstruct
     public void init() {
         try {
             ontology = manager.createOntology(IRI.create(DESTIREC.NAMESPACE));
-            syncOntologyFromRepository();
-            rebuildReasoner();
-//            triggerFullInference(); // Perform initial full inference
-//            isMigrated = true; // Set migrated to true after initial inference
+            if (useReasoner) {
+                syncOntologyFromRepository();
+                rebuildReasoner();
+            }
+
             logger.info("Ontology initialization completed.");
         } catch (OWLOntologyCreationException exception) {
             logger.error("Cannot create ontology on the IRI {}", DESTIREC.NAMESPACE, exception);
@@ -95,20 +98,29 @@ public class DestiRecOntology implements AppOntology {
         ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
         try {
             manager.saveOntology(ontology, new TurtleDocumentFormat(), outputStream);
+            String str = outputStream.toString();
+            System.out.println("Check saved ontology");
         } catch (OWLOntologyStorageException e) {
             throw new RuntimeException(e);
         }
         reasoner = new ReasonerFactory().createReasoner(ontology, config);
 
         if (!reasoner.isConsistent()) {
-            logger.warn("Ontology is inconsistent. Unsatisfiable classes: {}", reasoner.getUnsatisfiableClasses());
+            Node<OWLClass> unsatClasses = reasoner.getUnsatisfiableClasses();
+            logger.warn("Ontology is inconsistent. Unsatisfiable classes: {}", unsatClasses);
+            Set<OWLClass> unsatisfiable = unsatClasses.getEntities();
+            if (!unsatisfiable.isEmpty()) {
+                logger.warn("Unsatisfiable classes detected:");
+            }
+//            throw new RuntimeException("Cannot compute inferences");
             // Handle inconsistency appropriately if needed
-        }
-        try {
-            reasoner.precomputeInferences(InferenceType.values());
-        } catch (ReasonerInterruptedException | TimeOutException e) {
-            logger.error("Precomputation failed", e);
-            throw new RuntimeException("Failed to precompute inferences", e);
+        } else {
+            try {
+                reasoner.precomputeInferences(InferenceType.values());
+            } catch (ReasonerInterruptedException | TimeOutException e) {
+                logger.error("Precomputation failed", e);
+                throw new RuntimeException("Failed to precompute inferences", e);
+            }
         }
     }
 
@@ -126,11 +138,17 @@ public class DestiRecOntology implements AppOntology {
         }
         try (ByteArrayOutputStream output = new ByteArrayOutputStream()) {
             manager.saveOntology(ontology, new TurtleDocumentFormat(), output);
+            Model ontologyModel = Rio.parse(new ByteArrayInputStream(output.toByteArray()), "", RDFFormat.TURTLE) ;
             rdf4JMethods.consumeConnection(connection -> {
                 try {
                     connection.begin();
                     logger.info("Start ontology transaction for migration");
                     removeOntologyTriples(connection);
+
+                    if (!useReasoner) {
+                        connection.add(ontologyModel);
+                    }
+
                     connection.commit();
                     logger.info("Ontology migration transaction has successfully finished");
 
@@ -231,6 +249,7 @@ public class DestiRecOntology implements AppOntology {
 
     public void updateRepositoryWithInferences() {
         // Deprecated method, kept for backward compatibility
+        if (!useReasoner) return;
         triggerFullInference();
     }
 
@@ -243,7 +262,7 @@ public class DestiRecOntology implements AppOntology {
                 connection.begin();
                 syncNewData(service).get();
                 logger.debug("Removing old inferred triples from repository");
-//                removeOntologyTriples(connection);
+                removeOntologyTriples(connection);
 
                 OWLOntology infOntology = manager.createOntology();
 
@@ -253,21 +272,6 @@ public class DestiRecOntology implements AppOntology {
                     logger.warn("Unsatisfiable classes detected:");
                     for (OWLClass cls : unsatisfiable) {
                         logger.warn(" - {}", cls);
-
-                        BlackBoxExplanation exp= new BlackBoxExplanation(ontology, new ReasonerFactory(), reasoner);
-                        HSTExplanationGenerator multExplanator=new HSTExplanationGenerator(exp);
-                        // Now we can get explanations for the unsatisfiability.
-                        Set<Set<OWLAxiom>> explanations=multExplanator.getExplanations(cls);
-                        // Let us print them. Each explanation is one possible set of axioms that cause the
-                        // unsatisfiability.
-                        for (Set<OWLAxiom> explanation : explanations) {
-                            System.out.println("------------------");
-                            System.out.println("Axioms causing the unsatisfiability: ");
-                            for (OWLAxiom causingAxiom : explanation) {
-                                System.out.println(causingAxiom);
-                            }
-                            System.out.println("------------------");
-                        }
                     }
                 }
 
@@ -318,12 +322,14 @@ public class DestiRecOntology implements AppOntology {
                 List.of(
                         new InferredClassAssertionAxiomGenerator(),           // Class assertions (rdf:type)
                         new InferredSubClassAxiomGenerator(),                // Subclass relationships (rdfs:subClassOf)
+                        new InferredEquivalentObjectPropertyAxiomGenerator(),
                         new InferredEquivalentClassAxiomGenerator(),         // Equivalent classes (owl:equivalentClass)
                         new InferredDisjointClassesAxiomGenerator(),         // Disjoint classes (owl:disjointWith)
-                        new InferredSubObjectPropertyAxiomGenerator(),       // Subproperty relationships (rdfs:subPropertyOf)
+
 
                         new InferredInverseObjectPropertiesAxiomGenerator(), // Inverse properties (owl:inverseOf)
                         new InferredObjectPropertyCharacteristicAxiomGenerator(), // Property characteristics (e.g., transitive)
+                        new InferredSubObjectPropertyAxiomGenerator(),
                         new InferredDataPropertyCharacteristicAxiomGenerator(),   // Data property characteristics
                         new InferredSubDataPropertyAxiomGenerator(),         // Subproperty relationships for data properties
                         new InferredPropertyAssertionGenerator() {           // Custom generator for object/data property assertions
@@ -423,11 +429,7 @@ public class DestiRecOntology implements AppOntology {
     }
 
     public void triggerInference() {
-//        if (!isMigrated) {
+            if (!useReasoner) return;
             triggerFullInference();
-//            isMigrated = true;
-//        } else {
-//            triggerIncrementalInference();
-//        }
     }
 }
