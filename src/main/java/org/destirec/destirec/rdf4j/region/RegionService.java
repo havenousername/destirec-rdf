@@ -5,12 +5,12 @@ import org.destirec.destirec.rdf4j.interfaces.Dto;
 import org.destirec.destirec.rdf4j.interfaces.GenericDao;
 import org.destirec.destirec.rdf4j.months.MonthDto;
 import org.destirec.destirec.rdf4j.ontology.DestiRecOntology;
+import org.destirec.destirec.rdf4j.ontology.OntologyFeature;
 import org.destirec.destirec.rdf4j.region.apiDto.ExternalRegionDto;
 import org.destirec.destirec.rdf4j.region.cost.CostDao;
 import org.destirec.destirec.rdf4j.region.cost.CostDto;
 import org.destirec.destirec.rdf4j.region.feature.FeatureDto;
 import org.eclipse.rdf4j.model.IRI;
-import org.eclipse.rdf4j.spring.support.RDF4JTemplate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -35,14 +35,13 @@ public class RegionService {
     private final CostDao costDao;
 
 
-    public RegionService(RegionDao regionDao, RDF4JTemplate rdf4JTemplate, CostDao costDao) {
+    public RegionService(RegionDao regionDao, DestiRecOntology ontology, CostDao costDao) {
         this.regionDao = regionDao;
 
-        destiRecOntology = new DestiRecOntology(rdf4JTemplate);
+        destiRecOntology = ontology;
         qualityOntology = new QualityOntology(
+                destiRecOntology,
                 destiRecOntology.getFactory(),
-                destiRecOntology.getManager(),
-                destiRecOntology.getOntology(),
                 regionDao
         );
         this.costDao = costDao;
@@ -214,9 +213,10 @@ public class RegionService {
         logger.info("Create region with DTO " + regionDtoForCreate);
         IRI regionId = regionDao.saveAndReturnId(regionDtoForCreate);
 
-//        qualityOntology.defineRegionsQualities(List.of(regionDtoForCreate));
-//        destiRecOntology.migrate();
-//        destiRecOntology.resetOntology();
+        qualityOntology.defineRegionsQualities(regionDao.listLeaf(), OntologyFeature.REGION_QUALITY);
+        destiRecOntology.migrate(OntologyFeature.REGION_QUALITY);
+        destiRecOntology.resetOntologyFeature(OntologyFeature.REGION_QUALITY);
+        destiRecOntology.triggerInference();
         logger.info("Region with DTO " + regionId + " was created");
         return regionId;
     }

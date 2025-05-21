@@ -40,6 +40,7 @@ public class DestirecApplication {
                 migration.runMigrations();
                 logger.info("Migrations have been finished. Next OWL rules initialization follows");
                 ontology.migrate();
+                ontology.triggerInference();
                 logger.info("Ontology definitions have been migrated. Next some basic CWA rules will be set");
 //                migration.runCWARules();
 //                logger.info("CWA rules are migrated. Next initialization of some basic RDF resources will be set");

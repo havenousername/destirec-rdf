@@ -90,12 +90,14 @@ public class AttributesCollectionMigration extends IriMigration implements Ontol
 
     class AttributeCollectionOntology {
         private final OWLDataFactory factory = destiRecOntology.getFactory();
-        private final OWLOntologyManager manager = destiRecOntology.getManager();
         private final OWLClass attributesCollection = factory
                 .getOWLClass(AttributeNames.Classes.ATTRIBUTES_COLLECTION.owlIri());
-        private final OWLOntology ontology = destiRecOntology.getOntology();
 
         private final OWLClass feature = factory.getOWLClass(AttributeNames.Classes.FEATURE.owlIri());
+
+        private final OWLClassExpression month = factory.getOWLClass(AttributeNames.Classes.MONTH.owlIri());
+
+        private final OWLClassExpression cost = factory.getOWLClass(AttributeNames.Classes.COST.owlIri());
 
 
         public void defineAttributes() {
@@ -103,21 +105,33 @@ public class AttributesCollectionMigration extends IriMigration implements Ontol
             // define for now that only leaf region has cost, months, and features
             OWLObjectProperty hasCost = factory.getOWLObjectProperty(AttributeNames.Properties.HAS_COST.owlIri());
             OWLClassExpression exactOneCost = factory
-                    .getOWLObjectExactCardinality(1, hasCost);
+                    .getOWLObjectSomeValuesFrom(hasCost, cost);
+            OWLClassExpression onlyCost = factory
+                    .getOWLObjectAllValuesFrom(hasCost, cost);
 
             OWLObjectProperty hasMonth = factory.getOWLObjectProperty(AttributeNames.Properties.HAS_MONTH.owlIri());
-            OWLClassExpression exact12Months = factory
-                    .getOWLObjectExactCardinality(12, hasMonth);
+            OWLClassExpression allAreMonths = factory
+                    .getOWLObjectAllValuesFrom(hasMonth, month);
+
+            OWLClassExpression existMonth = factory
+                    .getOWLObjectSomeValuesFrom(hasMonth, month);
 
 
             OWLObjectProperty hasFeature = factory.getOWLObjectProperty(AttributeNames.Properties.HAS_FEATURE.owlIri());
             OWLClassExpression existsFeature =  factory
                     .getOWLObjectSomeValuesFrom(hasFeature, feature);
             OWLClassExpression properties = factory
-                    .getOWLObjectIntersectionOf(exact12Months, exactOneCost, existsFeature, concept);
+                    .getOWLObjectIntersectionOf(
+                            exactOneCost,
+                            onlyCost,
+                            existsFeature,
+                            concept,
+                            allAreMonths,
+                            existMonth
+                    );
 
-            manager
-                    .addAxiom(ontology, factory.getOWLEquivalentClassesAxiom(attributesCollection, properties));
+            destiRecOntology
+                    .addAxiom(factory.getOWLEquivalentClassesAxiom(attributesCollection, properties));
         }
     }
 

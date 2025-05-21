@@ -39,9 +39,6 @@ public class PreferenceMigration extends IriMigration implements OntologyDefiner
 
     class PreferenceOntology {
         private final OWLDataFactory factory = destiRecOntology.getFactory();
-        private final OWLOntologyManager manager = destiRecOntology.getManager();
-        private final OWLOntology ontology = destiRecOntology.getOntology();
-
         private final OWLClass preference = factory.getOWLClass(PreferenceNames.Classes.PREFERENCE.owlIri());
         private final OWLClass user = factory.getOWLClass(UserNames.Classes.USER.owlIri());
 
@@ -54,18 +51,15 @@ public class PreferenceMigration extends IriMigration implements OntologyDefiner
             OWLClassExpression hasExactlyOneUserAuthor = factory.getOWLObjectExactCardinality(1, preferenceAuthor, user);
 
             // define domain and range for preferenceAuthor
-            manager.addAxiom(ontology, factory.getOWLObjectPropertyDomainAxiom(preferenceAuthor, preference));
-            manager.addAxiom(ontology, factory.getOWLObjectPropertyRangeAxiom(preferenceAuthor, user));
+            destiRecOntology.addAxiom(factory.getOWLObjectPropertyDomainAxiom(preferenceAuthor, preference));
+            destiRecOntology.addAxiom(factory.getOWLObjectPropertyRangeAxiom(preferenceAuthor, user));
 
             OWLClassExpression properties = factory
                     .getOWLObjectIntersectionOf(attributesCollection, hasExactlyOneUserAuthor);
 
             // Define preference
-            manager
-                    .addAxiom(
-                            ontology,
-                            factory.getOWLEquivalentClassesAxiom(preference, properties)
-                    );
+            destiRecOntology
+                    .addAxiom(factory.getOWLEquivalentClassesAxiom(preference, properties));
         }
     }
 

@@ -95,7 +95,6 @@ public class RegionDao extends GenericDao<RegionConfig.Fields, RegionDto> {
             connection.commit();
             return queryString;
         });
-        ontology.triggerInference();
         return id;
     }
 

@@ -88,9 +88,8 @@ public class CostMigration extends IriMigration implements OntologyDefiner {
            );
 
 
-           destiRecOntology.getManager()
+           destiRecOntology
                    .addAxiom(
-                           destiRecOntology.getOntology(),
                            destiRecOntology.getFactory().getOWLEquivalentClassesAxiom(
                                    cost,
                                    intersectionScoredAttribute

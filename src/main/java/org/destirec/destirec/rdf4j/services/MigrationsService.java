@@ -69,16 +69,16 @@ public class MigrationsService {
 
     ) {
         this.template = template;
-//        migrations.add(topOntologyMigration);
+        migrations.add(topOntologyMigration);
 //        migrations.add(userMigration);
 //        migrations.add(versionMigration);
 //        migrations.add(preferenceMigration);
 //        migrations.add(monthMigration);
 //        migrations.add(costMigration);
 //        migrations.add(featureMigration);
-//        migrations.add(attributeMigration);
-//        migrations.add(attributesCollectionMigration);
-//        migrations.add(qualityMigration);
+        migrations.add(attributeMigration);
+        migrations.add(attributesCollectionMigration);
+        migrations.add(qualityMigration);
         migrations.add(regionMigration);
 
         migrations.forEach(migration -> {
@@ -88,14 +88,12 @@ public class MigrationsService {
 
 //        ontologies.add(userMigration);
 //        ontologies.add(monthMigration);
-//        ontologies.add(attributeMigration);
 //        ontologies.add(preferenceMigration);
-//        ontologies.add(monthMigration);
 //        ontologies.add(costMigration);
 //        ontologies.add(featureMigration);
-//        ontologies.add(attributeMigration);
+        ontologies.add(attributeMigration);
 //        ontologies.add(attributesCollectionMigration);
-//        ontologies.add(qualityMigration);
+        ontologies.add(qualityMigration);
         ontologies.add(regionMigration);
     }
     public void runMigrations() {

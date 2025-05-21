@@ -76,11 +76,7 @@ public class RegionConfig extends GenericConfig<RegionConfig.Fields> {
 
     @Override
     public Boolean getIsOptional(RegionConfig.Fields field) {
-        if (field == Fields.PARENT_REGION) {
-            return true;
-        }
-
-        return false;
+        return field == Fields.PARENT_REGION;
     }
 
     @Override

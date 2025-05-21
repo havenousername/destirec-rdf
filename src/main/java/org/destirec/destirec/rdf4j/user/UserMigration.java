@@ -61,10 +61,7 @@ public class UserMigration extends IriMigration implements OntologyDefiner {
                 OWLDataProperty property = ontology.getFactory().getOWLDataProperty(userConfig.getPredicate(field).getItem().stringValue());
                 OWLClassExpression propertyRestriction = ontology.getFactory().getOWLDataExactCardinality(1, property);
                 OWLSubClassOfAxiom axiom = ontology.getFactory().getOWLSubClassOfAxiom(user, propertyRestriction);
-                ontology.getManager().addAxiom(
-                        ontology.getOntology(),
-                        axiom
-                );
+                ontology.addAxiom(axiom);
             });
         }
 
@@ -80,9 +77,7 @@ public class UserMigration extends IriMigration implements OntologyDefiner {
                             .getItem().stringValue());
             OWLRestriction preferenceRestriction = ontology.getFactory().getOWLObjectSomeValuesFrom(hasAuthor, user);
             OWLClassExpression expression = ontology.getFactory().getOWLObjectIntersectionOf(userPreference, preferenceRestriction);
-            ontology.getManager()
-                    .addAxiom(
-                            ontology.getOntology(),
+            ontology.addAxiom(
                             ontology.getFactory().getOWLEquivalentClassesAxiom(
                                     userWithPreferenceClass,
                                     expression

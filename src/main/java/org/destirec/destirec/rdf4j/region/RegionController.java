@@ -36,6 +36,11 @@ public class RegionController {
         }
     }
 
+    @GetMapping("/leaf")
+    public ResponseEntity<List<RegionDto>> getLeafRegions() {
+        return ResponseEntity.ok(regionService.getLeafRegions());
+    }
+
     @GetMapping("/costs")
     public ResponseEntity<List<CostDto>> getCosts() {
         return ResponseEntity.ok(regionService.getCosts());

@@ -1,14 +1,17 @@
 package org.destirec.destirec.rdf4j.attribute;
 
 import org.apache.commons.lang.StringUtils;
+import org.destirec.destirec.rdf4j.ontology.AppOntology;
+import org.destirec.destirec.rdf4j.ontology.OntologyFeature;
 import org.destirec.destirec.rdf4j.region.RegionDao;
 import org.destirec.destirec.rdf4j.region.RegionDto;
 import org.destirec.destirec.rdf4j.vocabulary.DESTIREC;
 import org.destirec.destirec.utils.rdfDictionary.AttributeNames;
 import org.destirec.destirec.utils.rdfDictionary.QualityNames;
+import org.destirec.destirec.utils.rdfDictionary.RegionNames;
 import org.destirec.destirec.utils.rdfDictionary.TopOntologyNames;
-import org.eclipse.rdf4j.model.vocabulary.GEO;
 import org.semanticweb.owlapi.model.*;
+import org.semanticweb.owlapi.vocab.OWL2Datatype;
 
 import java.util.HashSet;
 import java.util.List;
@@ -16,19 +19,17 @@ import java.util.Set;
 
 public class QualityOntology {
     private final OWLDataFactory factory;
-    private final OWLOntologyManager manager;
-    private final OWLOntology ontology;
+    private final AppOntology ontology;
 
     private final OWLClass quality;
     private final OWLClass feature;
     private final OWLClass concept;
     private final OWLObjectProperty hasQuality;
-
     private final RegionDao regionDao;
 
-    public QualityOntology(OWLDataFactory factory, OWLOntologyManager manager, OWLOntology ontology, RegionDao regionDao) {
+
+    public QualityOntology(AppOntology ontology, OWLDataFactory factory, RegionDao regionDao) {
         this.factory = factory;
-        this.manager = manager;
         this.ontology = ontology;
 
         this.quality = factory.getOWLClass(QualityNames.Classes.QUALITY.owlIri());
@@ -44,15 +45,15 @@ public class QualityOntology {
         OWLDataPropertyExpression lowerProp = factory.getOWLDataProperty(QualityNames.Properties.LOWER.owlIri());
 
         // Quality ≡ Concept ⊓ (=1 lower) ⊓ (=1 upper)
-        OWLClassExpression exactlyOneUpper = factory.getOWLDataExactCardinality(1, upperProp);
-        OWLClassExpression exactlyOneLower = factory.getOWLDataExactCardinality(1, lowerProp);
+        OWLClassExpression exactlyOneUpper = factory.getOWLDataSomeValuesFrom(upperProp, OWL2Datatype.XSD_UNSIGNED_INT);
+        OWLClassExpression exactlyOneLower = factory.getOWLDataSomeValuesFrom(lowerProp, OWL2Datatype.XSD_UNSIGNED_INT);
 
         OWLClassExpression qualityDefinition = factory.getOWLObjectIntersectionOf(
                 concept, exactlyOneLower, exactlyOneUpper
         );
 
         OWLEquivalentClassesAxiom qualityEq = factory.getOWLEquivalentClassesAxiom(quality, qualityDefinition);
-        manager.addAxiom(ontology, qualityEq);
+        ontology.addAxiom( qualityEq);
 
         // Subclasses
 
@@ -62,18 +63,22 @@ public class QualityOntology {
             OWLNamedIndividual qualityInd = factory.getOWLNamedIndividual(qualityEnum.iri().owlIri());
             qualityIndividuals.add(qualityInd);
 
-            manager.addAxiom(ontology, factory.getOWLClassAssertionAxiom(quality, qualityInd));
+            ontology.addAxiom(factory.getOWLClassAssertionAxiom(quality, qualityInd));
 
-            manager.addAxiom(ontology, factory.getOWLDataPropertyAssertionAxiom(lowerProp, qualityInd, qualityEnum.getLower()));
-            manager.addAxiom(ontology, factory.getOWLDataPropertyAssertionAxiom(upperProp, qualityInd, qualityEnum.getUpper()));
+            ontology.addAxiom(factory.getOWLDataPropertyAssertionAxiom(lowerProp, qualityInd, qualityEnum.getLower()));
+            ontology.addAxiom(factory.getOWLDataPropertyAssertionAxiom(upperProp, qualityInd, qualityEnum.getUpper()));
         }
 
         OWLClassExpression qualityEnumeration = factory.getOWLObjectOneOf(qualityIndividuals);
-        manager.addAxiom(ontology, factory.getOWLEquivalentClassesAxiom(quality,qualityEnumeration));
+        ontology.addAxiom(factory.getOWLEquivalentClassesAxiom(quality,qualityEnumeration));
     }
 
     public void defineRegionsQualities(List<RegionDto> regions) {
-        OWLObjectProperty sfDirectlyWithin = factory.getOWLObjectProperty(GEO.NAMESPACE + "sfDirectlyWithin");
+        defineRegionsQualities(regions, OntologyFeature.GENERAL);
+    }
+
+    public void defineRegionsQualities(List<RegionDto> regions, OntologyFeature ontologyFeature) {
+        OWLObjectProperty sfDirectlyWithin = factory.getOWLObjectProperty(RegionNames.Properties.SF_D_WITHIN);
         for (var region : regions) {
             // do not add hasFQuality to the parents (planned to be using inference)
             if (region.getParentRegion() != null) {
@@ -95,15 +100,15 @@ public class QualityOntology {
 
                         OWLObjectProperty hasFQuality = factory.getOWLObjectProperty(DESTIREC.wrap(featureQuality).owlIri());
 
-                        manager.addAxiom(ontology, factory.getOWLObjectPropertyAssertionAxiom(hasFQuality, regionInd, qualityInd));
+                        ontology.addAxiom(factory.getOWLObjectPropertyAssertionAxiom(hasFQuality, regionInd, qualityInd), ontologyFeature);
 
                         // hasFQuality \sqsubseteq hasQuality
-                        manager.addAxiom(ontology, factory.getOWLSubObjectPropertyOfAxiom(hasFQuality, hasQuality));
+                        ontology.addAxiom(factory.getOWLSubObjectPropertyOfAxiom(hasFQuality, hasQuality), ontologyFeature);
                         // sfDirectlyWithin \ \circ  has{F}Quality  \sqsubseteq has{F}Quality - for the inference
                         // on the parent level
                         OWLSubPropertyChainOfAxiom propertyChainAxiom = factory
                                 .getOWLSubPropertyChainOfAxiom(List.of(sfDirectlyWithin, hasFQuality), hasFQuality);
-                        manager.addAxiom(ontology, propertyChainAxiom);
+                        ontology.addAxiom(propertyChainAxiom, ontologyFeature);
                     }
                 }
             }
@@ -117,8 +122,8 @@ public class QualityOntology {
 
     public void defineHasQuality() {
         // hasQuality \equiv Feature \times Quality
-        manager.addAxiom(ontology, factory.getOWLObjectPropertyDomainAxiom(hasQuality, feature));
-        manager.addAxiom(ontology, factory.getOWLObjectPropertyRangeAxiom(hasQuality, quality));
+        ontology.addAxiom(factory.getOWLObjectPropertyDomainAxiom(hasQuality, feature));
+        ontology.addAxiom(factory.getOWLObjectPropertyRangeAxiom(hasQuality, quality));
     }
 
 }

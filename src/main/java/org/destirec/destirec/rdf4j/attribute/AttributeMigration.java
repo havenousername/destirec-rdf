@@ -11,9 +11,9 @@ import org.destirec.destirec.utils.rdfDictionary.UserNames;
 import org.eclipse.rdf4j.model.vocabulary.OWL;
 import org.eclipse.rdf4j.model.vocabulary.RDF;
 import org.eclipse.rdf4j.model.vocabulary.RDFS;
-import org.eclipse.rdf4j.model.vocabulary.XSD;
 import org.eclipse.rdf4j.spring.support.RDF4JTemplate;
 import org.semanticweb.owlapi.model.*;
+import org.semanticweb.owlapi.vocab.OWL2Datatype;
 import org.semanticweb.owlapi.vocab.OWLFacet;
 import org.springframework.stereotype.Component;
 
@@ -58,10 +58,6 @@ public class AttributeMigration extends IriMigration implements OntologyDefiner 
 
     class AttributePropertiesOntology {
         private final OWLDataFactory factory = destiRecOntology.getFactory();
-        private final OWLOntologyManager manager = destiRecOntology.getManager();
-
-        private final OWLOntology ontology = destiRecOntology.getOntology();
-
         private final OWLObjectProperty hasConcept = factory
                 .getOWLObjectProperty(TopOntologyNames.Properties.HAS_CONCEPT.owlIri());
 
@@ -84,20 +80,20 @@ public class AttributeMigration extends IriMigration implements OntologyDefiner 
             OWLClass concept = factory.getOWLClass(TopOntologyNames.Classes.CONCEPT.owlIri());
 
             OWLClassExpression objectOrActor = factory.getOWLObjectUnionOf(object, actor);
-            manager.addAxiom(ontology, factory.getOWLObjectPropertyDomainAxiom(hasConcept, objectOrActor));
+            destiRecOntology.addAxiom(factory.getOWLObjectPropertyDomainAxiom(hasConcept, objectOrActor));
 
-            manager.addAxiom(ontology, factory.getOWLObjectPropertyRangeAxiom(hasConcept, concept));
+            destiRecOntology.addAxiom(factory.getOWLObjectPropertyRangeAxiom(hasConcept, concept));
         }
 
         // hasConcept \sqsubseteq \neg hasConcept^{-1}
         public void defineHasConceptAsymmetry() {
             OWLAxiom disjointInverse = factory.getOWLDisjointObjectPropertiesAxiom(hasConcept, factory.getOWLObjectInverseOf(hasConcept));
-            manager.addAxiom(ontology, disjointInverse);
+            destiRecOntology.addAxiom(disjointInverse);
         }
 
         // hasAttribute \sqsubseteq hasConcept
         public void defineHasAttribute() {
-            manager.addAxiom(ontology, factory.getOWLSubObjectPropertyOfAxiom(hasAttribute, hasConcept));
+            destiRecOntology.addAxiom(factory.getOWLSubObjectPropertyOfAxiom(hasAttribute, hasConcept));
         }
 
         public void defineHasAttributeDescendants() {
@@ -107,19 +103,19 @@ public class AttributeMigration extends IriMigration implements OntologyDefiner 
             OWLClass object = factory.getOWLClass(TopOntologyNames.Classes.OBJECT.owlIri());
             OWLClass actor = factory.getOWLClass(TopOntologyNames.Classes.ACTOR.owlIri());
 
-            manager.addAxiom(ontology, factory.getOWLSubObjectPropertyOfAxiom(hasFeature, hasAttribute));
-            manager.addAxiom(ontology, factory.getOWLSubObjectPropertyOfAxiom(hasMonth, hasAttribute));
-            manager.addAxiom(ontology, factory.getOWLSubObjectPropertyOfAxiom(hasCost, hasAttribute));
+            destiRecOntology.addAxiom(factory.getOWLSubObjectPropertyOfAxiom(hasFeature, hasAttribute));
+            destiRecOntology.addAxiom(factory.getOWLSubObjectPropertyOfAxiom(hasMonth, hasAttribute));
+            destiRecOntology.addAxiom(factory.getOWLSubObjectPropertyOfAxiom(hasCost, hasAttribute));
 
             OWLClassExpression objectOrActor = factory.getOWLObjectUnionOf(object, actor);
-            manager.addAxiom(ontology, factory.getOWLObjectPropertyDomainAxiom(hasFeature, objectOrActor));
-            manager.addAxiom(ontology, factory.getOWLObjectPropertyRangeAxiom(hasFeature, feature));
+            destiRecOntology.addAxiom(factory.getOWLObjectPropertyDomainAxiom(hasFeature, objectOrActor));
+            destiRecOntology.addAxiom(factory.getOWLObjectPropertyRangeAxiom(hasFeature, feature));
 
-            manager.addAxiom(ontology, factory.getOWLObjectPropertyDomainAxiom(hasMonth, objectOrActor));
-            manager.addAxiom(ontology, factory.getOWLObjectPropertyRangeAxiom(hasMonth, month));
+            destiRecOntology.addAxiom(factory.getOWLObjectPropertyDomainAxiom(hasMonth, objectOrActor));
+            destiRecOntology.addAxiom(factory.getOWLObjectPropertyRangeAxiom(hasMonth, month));
 
-            manager.addAxiom(ontology, factory.getOWLObjectPropertyDomainAxiom(hasCost, objectOrActor));
-            manager.addAxiom(ontology, factory.getOWLObjectPropertyRangeAxiom(hasCost, cost));
+            destiRecOntology.addAxiom(factory.getOWLObjectPropertyDomainAxiom(hasCost, objectOrActor));
+            destiRecOntology.addAxiom(factory.getOWLObjectPropertyRangeAxiom(hasCost, cost));
         }
     }
 
@@ -153,10 +149,10 @@ public class AttributeMigration extends IriMigration implements OntologyDefiner 
 
         // ScoredAttribute \equiv Concept \ \sqcap (1= hasScore.Integer) \ \sqcap (1= isActive.Boolean)
         public void defineScoredAttribute() {
-            OWLDatatype booleanDatatype = destiRecOntology.getFactory().getOWLDatatype(XSD.BOOLEAN.stringValue());
-            OWLDatatype integerDatatype = destiRecOntology.getFactory().getOWLDatatype(XSD.INTEGER.stringValue());
+            OWLDatatype booleanDatatype = destiRecOntology.getFactory().getOWLDatatype(OWL2Datatype.XSD_BOOLEAN);
+            OWLDatatype integerDatatype = destiRecOntology.getFactory().getOWLDatatype(OWL2Datatype.XSD_UNSIGNED_INT);
 
-            OWLClassExpression hasExactlyOneScore = destiRecOntology.getFactory().getOWLDataExactCardinality(1, hasScoreOWL);
+            OWLClassExpression hasExactlyOneScore = destiRecOntology.getFactory().getOWLDataSomeValuesFrom(hasScoreOWL, integerDatatype);
             OWLLiteral minScoreValue = destiRecOntology.getFactory().getOWLLiteral(0);
             OWLLiteral maxScoreValue = destiRecOntology.getFactory().getOWLLiteral(100);
 
@@ -175,7 +171,7 @@ public class AttributeMigration extends IriMigration implements OntologyDefiner 
                             scoreRangeType
                     );
 
-            OWLClassExpression isExactlyOneActive = destiRecOntology.getFactory().getOWLDataExactCardinality(1, isActiveOWL);
+            OWLClassExpression isExactlyOneActive = destiRecOntology.getFactory().getOWLDataSomeValuesFrom(isActiveOWL, booleanDatatype);
             OWLDataAllValuesFrom isActiveBoolean = destiRecOntology.getFactory().getOWLDataAllValuesFrom(isActiveOWL, booleanDatatype);
 
             OWLClassExpression intersectionScoredAttribute = destiRecOntology.getFactory().getOWLObjectIntersectionOf(
@@ -184,17 +180,16 @@ public class AttributeMigration extends IriMigration implements OntologyDefiner 
                     isActiveBoolean,
                     isExactlyOneActive
             );
-            destiRecOntology.getManager()
+            destiRecOntology
                     .addAxiom(
-                            destiRecOntology.getOntology(),
                             destiRecOntology.getFactory().getOWLEquivalentClassesAxiom(
                                     scoredAttribute,
                                     intersectionScoredAttribute
                             )
                     );
 
-            destiRecOntology.getManager()
-                    .addAxiom(getDestiRecOntology().getOntology(), rangeAxiomForScore);
+            destiRecOntology
+                    .addAxiom(rangeAxiomForScore);
         }
 
         public void defineRegionAttribute() {
@@ -205,9 +200,7 @@ public class AttributeMigration extends IriMigration implements OntologyDefiner 
             OWLClassExpression intersectionWithScoredAttr = destiRecOntology.getFactory()
                     .getOWLObjectIntersectionOf(scoredAttribute, hasInvConceptClass);
             destiRecOntology
-                    .getManager()
                     .addAxiom(
-                            destiRecOntology.getOntology(),
                             destiRecOntology.getFactory().getOWLEquivalentClassesAxiom(
                                     regionAttribute,
                                     intersectionWithScoredAttr
@@ -224,9 +217,7 @@ public class AttributeMigration extends IriMigration implements OntologyDefiner 
             OWLClassExpression intersectionWithScoredAttr = destiRecOntology.getFactory()
                     .getOWLObjectIntersectionOf(scoredAttribute, hasInvConceptClass);
             destiRecOntology
-                    .getManager()
                     .addAxiom(
-                            destiRecOntology.getOntology(),
                             destiRecOntology.getFactory().getOWLEquivalentClassesAxiom(
                                     preferenceAttribute,
                                     intersectionWithScoredAttr
@@ -238,9 +229,8 @@ public class AttributeMigration extends IriMigration implements OntologyDefiner 
         // Attribute \equiv  RegionAttribute \ \sqcup  PreferenceAttribute
         // there cannot be other types of attributes: region or preference only
         public void defineUnionOfAttributes() {
-            destiRecOntology.getManager()
+            destiRecOntology
                     .addAxiom(
-                            destiRecOntology.getOntology(),
                             destiRecOntology.getFactory().getOWLEquivalentClassesAxiom(
                                     attribute,
                                     destiRecOntology.getFactory().getOWLObjectUnionOf(regionAttribute, preferenceAttribute)

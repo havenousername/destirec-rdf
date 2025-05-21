@@ -36,9 +36,8 @@ public class QualityMigration extends IriMigration implements OntologyDefiner {
     @Override
     public void defineOntology() {
         QualityOntology ontology = new QualityOntology(
+                destirecOntology,
                 destirecOntology.getFactory(),
-                destirecOntology.getManager(),
-                destirecOntology.getOntology(),
                 regionDao
         );
         ontology.defineQuality();

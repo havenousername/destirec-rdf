@@ -1,12 +1,12 @@
 package org.destirec.destirec.rdf4j.region;
 
+import org.destirec.destirec.rdf4j.ontology.AppOntology;
 import org.destirec.destirec.utils.rdfDictionary.RegionNames;
 import org.semanticweb.owlapi.model.*;
 
 class RegionPropertiesOntology {
     private final OWLDataFactory factory;
-    private final OWLOntologyManager manager;
-    private final OWLOntology ontology;
+    private final AppOntology ontology;
 
     private final OWLClass region;
     private final OWLObjectProperty sfWithin;
@@ -14,9 +14,8 @@ class RegionPropertiesOntology {
     private final OWLObjectProperty sfDirectlyWithin;
     private final OWLObjectProperty sfDirectlyContains;
 
-    RegionPropertiesOntology(OWLDataFactory factory, OWLOntologyManager manager, OWLOntology ontology) {
+    RegionPropertiesOntology(AppOntology ontology, OWLDataFactory factory) {
         this.factory = factory;
-        this.manager = manager;
         this.ontology = ontology;
 
         this.sfWithin = factory.getOWLObjectProperty(RegionNames.Properties.SF_WITHIN);
@@ -29,42 +28,42 @@ class RegionPropertiesOntology {
 
     // sfWithin ⊑ Region×Region
     public void defineSfWithinMapping() {
-        manager.addAxiom(ontology, factory.getOWLObjectPropertyDomainAxiom(sfWithin, region));
-        manager.addAxiom(ontology, factory.getOWLObjectPropertyRangeAxiom(sfWithin, region));
+        ontology.addAxiom(factory.getOWLObjectPropertyDomainAxiom(sfWithin, region));
+        ontology.addAxiom(factory.getOWLObjectPropertyRangeAxiom(sfWithin, region));
     }
 
     // sfWithin^−1≡sfContains
     public void defineSfWithinOpposite() {
         OWLAxiom inverseSfWithin = factory.getOWLInverseObjectPropertiesAxiom(sfWithin, sfContains);
-        manager.addAxiom(ontology, inverseSfWithin);
+        ontology.addAxiom(inverseSfWithin);
     }
 
     // sfDirectlyWithin
     public void defineSfDirectlyWithin() {
-        manager.addAxiom(ontology, factory.getOWLSubObjectPropertyOfAxiom(sfDirectlyWithin, sfWithin));
-        manager.addAxiom(ontology, factory.getOWLObjectPropertyDomainAxiom(sfDirectlyWithin, region));
-        manager.addAxiom(ontology, factory.getOWLObjectPropertyRangeAxiom(sfDirectlyWithin, region));
+        ontology.addAxiom( factory.getOWLSubObjectPropertyOfAxiom(sfDirectlyWithin, sfWithin));
+        ontology.addAxiom(factory.getOWLObjectPropertyDomainAxiom(sfDirectlyWithin, region));
+        ontology.addAxiom(factory.getOWLObjectPropertyRangeAxiom(sfDirectlyWithin, region));
         // ≤1sfDirectlyWithin
-        manager.addAxiom(ontology, factory.getOWLFunctionalObjectPropertyAxiom(sfDirectlyWithin));
+        ontology.addAxiom(factory.getOWLFunctionalObjectPropertyAxiom(sfDirectlyWithin));
 
         OWLAxiom inverseAxiom = factory.getOWLInverseObjectPropertiesAxiom(sfDirectlyContains, sfDirectlyWithin);
-        manager.addAxiom(ontology, inverseAxiom);
+        ontology.addAxiom(inverseAxiom);
     }
 
 
     // sfWithin⊑+sfWithin
     public void defineSfWithinTransitive() {
-        manager.addAxiom(ontology, factory.getOWLTransitiveObjectPropertyAxiom(sfWithin));
+        ontology.addAxiom(factory.getOWLTransitiveObjectPropertyAxiom(sfWithin));
     }
 
     //        // ∀x.¬sfWithin(x,x) - irreflexive, region cannot contain itself - Germany cannot contain Germany
     public void defineSfWithinIrreflexive(){
-        manager.addAxiom(ontology, factory.getOWLIrreflexiveObjectPropertyAxiom(sfDirectlyWithin));
+        ontology.addAxiom(factory.getOWLIrreflexiveObjectPropertyAxiom(sfDirectlyWithin));
     }
 
     // sfWithin ⊑ ¬sfWithin⁻¹
     public void defineDisjointAsymmetry() {
         OWLAxiom disjointInverse = factory.getOWLDisjointObjectPropertiesAxiom(sfDirectlyWithin, factory.getOWLObjectInverseOf(sfDirectlyWithin));
-        manager.addAxiom(ontology, disjointInverse);
+        ontology.addAxiom(disjointInverse);
     }
 }

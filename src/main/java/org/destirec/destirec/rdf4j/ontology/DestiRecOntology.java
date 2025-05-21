@@ -20,6 +20,7 @@ import org.semanticweb.HermiT.ReasonerFactory;
 import org.semanticweb.owlapi.apibinding.OWLManager;
 import org.semanticweb.owlapi.formats.TurtleDocumentFormat;
 import org.semanticweb.owlapi.model.*;
+import org.semanticweb.owlapi.model.parameters.ChangeApplied;
 import org.semanticweb.owlapi.model.parameters.Imports;
 import org.semanticweb.owlapi.reasoner.*;
 import org.semanticweb.owlapi.util.*;
@@ -32,21 +33,23 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.time.Instant;
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 
-@Getter
 @Component
 public class DestiRecOntology implements AppOntology {
     private final OWLOntologyManager manager;
+    @Getter
     private final OWLDataFactory factory;
+
     private OWLOntology ontology;
+
     private final RDF4JTemplate rdf4JMethods;
+
+    @Getter
     private boolean isMigrated;
     private long lastSyncTime;
+
     private OWLReasoner reasoner;
 
     @Value("${app.env.graphdb.use_reasoner}")
@@ -62,12 +65,15 @@ public class DestiRecOntology implements AppOntology {
         ));
     }
 
+    private final Map<OntologyFeature, Set<OWLAxiom>> ontologyFeature;
+
 
     public DestiRecOntology(RDF4JTemplate rdf4JMethods) {
         this.rdf4JMethods = rdf4JMethods;
         manager = OWLManager.createOWLOntologyManager();
         factory = manager.getOWLDataFactory();
         lastSyncTime = System.currentTimeMillis();
+        ontologyFeature = new HashMap<>();
     }
 
     public void init() {
@@ -90,7 +96,7 @@ public class DestiRecOntology implements AppOntology {
         }
         Configuration config = new Configuration();
         config.throwInconsistentOntologyException = false;
-//        config.reasonerProgressMonitor= new ConsoleProgressMonitor();
+        config.reasonerProgressMonitor= new ConsoleProgressMonitor();
         reasoner = new ReasonerFactory().createReasoner(ontology, config);
 
         if (!reasoner.isConsistent()) {
@@ -104,7 +110,14 @@ public class DestiRecOntology implements AppOntology {
             // Handle inconsistency appropriately if needed
         } else {
             try {
-                reasoner.precomputeInferences(InferenceType.values());
+                reasoner.precomputeInferences(
+                        InferenceType.CLASS_HIERARCHY,
+                        InferenceType.OBJECT_PROPERTY_HIERARCHY,
+                        InferenceType.DATA_PROPERTY_HIERARCHY,
+                        InferenceType.CLASS_ASSERTIONS,
+                        InferenceType.OBJECT_PROPERTY_ASSERTIONS,
+                        InferenceType.DATA_PROPERTY_ASSERTIONS
+                );
             } catch (ReasonerInterruptedException | TimeOutException e) {
                 logger.error("Precomputation failed", e);
                 throw new RuntimeException("Failed to precompute inferences", e);
@@ -154,12 +167,24 @@ public class DestiRecOntology implements AppOntology {
         logger.info("Ontology has been reset.");
     }
 
+    @Override
     public void migrate() {
-        if (isMigrated) {
-            return;
-        }
+        migrate(OntologyFeature.GENERAL);
+    }
+
+    public void migrate(OntologyFeature feature) {
         try (ByteArrayOutputStream output = new ByteArrayOutputStream()) {
-            manager.saveOntology(ontology, new TurtleDocumentFormat(), output);
+            if (feature != OntologyFeature.GENERAL && ontologyFeature.containsKey(feature)) {
+                OWLOntology newOntology = manager.createOntology();
+                for (OWLAxiom axiom : ontologyFeature.get(feature)) {
+                    manager.addAxiom(newOntology, axiom);
+                }
+                manager.saveOntology(newOntology, new TurtleDocumentFormat(), output);
+                manager.removeOntology(newOntology);
+            } else {
+                manager.saveOntology(ontology, new TurtleDocumentFormat(), output);
+            }
+
             Model ontologyModel = Rio.parse(new ByteArrayInputStream(output.toByteArray()), "", RDFFormat.TURTLE) ;
 
             rdf4JMethods.consumeConnection(connection -> {
@@ -182,6 +207,8 @@ public class DestiRecOntology implements AppOntology {
             logger.error("Cannot migrate OWL ontology", e);
         } catch (IOException e) {
             logger.error("RIO parsing failed", e);
+        } catch (OWLOntologyCreationException e) {
+            logger.error("Could not have created owl ontology in partial migration", e);
         }
     }
 
@@ -338,8 +365,7 @@ public class DestiRecOntology implements AppOntology {
                         new InferredObjectPropertyCharacteristicAxiomGenerator(), // Property characteristics (e.g., transitive)
                         new InferredSubObjectPropertyAxiomGenerator(),
                         new InferredDataPropertyCharacteristicAxiomGenerator(),   // Data property characteristics
-                        new InferredSubDataPropertyAxiomGenerator(),         // Subproperty relationships for data properties
-                        new InferredPropertyAssertionGenerator()
+                        new InferredSubDataPropertyAxiomGenerator()        // Subproperty relationships for data properties
                 )
         );
 
@@ -354,6 +380,27 @@ public class DestiRecOntology implements AppOntology {
         resetABox();
         syncNewData(ontology);
         rebuildReasoner();
-        triggerFullInference();;
+        triggerFullInference();
+    }
+
+    @Override
+    public ChangeApplied addAxiom(OWLAxiom axiom, OntologyFeature featureName) {
+        if (ontologyFeature.containsKey(featureName)) {
+            ontologyFeature.get(featureName).add(axiom);
+        } else {
+            ontologyFeature.put(featureName, new HashSet<>());
+            ontologyFeature.get(featureName).add(axiom);
+        }
+        return manager.addAxiom(ontology, axiom);
+    }
+
+    @Override
+    public ChangeApplied addAxiom(OWLAxiom axiom) {
+        return addAxiom(axiom, OntologyFeature.GENERAL);
+    }
+
+    @Override
+    public void resetOntologyFeature(OntologyFeature feature) {
+        ontologyFeature.remove(feature);
     }
 }

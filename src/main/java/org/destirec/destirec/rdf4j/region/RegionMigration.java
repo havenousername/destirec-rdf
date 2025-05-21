@@ -49,11 +49,7 @@ public class RegionMigration extends IriMigration implements OntologyDefiner {
 
     @Override
     public void defineOntology() {
-        RegionClassOntology ontology = new RegionClassOntology(
-                destiRecOntology.getFactory(),
-                destiRecOntology.getManager(),
-                getDestiRecOntology().getOntology()
-        );
+        RegionClassOntology ontology = new RegionClassOntology(destiRecOntology, destiRecOntology.getFactory());
         ontology.defineRegion();
         ontology.defineEmptyRegion();
         ontology.defineLeafRegion();
@@ -66,9 +62,8 @@ public class RegionMigration extends IriMigration implements OntologyDefiner {
     @NotNull
     private RegionPropertiesOntology getRegionPropertiesOntology() {
         RegionPropertiesOntology propertiesOntology = new RegionPropertiesOntology(
-                destiRecOntology.getFactory(),
-                destiRecOntology.getManager(),
-                getDestiRecOntology().getOntology()
+                destiRecOntology,
+                destiRecOntology.getFactory()
         );
         propertiesOntology.defineSfWithinMapping();
         propertiesOntology.defineSfWithinIrreflexive();

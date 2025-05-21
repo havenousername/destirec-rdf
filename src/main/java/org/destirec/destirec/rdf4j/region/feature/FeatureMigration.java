@@ -100,9 +100,7 @@ public class FeatureMigration extends IriMigration implements OntologyDefiner {
             );
 
             destiRecOntology
-                    .getManager()
                     .addAxiom(
-                            destiRecOntology.getOntology(),
                             destiRecOntology.getFactory().getOWLEquivalentClassesAxiom(
                                     feature,
                                     intersectionScoredAttribute
@@ -111,8 +109,7 @@ public class FeatureMigration extends IriMigration implements OntologyDefiner {
         }
 
         public void defineHasRegionFeature() {
-            destiRecOntology.getManager().addAxiom(
-                    destiRecOntology.getOntology(),
+            destiRecOntology.addAxiom(
                     destiRecOntology.getFactory().getOWLFunctionalObjectPropertyAxiom(hasRegionFeature)
             );
 
@@ -122,8 +119,7 @@ public class FeatureMigration extends IriMigration implements OntologyDefiner {
                     .collect(Collectors.toSet());
             OWLClassExpression regionFeatureNominals = destiRecOntology.getFactory().getOWLObjectOneOf(regionNames);
 
-            destiRecOntology.getManager().addAxiom(
-                    destiRecOntology.getOntology(),
+            destiRecOntology.addAxiom(
                     destiRecOntology.getFactory().getOWLObjectPropertyRangeAxiom(hasRegionFeature, regionFeatureNominals)
             );
         }
@@ -139,7 +135,7 @@ public class FeatureMigration extends IriMigration implements OntologyDefiner {
         public void defineRegionFeatures() {
             OWLClassExpression regionFeatures = getRegionFeatures();
             OWLEquivalentClassesAxiom axiom = destiRecOntology.getFactory().getOWLEquivalentClassesAxiom(regionFeature, regionFeatures);
-            destiRecOntology.getManager().addAxiom(destiRecOntology.getOntology(), axiom);
+            destiRecOntology.addAxiom(axiom);
         }
     }
 }

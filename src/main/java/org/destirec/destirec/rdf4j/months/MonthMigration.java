@@ -120,8 +120,7 @@ public class MonthMigration extends IriMigration implements OntologyDefiner {
                     );
 
             destiRecOntology
-                    .getManager()
-                    .addAxiom(destiRecOntology.getOntology(), rangeAxiomForMonthPosition);
+                    .addAxiom(rangeAxiomForMonthPosition);
 
             OWLClassExpression intersectionScoredAttribute = destiRecOntology.getFactory().getOWLObjectIntersectionOf(
                     attribute,
@@ -132,9 +131,8 @@ public class MonthMigration extends IriMigration implements OntologyDefiner {
                     allNameString
             );
 
-            destiRecOntology.getManager()
+            destiRecOntology
                     .addAxiom(
-                            destiRecOntology.getOntology(),
                             destiRecOntology.getFactory().getOWLEquivalentClassesAxiom(
                                     month,
                                     intersectionScoredAttribute
