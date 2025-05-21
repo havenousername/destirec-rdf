@@ -11,12 +11,16 @@ public class DESTIREC {
         ONTOLOGY,
         RESOURCE,
 
-        B_NODE
+        B_NODE,
+
+        GRAPH
     }
     public static final String NAMESPACE = "http://destirec.com/";
     public static final Namespace NS = new ExternalNamespace("destirec", NAMESPACE);
 
     private static final String ONTOLOGY_NS = "http://destirec.com/ontology";
+
+    public static final String GRAPH_NS = "http://destirec.com/graph";
 
     private static final String RESOURCE_NS = "http://destirec.com/resource";
 
@@ -25,6 +29,8 @@ public class DESTIREC {
             return RESOURCE_NS + "/" +  str;
         } else if (type == UriType.B_NODE) {
             return RESOURCE_NS + "/_" + str;
+        } else if (type == UriType.GRAPH) {
+            return GRAPH_NS + "/" + str;
         }
         return ONTOLOGY_NS + "/" + str;
     }
@@ -45,6 +51,10 @@ public class DESTIREC {
 
     public static NamespaceWrapper wrap(String str) {
         return new NamespaceWrapper(wrapNamespace(str, UriType.ONTOLOGY), str);
+    }
+
+    public static NamespaceWrapper wrap(String str, UriType type) {
+        return new NamespaceWrapper(wrapNamespace(str, type), str);
     }
 
     public static String wrapResource(String str) {

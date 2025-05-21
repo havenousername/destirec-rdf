@@ -7,14 +7,16 @@ import org.destirec.destirec.rdf4j.ontology.DestiRecOntology;
 import org.destirec.destirec.rdf4j.region.cost.CostDao;
 import org.destirec.destirec.rdf4j.region.feature.FeatureDao;
 import org.destirec.destirec.utils.rdfDictionary.RegionNames;
+import org.destirec.destirec.utils.rdfDictionary.TopOntologyNames;
 import org.eclipse.rdf4j.model.IRI;
-import org.eclipse.rdf4j.model.vocabulary.RDF;
 import org.eclipse.rdf4j.sparqlbuilder.core.SparqlBuilder;
 import org.eclipse.rdf4j.sparqlbuilder.core.Variable;
+import org.eclipse.rdf4j.sparqlbuilder.core.query.InsertDataQuery;
 import org.eclipse.rdf4j.sparqlbuilder.core.query.ModifyQuery;
 import org.eclipse.rdf4j.sparqlbuilder.core.query.Queries;
 import org.eclipse.rdf4j.sparqlbuilder.graphpattern.GraphPatternNotTriples;
 import org.eclipse.rdf4j.sparqlbuilder.graphpattern.GraphPatterns;
+import org.eclipse.rdf4j.sparqlbuilder.graphpattern.TriplePattern;
 import org.eclipse.rdf4j.sparqlbuilder.rdf.Rdf;
 import org.eclipse.rdf4j.spring.dao.support.opbuilder.TupleQueryEvaluationBuilder;
 import org.eclipse.rdf4j.spring.support.RDF4JTemplate;
@@ -57,46 +59,43 @@ public class RegionDao extends GenericDao<RegionConfig.Fields, RegionDto> {
         IRI id = super.saveAndReturnId(dto, iri);
         getRdf4JTemplate().applyToConnection(connection -> {
             if (dto.getParentRegion() != null) {
-                var dContainsIRI = valueFactory.createIRI(RegionNames.Properties.SF_D_CONTAINS);
-                var tContainsIRI = valueFactory.createIRI(RegionNames.Properties.SF_CONTAINS);
-                var dWithinIRI = valueFactory.createIRI(RegionNames.Properties.SF_D_WITHIN);
-                var tWithinIRI = valueFactory.createIRI(RegionNames.Properties.SF_WITHIN);
-                Variable region = SparqlBuilder.var("region");
+                Variable obj = SparqlBuilder.var("obj");
                 GraphPatternNotTriples wherePattern = GraphPatterns.and(
-                        GraphPatterns.tp(dto.getParentRegion(), dContainsIRI, region),
-                        GraphPatterns.tp(dto.getParentRegion(), tContainsIRI, region),
-                        GraphPatterns.tp(region, RDF.TYPE,  RegionNames.Classes.NO_REGION.rdfIri()),
-                        GraphPatterns.tp(region, dWithinIRI, dto.getParentRegion())
+                        GraphPatterns.tp(dto.getParentRegion(), RegionNames.Properties.CONTAINS_EMPTY.rdfIri(), obj)
                 );
-
+                TriplePattern deletePattern = GraphPatterns.tp(dto.getParentRegion(), RegionNames.Properties.CONTAINS_EMPTY.rdfIri(), obj);
                 ModifyQuery deleteQuery = Queries.DELETE()
-                        .delete(
-                                GraphPatterns.tp(dto.getParentRegion(), dContainsIRI, region),
-                                GraphPatterns.tp(dto.getParentRegion(), tContainsIRI, region),
-                                GraphPatterns.tp(region, dWithinIRI, dto.getParentRegion()),
-                                GraphPatterns.tp(region, tWithinIRI, dto.getParentRegion())
-                        )
+                        .with(TopOntologyNames.Graph.INFERRED.rdfIri())
+                        .delete(deletePattern)
+                        .where(wherePattern);
+
+                ModifyQuery deleteQueryDefault = Queries.DELETE()
+                        .delete(deletePattern)
                         .where(wherePattern);
 
                 // Get the SPARQL query string for logging
                 String queryString = deleteQuery.getQueryString();
+                String queryString1 = deleteQueryDefault.getQueryString();
+
                 connection.begin();
+                connection.prepareUpdate(queryString1).execute();
                 connection.prepareUpdate(queryString).execute();
                 connection.commit();
             }
-            String query = "INSERT DATA { <" +
-                    RegionNames.Individuals.NO_REGION.pseudoUri() +
-                    "> <" +
-                    RegionNames.Properties.SF_D_WITHIN +
-                    "> <" +
-                    iri.stringValue() +
-                    "> }";
+
+            TriplePattern tripleChildContains = GraphPatterns.tp(
+                    iri,
+                    RegionNames.Properties.CONTAINS_EMPTY.rdfIri(),
+                    RegionNames.Individuals.NO_REGION.rdfIri());
+            InsertDataQuery insertQuery = Queries.INSERT_DATA(tripleChildContains);
+            String queryString = insertQuery.getQueryString();
 
             connection.begin();
-            connection.prepareUpdate(query).execute();
+            connection.prepareUpdate(queryString).execute();
             connection.commit();
-            return query;
+            return queryString;
         });
+        ontology.triggerInference();
         return id;
     }
 

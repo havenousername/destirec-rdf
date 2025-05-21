@@ -25,6 +25,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
@@ -179,11 +181,11 @@ public abstract class GenericDao<FieldEnum extends Enum<FieldEnum> & ConfigField
         return dtoCreator.create(id, map);
     }
 
+    ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor();
+
     @Override
     public IRI saveAndReturnId(DTO input) {
-        IRI id = super.saveAndReturnId(input);
-        ontology.triggerInference();
-        return id;
+        return super.saveAndReturnId(input);
     }
 
     @Override

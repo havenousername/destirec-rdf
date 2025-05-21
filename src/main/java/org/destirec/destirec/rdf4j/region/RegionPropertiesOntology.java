@@ -8,7 +8,7 @@ class RegionPropertiesOntology {
     private final OWLOntologyManager manager;
     private final OWLOntology ontology;
 
-    private final OWLClass regionLike;
+    private final OWLClass region;
     private final OWLObjectProperty sfWithin;
     private final OWLObjectProperty sfContains;
     private final OWLObjectProperty sfDirectlyWithin;
@@ -23,14 +23,14 @@ class RegionPropertiesOntology {
         this.sfContains = factory.getOWLObjectProperty(RegionNames.Properties.SF_CONTAINS);
         this.sfDirectlyWithin = factory.getOWLObjectProperty(RegionNames.Properties.SF_D_WITHIN);
         this.sfDirectlyContains = factory.getOWLObjectProperty(RegionNames.Properties.SF_D_CONTAINS);
-        this.regionLike = factory.getOWLClass(RegionNames.Classes.REGION_LIKE.owlIri());
+        this.region = factory.getOWLClass(RegionNames.Classes.REGION.owlIri());
     }
 
 
     // sfWithin ⊑ Region×Region
     public void defineSfWithinMapping() {
-        manager.addAxiom(ontology, factory.getOWLObjectPropertyDomainAxiom(sfWithin, regionLike));
-        manager.addAxiom(ontology, factory.getOWLObjectPropertyRangeAxiom(sfWithin, regionLike));
+        manager.addAxiom(ontology, factory.getOWLObjectPropertyDomainAxiom(sfWithin, region));
+        manager.addAxiom(ontology, factory.getOWLObjectPropertyRangeAxiom(sfWithin, region));
     }
 
     // sfWithin^−1≡sfContains
@@ -42,8 +42,8 @@ class RegionPropertiesOntology {
     // sfDirectlyWithin
     public void defineSfDirectlyWithin() {
         manager.addAxiom(ontology, factory.getOWLSubObjectPropertyOfAxiom(sfDirectlyWithin, sfWithin));
-        manager.addAxiom(ontology, factory.getOWLObjectPropertyDomainAxiom(sfDirectlyWithin, regionLike));
-        manager.addAxiom(ontology, factory.getOWLObjectPropertyRangeAxiom(sfDirectlyWithin, regionLike));
+        manager.addAxiom(ontology, factory.getOWLObjectPropertyDomainAxiom(sfDirectlyWithin, region));
+        manager.addAxiom(ontology, factory.getOWLObjectPropertyRangeAxiom(sfDirectlyWithin, region));
         // ≤1sfDirectlyWithin
         manager.addAxiom(ontology, factory.getOWLFunctionalObjectPropertyAxiom(sfDirectlyWithin));
 

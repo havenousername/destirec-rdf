@@ -26,6 +26,8 @@ public final class RegionNames {
         public final static String SF_WITHIN = GEO.NAMESPACE + "sfTransitiveWithin";
         public final static String SF_D_WITHIN = GEO.sfWithin.stringValue();
 
+        public final static DESTIREC.NamespaceWrapper CONTAINS_EMPTY = DESTIREC.wrap("containsEmpty");
+
         public final static String SF_CONTAINS = GEO.NAMESPACE + "sfTransitiveContains";
         public final static String SF_D_CONTAINS = GEO.sfContains.stringValue();
 

@@ -24,9 +24,18 @@ public final class TopOntologyNames {
 
     }
 
+    public final static class Graph {
+        public final static DESTIREC.NamespaceWrapper INFERRED = DESTIREC.wrap("Inferred", DESTIREC.UriType.GRAPH);
+    }
+
     public final static class Properties {
         public final static DESTIREC.NamespaceWrapper HAS_CONCEPT = DESTIREC.wrap("hasConcept");
 
+        public final static DESTIREC.NamespaceWrapper CONSTANT_IND = DESTIREC.wrap("isConstantIndividual");
+
         public final static DESTIREC.NamespaceWrapper LAST_MODIFIED = DESTIREC.wrap("lastModified");
+
+        public final static DESTIREC.NamespaceWrapper INFERRED = DESTIREC.wrap("inferred");
+
     }
 }

@@ -2,7 +2,6 @@ package org.destirec.destirec.rdf4j.region;
 
 import org.destirec.destirec.utils.rdfDictionary.RegionNames;
 import org.destirec.destirec.utils.rdfDictionary.TopOntologyNames;
-import org.eclipse.rdf4j.model.vocabulary.OWL;
 import org.semanticweb.owlapi.model.*;
 
 class RegionClassOntology {
@@ -64,24 +63,21 @@ class RegionClassOntology {
                 ontology,
                 factory.getOWLSubClassOfAxiom(region, regionLike)
         );
+
+        manager.addAxiom(ontology,
+                factory.getOWLDisjointClassesAxiom(leafRegion, parentRegion));
+//
+//        manager.addAxiom(
+//                ontology,
+//                factory.getOWLDisjointUnionAxiom(regionLike, List.of(noRegion, region))
+//        );
     }
 
 
     public void defineEmptyRegion() {
-        manager.addAxiom(
-                ontology, factory.getOWLSubClassOfAxiom(noRegion, regionLike)
-        );
-
         OWLIndividual noRegionInstance = factory.getOWLNamedIndividual(RegionNames.Individuals.NO_REGION.owlIri());
         manager.addAxiom(
                 ontology, factory.getOWLClassAssertionAxiom(noRegion, noRegionInstance)
-        );
-
-        OWLClassExpression expression = factory.getOWLObjectAllValuesFrom(sfDirectlyContains,
-                factory.getOWLClass(OWL.NOTHING.stringValue()));
-
-        manager.addAxiom(
-                ontology, factory.getOWLEquivalentClassesAxiom(noRegion, expression)
         );
     }
 
@@ -128,25 +124,21 @@ class RegionClassOntology {
         manager.addAxiom(ontology, factory.getOWLSubClassOfAxiom(leafRegion, region));
 //            OWLObjectPropertyExpression sfContains = destiRecOntology.getFactory().getOWLObjectInverseOf(sfWithin);
         //  \exists sfWithin^{-1}.NoRegion
-        OWLClassExpression subregionsAreNothing = factory.getOWLObjectAllValuesFrom(sfDirectlyContains, noRegion);
-        OWLClassExpression subregionsAreOne = factory.getOWLObjectExactCardinality(1, sfDirectlyContains, noRegion);
+        var directlyContains = factory.getOWLObjectProperty(RegionNames.Properties.CONTAINS_EMPTY.owlIri());
+        OWLClassExpression subregionsAreOne = factory.getOWLObjectSomeValuesFrom(directlyContains, noRegion);
 
-//        // (>1 \ sfWithin.Region)
+//        // (=1 \ sfWithin.Region)
         OWLClassExpression insideOneRegionDirectly = factory
-                .getOWLObjectExactCardinality(1, sfDirectlyWithin, region);
-
-        OWLClassExpression onlyInsideRegion = factory.getOWLObjectAllValuesFrom(sfDirectlyWithin, region);
+                .getOWLObjectSomeValuesFrom(sfDirectlyWithin, region);
 
         // Define LeafRegion
         manager
                 .addAxiom(
                         ontology,
                         factory.getOWLEquivalentClassesAxiom(leafRegion,
-//                                subregionsAreNothing
                                 factory.getOWLObjectIntersectionOf(
-                                        subregionsAreNothing,
+//                                        subregionsAreNothing,
                                         subregionsAreOne,
-                                        insideOneRegionDirectly,
                                         insideOneRegionDirectly
 //                                        onlyInsideRegion
                                 ))
@@ -178,14 +170,15 @@ class RegionClassOntology {
     // InternalRegion ≡ ∀ sfWithin⁻¹.Region ⊓ ∃ sfWithin⁻¹.Region ⊓ ∃ sfWithin.Region
     // RootRegion ⊓ InternalRegion ⊑ ⊥
     public void defineParentRegion() {
+        manager.addAxiom(ontology, factory.getOWLSubClassOfAxiom(parentRegion, region));
         // ∃ sfDirectlyContains⁻¹.Region
-        OWLClassExpression someDirectlyContains = factory.getOWLObjectMinCardinality(1, sfDirectlyContains, region);
-
-        OWLClassExpression oneDWithin = factory.getOWLObjectExactCardinality(1, sfDirectlyWithin, region);
+        OWLClassExpression someDirectlyContains = factory.getOWLObjectSomeValuesFrom(sfDirectlyContains, region);
+        OWLClassExpression allContains = factory.getOWLObjectAllValuesFrom(sfDirectlyContains, region);
+//        OWLClassExpression oneDWithin = factory.getOWLObjectSomeValuesFrom(sfDirectlyWithin, region);
 
         // ParentRegion ≡ (RootRegion ⊔ InternalRegion) ⊓ Region ⊓ AttributesCollection
         OWLClassExpression parentRegionDefinition = factory
-                .getOWLObjectIntersectionOf(someDirectlyContains, oneDWithin);
+                .getOWLObjectIntersectionOf(someDirectlyContains, allContains);
 
         // Axiom: ParentRegion ≡ ...
         manager.addAxiom(

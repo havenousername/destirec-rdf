@@ -72,7 +72,6 @@ public class RDFController {
 //                    destiRecOntology.triggerInference();
                 } else {
                     // other types like CONSTRUCT etc.
-
                     GraphQuery graphQuery = connection.prepareGraphQuery(QueryLanguage.SPARQL, command);
                     try (GraphQueryResult result= graphQuery.evaluate()) {
                         List<Map<String, String>> results = new ArrayList<>();
