@@ -11,6 +11,7 @@ import org.eclipse.rdf4j.model.vocabulary.OWL;
 import org.eclipse.rdf4j.model.vocabulary.RDF;
 import org.eclipse.rdf4j.model.vocabulary.RDFS;
 import org.eclipse.rdf4j.spring.support.RDF4JTemplate;
+import org.jetbrains.annotations.NotNull;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -55,14 +56,15 @@ public class RegionMigration extends IriMigration implements OntologyDefiner {
         );
         ontology.defineRegion();
         ontology.defineEmptyRegion();
-//        ontology.defineInsideRegion();
-//        ontology.defineContainsRegion();
-//        ontology.defineRoot();
         ontology.defineLeafRegion();
         ontology.defineParentRegion();
-//        ontology.defineLeafRegion();
-//        ontology.defineRegionParentOrLeaf();
 
+        RegionPropertiesOntology propertiesOntology = getRegionPropertiesOntology();
+        propertiesOntology.defineDisjointAsymmetry();
+    }
+
+    @NotNull
+    private RegionPropertiesOntology getRegionPropertiesOntology() {
         RegionPropertiesOntology propertiesOntology = new RegionPropertiesOntology(
                 destiRecOntology.getFactory(),
                 destiRecOntology.getManager(),
@@ -73,7 +75,7 @@ public class RegionMigration extends IriMigration implements OntologyDefiner {
         propertiesOntology.defineSfWithinOpposite();
         propertiesOntology.defineSfWithinTransitive();
         propertiesOntology.defineSfDirectlyWithin();
-        propertiesOntology.defineDisjointAsymmetry();
+        return propertiesOntology;
     }
 
     @Override

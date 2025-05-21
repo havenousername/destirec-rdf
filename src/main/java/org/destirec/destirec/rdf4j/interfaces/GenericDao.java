@@ -152,6 +152,7 @@ public abstract class GenericDao<FieldEnum extends Enum<FieldEnum> & ConfigField
                         .map(Map.Entry::getValue)
                         .toArray(Projectable[]::new)
                 )
+                .distinct()
                 .where(graphPatterns.toArray(GraphPattern[]::new))
                 .groupBy(shouldGroupBy ? groupByVariables.toArray(Groupable[]::new) : new Groupable[0])
                 .getQueryString();
