@@ -29,6 +29,8 @@ public final class RegionNames {
         public final static DESTIREC.NamespaceWrapper CONTAINS_EMPTY = DESTIREC.wrap("containsEmpty");
 
         public final static String SF_CONTAINS = GEO.NAMESPACE + "sfTransitiveContains";
+
+        public final static DESTIREC.NamespaceWrapper HAS_CHILDREN = DESTIREC.wrap("hasChildren");
         public final static String SF_D_CONTAINS = GEO.sfContains.stringValue();
 
 

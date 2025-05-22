@@ -59,7 +59,7 @@ class RegionClassOntology {
 
     public void defineRegion() {
         // Region \sqsubseteq Object, region is subclass of object
-        ontology.addAxiom(factory.getOWLEquivalentClassesAxiom(region, factory.getOWLObjectIntersectionOf(attributeSelection, object)));
+//        ontology.addAxiom(factory.getOWLEquivalentClassesAxiom(region, factory.getOWLObjectIntersectionOf(attributeSelection, object)));
         ontology.addAxiom(
                 factory.getOWLSubClassOfAxiom(regionLike, object)
         );
@@ -132,7 +132,8 @@ class RegionClassOntology {
                                 factory.getOWLObjectIntersectionOf(
 //                                        subregionsAreNothing,
                                         subregionsAreOne,
-                                        insideOneRegionDirectly
+                                        insideOneRegionDirectly,
+                                        attributeSelection
 //                                        onlyInsideRegion
                                 ))
                         );

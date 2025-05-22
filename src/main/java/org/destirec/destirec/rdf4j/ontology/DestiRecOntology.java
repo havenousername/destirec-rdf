@@ -2,11 +2,12 @@ package org.destirec.destirec.rdf4j.ontology;
 
 import lombok.Getter;
 import org.destirec.destirec.rdf4j.vocabulary.DESTIREC;
+import org.destirec.destirec.utils.rdfDictionary.AttributeNames;
 import org.destirec.destirec.utils.rdfDictionary.TopOntologyNames;
-import org.eclipse.rdf4j.model.Literal;
-import org.eclipse.rdf4j.model.Model;
-import org.eclipse.rdf4j.model.Resource;
-import org.eclipse.rdf4j.model.Statement;
+import org.eclipse.rdf4j.model.*;
+import org.eclipse.rdf4j.model.impl.SimpleValueFactory;
+import org.eclipse.rdf4j.model.vocabulary.OWL;
+import org.eclipse.rdf4j.model.vocabulary.RDFS;
 import org.eclipse.rdf4j.query.GraphQueryResult;
 import org.eclipse.rdf4j.query.QueryLanguage;
 import org.eclipse.rdf4j.repository.RepositoryConnection;
@@ -19,6 +20,7 @@ import org.semanticweb.HermiT.Configuration;
 import org.semanticweb.HermiT.ReasonerFactory;
 import org.semanticweb.owlapi.apibinding.OWLManager;
 import org.semanticweb.owlapi.formats.TurtleDocumentFormat;
+import org.semanticweb.owlapi.model.IRI;
 import org.semanticweb.owlapi.model.*;
 import org.semanticweb.owlapi.model.parameters.ChangeApplied;
 import org.semanticweb.owlapi.model.parameters.Imports;
@@ -57,6 +59,8 @@ public class DestiRecOntology implements AppOntology {
 
     private final Logger logger = LoggerFactory.getLogger(getClass());
 
+    private final Map<String, Set<OWLAxiom>> ontologyFeature;
+
 
     public void loadIntoOntology(String iri) throws OWLOntologyCreationException {
         manager.loadOntologyFromOntologyDocument(IRI.create(iri));
@@ -64,8 +68,6 @@ public class DestiRecOntology implements AppOntology {
                 ontology, factory.getOWLImportsDeclaration(IRI.create(iri))
         ));
     }
-
-    private final Map<OntologyFeature, Set<OWLAxiom>> ontologyFeature;
 
 
     public DestiRecOntology(RDF4JTemplate rdf4JMethods) {
@@ -169,12 +171,12 @@ public class DestiRecOntology implements AppOntology {
 
     @Override
     public void migrate() {
-        migrate(OntologyFeature.GENERAL);
+        migrate(OntologyFeature.GENERAL.toString());
     }
 
-    public void migrate(OntologyFeature feature) {
+    public void migrate(String feature) {
         try (ByteArrayOutputStream output = new ByteArrayOutputStream()) {
-            if (feature != OntologyFeature.GENERAL && ontologyFeature.containsKey(feature)) {
+            if (feature.equals(OntologyFeature.GENERAL.toString()) && ontologyFeature.containsKey(feature)) {
                 OWLOntology newOntology = manager.createOntology();
                 for (OWLAxiom axiom : ontologyFeature.get(feature)) {
                     manager.addAxiom(newOntology, axiom);
@@ -385,6 +387,11 @@ public class DestiRecOntology implements AppOntology {
 
     @Override
     public ChangeApplied addAxiom(OWLAxiom axiom, OntologyFeature featureName) {
+        return addAxiom(axiom, featureName.toString());
+    }
+
+    @Override
+    public ChangeApplied addAxiom(OWLAxiom axiom, String featureName) {
         if (ontologyFeature.containsKey(featureName)) {
             ontologyFeature.get(featureName).add(axiom);
         } else {
@@ -400,7 +407,56 @@ public class DestiRecOntology implements AppOntology {
     }
 
     @Override
+    public ChangeApplied removeAxiom(OWLAxiom axiom) {
+        return null;
+    }
+
+    @Override
+    public ChangeApplied removeAxiom(OWLAxiom axiom, OntologyFeature featureName) {
+        return removeAxiom(axiom, featureName.toString());
+    }
+
+    @Override
+    public ChangeApplied removeAxiom(OWLAxiom axiom, String featureName) {
+        if (ontologyFeature.containsKey(featureName) && ontologyFeature.get(featureName) != null) {
+            ontologyFeature.get(featureName).remove(axiom);
+        } else {
+            ontologyFeature.remove(featureName);
+        }
+        return manager.removeAxioms(ontology,  List.of(axiom));
+    }
+
+    public ChangeApplied removeDatabaseAxioms(String featureName, Resource subject) {
+        ValueFactory vf = SimpleValueFactory.getInstance();
+
+        if (!ontologyFeature.containsKey(featureName) || ontologyFeature.get(featureName) == null) {
+            return ChangeApplied.NO_OPERATION;
+        } else {
+            var features = ontologyFeature.get(featureName);
+            rdf4JMethods.consumeConnection(connection -> {
+                for (OWLAxiom ax : features) {
+                    if (ax instanceof OWLObjectPropertyAssertionAxiom) {
+                        var pred = vf.createIRI(((OWLObjectPropertyAssertionAxiom) ax).getProperty().asOWLObjectProperty().getIRI().toString());
+                        var obj = vf.createIRI(((OWLObjectPropertyAssertionAxiom) ax).getObject().asOWLNamedIndividual().getIRI().toString());
+
+                        connection.remove(subject, pred, obj);
+
+                        connection.remove(pred, RDFS.SUBPROPERTYOF, AttributeNames.Properties.HAS_QUALITY.rdfIri());
+                        connection.remove((Resource) null, OWL.PROPERTYCHAINAXIOM, pred);
+                    }
+                }
+            });
+            return ontology.removeAxioms(features);
+        }
+    }
+
+    @Override
     public void resetOntologyFeature(OntologyFeature feature) {
+        ontologyFeature.remove(feature.toString());
+    }
+
+    @Override
+    public void resetOntologyFeature(String feature) {
         ontologyFeature.remove(feature);
     }
 }

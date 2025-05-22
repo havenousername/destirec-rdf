@@ -5,7 +5,6 @@ import org.destirec.destirec.rdf4j.interfaces.Dto;
 import org.destirec.destirec.rdf4j.interfaces.GenericDao;
 import org.destirec.destirec.rdf4j.months.MonthDto;
 import org.destirec.destirec.rdf4j.ontology.DestiRecOntology;
-import org.destirec.destirec.rdf4j.ontology.OntologyFeature;
 import org.destirec.destirec.rdf4j.region.apiDto.ExternalRegionDto;
 import org.destirec.destirec.rdf4j.region.cost.CostDao;
 import org.destirec.destirec.rdf4j.region.cost.CostDto;
@@ -213,9 +212,9 @@ public class RegionService {
         logger.info("Create region with DTO " + regionDtoForCreate);
         IRI regionId = regionDao.saveAndReturnId(regionDtoForCreate);
 
-        qualityOntology.defineRegionsQualities(regionDao.listLeaf(), OntologyFeature.REGION_QUALITY);
-        destiRecOntology.migrate(OntologyFeature.REGION_QUALITY);
-        destiRecOntology.resetOntologyFeature(OntologyFeature.REGION_QUALITY);
+        String regionStringID = regionId.stringValue();
+        qualityOntology.defineRegionsQualities(regionDao.list(), regionStringID);
+        destiRecOntology.migrate(regionStringID);
         destiRecOntology.triggerInference();
         logger.info("Region with DTO " + regionId + " was created");
         return regionId;

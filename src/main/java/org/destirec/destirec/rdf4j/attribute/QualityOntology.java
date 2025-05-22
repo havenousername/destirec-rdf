@@ -10,6 +10,7 @@ import org.destirec.destirec.utils.rdfDictionary.AttributeNames;
 import org.destirec.destirec.utils.rdfDictionary.QualityNames;
 import org.destirec.destirec.utils.rdfDictionary.RegionNames;
 import org.destirec.destirec.utils.rdfDictionary.TopOntologyNames;
+import org.eclipse.rdf4j.model.impl.SimpleValueFactory;
 import org.semanticweb.owlapi.model.*;
 import org.semanticweb.owlapi.vocab.OWL2Datatype;
 
@@ -27,6 +28,8 @@ public class QualityOntology {
     private final OWLObjectProperty hasQuality;
     private final RegionDao regionDao;
 
+    private final SimpleValueFactory valueFactory;
+
 
     public QualityOntology(AppOntology ontology, OWLDataFactory factory, RegionDao regionDao) {
         this.factory = factory;
@@ -38,6 +41,7 @@ public class QualityOntology {
 
         this.hasQuality = factory.getOWLObjectProperty(AttributeNames.Properties.HAS_QUALITY.owlIri());
         this.regionDao = regionDao;
+        valueFactory = SimpleValueFactory.getInstance();
     }
 
     public void defineQuality() {
@@ -74,41 +78,44 @@ public class QualityOntology {
     }
 
     public void defineRegionsQualities(List<RegionDto> regions) {
-        defineRegionsQualities(regions, OntologyFeature.GENERAL);
+        defineRegionsQualities(regions, OntologyFeature.GENERAL.toString());
     }
 
-    public void defineRegionsQualities(List<RegionDto> regions, OntologyFeature ontologyFeature) {
+    public void defineRegionsQualities(List<RegionDto> regions, String ontologyFeature) {
         OWLObjectProperty sfDirectlyWithin = factory.getOWLObjectProperty(RegionNames.Properties.SF_D_WITHIN);
         for (var region : regions) {
-            // do not add hasFQuality to the parents (planned to be using inference)
-            if (region.getParentRegion() != null) {
-                break;
-            }
+            boolean isParent = regionDao.getRdf4JTemplate().applyToConnection(connection ->
+                connection.hasStatement(region.getId(), valueFactory.createIRI(RegionNames.Properties.SF_D_CONTAINS), null, true)
+            );
             OWLNamedIndividual regionInd = factory.getOWLNamedIndividual(region.id.stringValue());
-            for (var feature : region.getFeatures()) {
-                int score = feature.getHasScore();
-                for (QualityNames.Individuals.Quality qualityEnum : QualityNames.Individuals.Quality.values()) {
-                    OWLNamedIndividual qualityInd = factory.getOWLNamedIndividual(qualityEnum.iri().owlIri());
+            if (isParent) {
+                ontology.removeDatabaseAxioms(region.id().stringValue(), region.id());
+            } else {
+                for (var feature : region.getFeatures()) {
+                    int score = feature.getHasScore();
+                    for (QualityNames.Individuals.Quality qualityEnum : QualityNames.Individuals.Quality.values()) {
+                        OWLNamedIndividual qualityInd = factory.getOWLNamedIndividual(qualityEnum.iri().owlIri());
 
-                    int lower = qualityEnum.getLower();
-                    int upper = qualityEnum.getUpper();
+                        int lower = qualityEnum.getLower();
+                        int upper = qualityEnum.getUpper();
 
-                    if (score > lower && score <= upper) {
-                        String featureQuality = "has"
-                                + StringUtils.capitalize(feature.getRegionFeature().name())
-                                + "Quality";
+                        if (score > lower && score <= upper) {
+                            String featureQuality = "has"
+                                    + StringUtils.capitalize(feature.getRegionFeature().name())
+                                    + "Quality";
 
-                        OWLObjectProperty hasFQuality = factory.getOWLObjectProperty(DESTIREC.wrap(featureQuality).owlIri());
+                            OWLObjectProperty hasFQuality = factory.getOWLObjectProperty(DESTIREC.wrap(featureQuality).owlIri());
+                            // sfDirectlyWithin \ \circ  has{F}Quality  \sqsubseteq has{F}Quality - for the inference
+                            // on the parent level
+                            OWLSubPropertyChainOfAxiom propertyChainAxiom = factory
+                                    .getOWLSubPropertyChainOfAxiom(List.of(sfDirectlyWithin, hasFQuality), hasFQuality);
 
-                        ontology.addAxiom(factory.getOWLObjectPropertyAssertionAxiom(hasFQuality, regionInd, qualityInd), ontologyFeature);
+                            ontology.addAxiom(factory.getOWLObjectPropertyAssertionAxiom(hasFQuality, regionInd, qualityInd), ontologyFeature);
 
-                        // hasFQuality \sqsubseteq hasQuality
-                        ontology.addAxiom(factory.getOWLSubObjectPropertyOfAxiom(hasFQuality, hasQuality), ontologyFeature);
-                        // sfDirectlyWithin \ \circ  has{F}Quality  \sqsubseteq has{F}Quality - for the inference
-                        // on the parent level
-                        OWLSubPropertyChainOfAxiom propertyChainAxiom = factory
-                                .getOWLSubPropertyChainOfAxiom(List.of(sfDirectlyWithin, hasFQuality), hasFQuality);
-                        ontology.addAxiom(propertyChainAxiom, ontologyFeature);
+                            // hasFQuality \sqsubseteq hasQuality
+                            ontology.addAxiom(factory.getOWLSubObjectPropertyOfAxiom(hasFQuality, hasQuality), ontologyFeature);
+                            ontology.addAxiom(propertyChainAxiom, ontologyFeature);
+                        }
                     }
                 }
             }

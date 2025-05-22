@@ -6,9 +6,12 @@ import org.destirec.destirec.rdf4j.months.MonthDao;
 import org.destirec.destirec.rdf4j.ontology.DestiRecOntology;
 import org.destirec.destirec.rdf4j.region.cost.CostDao;
 import org.destirec.destirec.rdf4j.region.feature.FeatureDao;
+import org.destirec.destirec.utils.rdfDictionary.AttributeNames;
 import org.destirec.destirec.utils.rdfDictionary.RegionNames;
 import org.destirec.destirec.utils.rdfDictionary.TopOntologyNames;
 import org.eclipse.rdf4j.model.IRI;
+import org.eclipse.rdf4j.model.vocabulary.RDF;
+import org.eclipse.rdf4j.model.vocabulary.RDFS;
 import org.eclipse.rdf4j.sparqlbuilder.core.SparqlBuilder;
 import org.eclipse.rdf4j.sparqlbuilder.core.Variable;
 import org.eclipse.rdf4j.sparqlbuilder.core.query.InsertDataQuery;
@@ -77,9 +80,27 @@ public class RegionDao extends GenericDao<RegionConfig.Fields, RegionDto> {
                 String queryString = deleteQuery.getQueryString();
                 String queryString1 = deleteQueryDefault.getQueryString();
 
+                Variable hasFeatureQuality = SparqlBuilder.var("hasFeatureQuality");
+                Variable quality = SparqlBuilder.var("quality");
+                // remove also all the quality classifications for region
+                GraphPatternNotTriples whereQuality = GraphPatterns.and(
+                        GraphPatterns.tp(dto.getParentRegion(), RDF.TYPE, RegionNames.Classes.REGION.rdfIri()),
+                        GraphPatterns.tp(dto.getParentRegion(), hasFeatureQuality, quality),
+                        GraphPatterns.tp(hasFeatureQuality, RDFS.SUBPROPERTYOF, AttributeNames.Properties.HAS_QUALITY.rdfIri())
+                );
+
+                TriplePattern deleteQualityPattern = GraphPatterns.
+                        tp(dto.getParentRegion(), hasFeatureQuality, quality);
+
+                ModifyQuery deleteQuality = Queries.DELETE()
+                        .delete(deleteQualityPattern)
+                        .where(whereQuality);
+
                 connection.begin();
                 connection.prepareUpdate(queryString1).execute();
                 connection.prepareUpdate(queryString).execute();
+                String deleteQueryQuality = deleteQuality.getQueryString();
+                connection.prepareUpdate(deleteQueryQuality);
                 connection.commit();
             }
 

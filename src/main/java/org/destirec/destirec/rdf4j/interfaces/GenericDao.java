@@ -199,4 +199,9 @@ public abstract class GenericDao<FieldEnum extends Enum<FieldEnum> & ConfigField
         super.delete(iri);
         ontology.triggerInference();
     }
+
+    @Override
+    public RDF4JTemplate getRdf4JTemplate() {
+        return super.getRdf4JTemplate();
+    }
 }

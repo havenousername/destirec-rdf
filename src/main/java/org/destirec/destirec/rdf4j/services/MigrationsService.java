@@ -70,12 +70,12 @@ public class MigrationsService {
     ) {
         this.template = template;
         migrations.add(topOntologyMigration);
-//        migrations.add(userMigration);
-//        migrations.add(versionMigration);
-//        migrations.add(preferenceMigration);
-//        migrations.add(monthMigration);
-//        migrations.add(costMigration);
-//        migrations.add(featureMigration);
+        migrations.add(userMigration);
+        migrations.add(versionMigration);
+        migrations.add(preferenceMigration);
+        migrations.add(monthMigration);
+        migrations.add(costMigration);
+        migrations.add(featureMigration);
         migrations.add(attributeMigration);
         migrations.add(attributesCollectionMigration);
         migrations.add(qualityMigration);
@@ -86,13 +86,13 @@ public class MigrationsService {
             migration.setNamespaces(List.of(RDFS.NS, OWL.NS, RDF.NS, XSD.NS));
         });
 
-//        ontologies.add(userMigration);
-//        ontologies.add(monthMigration);
-//        ontologies.add(preferenceMigration);
-//        ontologies.add(costMigration);
-//        ontologies.add(featureMigration);
+        ontologies.add(userMigration);
+        ontologies.add(monthMigration);
+        ontologies.add(preferenceMigration);
+        ontologies.add(costMigration);
+        ontologies.add(featureMigration);
         ontologies.add(attributeMigration);
-//        ontologies.add(attributesCollectionMigration);
+        ontologies.add(attributesCollectionMigration);
         ontologies.add(qualityMigration);
         ontologies.add(regionMigration);
     }
