@@ -102,7 +102,7 @@ public class QualityOntology {
                         int lower = qualityEnum.getLower();
                         int upper = qualityEnum.getUpper();
 
-                        if (score > lower && score <= upper) {
+                        if (score > lower && score < upper) {
                             String featureQuality = "has"
                                     + StringUtils.capitalize(feature.getRegionFeature().name())
                                     + "Quality";
