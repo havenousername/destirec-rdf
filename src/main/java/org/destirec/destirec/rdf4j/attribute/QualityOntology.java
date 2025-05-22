@@ -82,17 +82,20 @@ public class QualityOntology {
     }
 
     public void defineRegionsQualities(List<RegionDto> regions, String ontologyFeature) {
-        OWLObjectProperty sfDirectlyWithin = factory.getOWLObjectProperty(RegionNames.Properties.SF_D_WITHIN);
+        OWLObjectProperty sfDirectlyContains = factory.getOWLObjectProperty(RegionNames.Properties.SF_D_CONTAINS);
+        OWLAnnotationProperty forFeature = factory.getOWLAnnotationProperty(RegionNames.Properties.FOR_FEATURE.owlIri());
         for (var region : regions) {
             boolean isParent = regionDao.getRdf4JTemplate().applyToConnection(connection ->
                 connection.hasStatement(region.getId(), valueFactory.createIRI(RegionNames.Properties.SF_D_CONTAINS), null, true)
             );
             OWLNamedIndividual regionInd = factory.getOWLNamedIndividual(region.id.stringValue());
-            if (isParent) {
-                ontology.removeDatabaseAxioms(region.id().stringValue(), region.id());
-            } else {
-                for (var feature : region.getFeatures()) {
+
+
+            if (!isParent) {
+                var features = region.getFeatures();
+                for (var feature : features) {
                     int score = feature.getHasScore();
+                    OWLAnnotationValue featureInd = factory.getOWLAnonymousIndividual(feature.getId().stringValue());
                     for (QualityNames.Individuals.Quality qualityEnum : QualityNames.Individuals.Quality.values()) {
                         OWLNamedIndividual qualityInd = factory.getOWLNamedIndividual(qualityEnum.iri().owlIri());
 
@@ -108,16 +111,22 @@ public class QualityOntology {
                             // sfDirectlyWithin \ \circ  has{F}Quality  \sqsubseteq has{F}Quality - for the inference
                             // on the parent level
                             OWLSubPropertyChainOfAxiom propertyChainAxiom = factory
-                                    .getOWLSubPropertyChainOfAxiom(List.of(sfDirectlyWithin, hasFQuality), hasFQuality);
+                                    .getOWLSubPropertyChainOfAxiom(List.of(sfDirectlyContains, hasFQuality), hasFQuality);
 
                             ontology.addAxiom(factory.getOWLObjectPropertyAssertionAxiom(hasFQuality, regionInd, qualityInd), ontologyFeature);
 
                             // hasFQuality \sqsubseteq hasQuality
                             ontology.addAxiom(factory.getOWLSubObjectPropertyOfAxiom(hasFQuality, hasQuality), ontologyFeature);
                             ontology.addAxiom(propertyChainAxiom, ontologyFeature);
+
+                            OWLAnnotationSubject subject = factory.getOWLAnonymousIndividual(DESTIREC.wrap(featureQuality).pseudoUri());
+                            // hasFQuality :forFeature :Feature
+                            ontology.addAxiom(factory.getOWLAnnotationAssertionAxiom(forFeature, subject, featureInd));
                         }
                     }
                 }
+            } else {
+                ontology.removeDatabaseAxioms(region.id().stringValue(), region.id());
             }
         }
     }

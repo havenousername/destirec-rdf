@@ -36,6 +36,8 @@ public final class RegionNames {
 
         public final static DESTIREC.NamespaceWrapper NAME = DESTIREC.wrap("name");
 
+        public final static DESTIREC.NamespaceWrapper FOR_FEATURE = DESTIREC.wrap("forFeature");
+
         public final static DESTIREC.NamespaceWrapper PARENT_REGION = DESTIREC.wrap("parentRegion");
 
         public final static DESTIREC.NamespaceWrapper HAS_COST = DESTIREC.wrap("hasCost");
