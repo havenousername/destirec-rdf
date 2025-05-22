@@ -32,7 +32,6 @@ import java.util.List;
 public class RegionDao extends GenericDao<RegionConfig.Fields, RegionDto> {
     private final CostDao costDao;
     private final FeatureDao featureDao;
-
     private final MonthDao monthDao;
 
     public RegionDao(

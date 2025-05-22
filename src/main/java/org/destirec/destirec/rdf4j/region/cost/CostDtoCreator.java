@@ -26,6 +26,10 @@ public class CostDtoCreator implements DtoCreator<CostDto, CostConfig.Fields> {
 
 
     public CostDto create(int costPerWeek, int budgetLevel) {
-        return new CostDto(null, 100, true, costPerWeek, budgetLevel);
+        return new CostDto(null, budgetLevel, true, costPerWeek, budgetLevel);
+    }
+
+    public CostDto create(int costPerWeek, int budgetLevel, boolean isActive) {
+        return new CostDto(null, budgetLevel, isActive, costPerWeek, budgetLevel);
     }
 }

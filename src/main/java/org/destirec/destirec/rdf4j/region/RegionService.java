@@ -10,6 +10,7 @@ import org.destirec.destirec.rdf4j.region.cost.CostDao;
 import org.destirec.destirec.rdf4j.region.cost.CostDto;
 import org.destirec.destirec.rdf4j.region.feature.FeatureDto;
 import org.eclipse.rdf4j.model.IRI;
+import org.javatuples.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -105,7 +106,7 @@ public class RegionService {
                 existingMonths,
                 (entry) -> entry.getKey().getMonth().equals(entry.getValue()),
                 regionDao.getMonthDao(),
-                (entry) -> regionDao.getMonthDao().getDtoCreator().create(entry)
+                (entry) -> regionDao.getMonthDao().getDtoCreator().create(Map.entry(entry.getKey(), new Pair<>(entry.getValue(), true)))
         );
     }
 
@@ -194,7 +195,8 @@ public class RegionService {
                 .getMonths()
                 .entrySet()
                 .stream()
-                .map(month -> regionDao.getMonthDao().getDtoCreator().create(month))
+                .map(month -> regionDao.getMonthDao().getDtoCreator()
+                        .create(Map.entry(month.getKey(), new Pair<>(month.getValue(), true))))
                 .map(dto -> regionDao.getMonthDao().save(dto))
                 .toList();
 

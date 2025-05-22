@@ -18,10 +18,11 @@ public final class QualityNames {
 
         @Getter
         public enum Quality {
-            POOR("Poor", -1, 25),
+            BAD("Bad", -1, 1),
+            POOR("Poor", 1, 25),
             FAIR("Fair", 25, 50),
             AVERAGE("Average", 50, 75),
-            GOOD("Good", 75, 100);
+            GOOD("Good", 75, 101);
             private final String name;
             private final int lower;
             private final int upper;

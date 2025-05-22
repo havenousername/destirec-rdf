@@ -1,8 +1,10 @@
 package org.destirec.destirec.rdf4j.user;
 
+import org.destirec.destirec.rdf4j.preferences.PreferenceDto;
 import org.destirec.destirec.rdf4j.user.apiDto.ExternalUserDto;
 import org.destirec.destirec.utils.ResponseData;
 import org.eclipse.rdf4j.model.IRI;
+import org.javatuples.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
@@ -21,9 +23,9 @@ public class UserController {
     @PostMapping
     public ResponseEntity<ResponseData<String>> createUser(@RequestBody ExternalUserDto dto) {
         try {
-            IRI userIRI = userService.createUser(dto);
+            Pair<IRI, IRI> user = userService.createUser(dto);
             var response = new ResponseData<String>();
-            response.setData(userIRI.stringValue());
+            response.setData(user.toString());
             return ResponseEntity.ok(response);
         }
         catch (IllegalArgumentException exception) {
@@ -33,6 +35,11 @@ public class UserController {
                     .badRequest()
                     .body(response);
         }
+    }
+
+    @GetMapping("/preference/{preferenceId}")
+    public ResponseEntity<PreferenceDto> getPreference(@PathVariable String preferenceId) {
+        return ResponseEntity.ok(userService.getPreference(preferenceId));
     }
 
     @PutMapping(value = "/{userId}")

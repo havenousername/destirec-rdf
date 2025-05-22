@@ -83,7 +83,7 @@ public class QualityOntology {
 
     public void defineRegionsQualities(List<RegionDto> regions, String ontologyFeature) {
         OWLObjectProperty sfDirectlyContains = factory.getOWLObjectProperty(RegionNames.Properties.SF_D_CONTAINS);
-        OWLAnnotationProperty forFeature = factory.getOWLAnnotationProperty(RegionNames.Properties.FOR_FEATURE.owlIri());
+        OWLObjectProperty forFeature = factory.getOWLObjectProperty(RegionNames.Properties.FOR_FEATURE.owlIri());
         for (var region : regions) {
             boolean isParent = regionDao.getRdf4JTemplate().applyToConnection(connection ->
                 connection.hasStatement(region.getId(), valueFactory.createIRI(RegionNames.Properties.SF_D_CONTAINS), null, true)
@@ -95,7 +95,7 @@ public class QualityOntology {
                 var features = region.getFeatures();
                 for (var feature : features) {
                     int score = feature.getHasScore();
-                    OWLAnnotationValue featureInd = factory.getOWLAnonymousIndividual(feature.getId().stringValue());
+                    OWLIndividual featureInd = factory.getOWLNamedIndividual(feature.getId().stringValue());
                     for (QualityNames.Individuals.Quality qualityEnum : QualityNames.Individuals.Quality.values()) {
                         OWLNamedIndividual qualityInd = factory.getOWLNamedIndividual(qualityEnum.iri().owlIri());
 
@@ -119,9 +119,9 @@ public class QualityOntology {
                             ontology.addAxiom(factory.getOWLSubObjectPropertyOfAxiom(hasFQuality, hasQuality), ontologyFeature);
                             ontology.addAxiom(propertyChainAxiom, ontologyFeature);
 
-                            OWLAnnotationSubject subject = factory.getOWLAnonymousIndividual(DESTIREC.wrap(featureQuality).pseudoUri());
+                            OWLIndividual subject = factory.getOWLNamedIndividual(DESTIREC.wrap(featureQuality).pseudoUri());
                             // hasFQuality :forFeature :Feature
-                            ontology.addAxiom(factory.getOWLAnnotationAssertionAxiom(forFeature, subject, featureInd));
+                            ontology.addAxiom(factory.getOWLObjectPropertyAssertionAxiom(forFeature, subject, featureInd));
                         }
                     }
                 }

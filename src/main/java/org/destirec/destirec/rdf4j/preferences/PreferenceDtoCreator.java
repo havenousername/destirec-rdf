@@ -29,10 +29,13 @@ public class PreferenceDtoCreator implements DtoCreator<PreferenceDto, Preferenc
 
     private final CostDao costDao;
 
-    public PreferenceDtoCreator(MonthDao monthDao, FeatureDao featureDao, CostDao costDao) {
+    private final PreferenceConfig config;
+
+    public PreferenceDtoCreator(MonthDao monthDao, FeatureDao featureDao, CostDao costDao, PreferenceConfig config) {
         this.monthDao = monthDao;
         this.featureDao = featureDao;
         this.costDao = costDao;
+        this.config = config;
     }
 
     @Override
@@ -76,6 +79,25 @@ public class PreferenceDtoCreator implements DtoCreator<PreferenceDto, Preferenc
                 cost,
                 IntStream.range(0, months.size()).mapToObj(i ->
                         new MonthDto(null, months.get(i).getHasScore(), months.get(i).isActive(), Month.of(i + 1).name(), i)).toList()
+        );
+    }
+
+    public IRI createId(String id) {
+        return valueFactory.createIRI(config.getResourceLocation() + id);
+    }
+
+    public PreferenceDto create(
+            IRI userId,
+            List<FeatureDto> features,
+            List<MonthDto> months,
+            CostDto cost
+    ) {
+        return new PreferenceDto(
+                null,
+                userId,
+                features,
+                cost,
+                months
         );
     }
 

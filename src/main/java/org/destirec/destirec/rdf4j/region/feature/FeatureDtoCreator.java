@@ -3,6 +3,7 @@ package org.destirec.destirec.rdf4j.region.feature;
 import org.destirec.destirec.rdf4j.interfaces.DtoCreator;
 import org.destirec.destirec.utils.rdfDictionary.RegionFeatureNames;
 import org.eclipse.rdf4j.model.IRI;
+import org.javatuples.Pair;
 import org.springframework.stereotype.Component;
 
 import java.util.Map;
@@ -30,6 +31,15 @@ public class FeatureDtoCreator implements DtoCreator<FeatureDto, FeatureConfig.F
                 entry.getValue(),
                 true,
                 entry.getKey()
+        );
+    }
+
+    public FeatureDto createFromTuple(RegionFeatureNames.Individuals.RegionFeature feature, Pair<Integer, Boolean> entry) {
+        return new FeatureDto(
+                null,
+                entry.getValue0(),
+                entry.getValue1(),
+                feature
         );
     }
 

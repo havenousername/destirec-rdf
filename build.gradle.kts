@@ -49,6 +49,7 @@ dependencies {
 
     runtimeOnly("com.h2database:h2:2.3.+")
     runtimeOnly("org.postgresql:postgresql")
+    implementation("org.javatuples:javatuples:1.2")
 
     annotationProcessor("org.springframework.boot:spring-boot-configuration-processor")
     annotationProcessor("org.projectlombok:lombok")
