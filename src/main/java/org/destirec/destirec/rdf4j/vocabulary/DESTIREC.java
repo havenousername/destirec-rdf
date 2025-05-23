@@ -40,6 +40,10 @@ public class DESTIREC {
             return SimpleValueFactory.getInstance().createIRI(pseudoUri);
         }
 
+        public IRI reverseRdfIri() {
+            return SimpleValueFactory.getInstance().createIRI("^" +pseudoUri);
+        }
+
         public org.semanticweb.owlapi.model.IRI owlIri(){
             return org.semanticweb.owlapi.model.IRI.create(pseudoUri);
         }
