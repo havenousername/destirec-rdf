@@ -9,4 +9,8 @@ public final class RecommendationNames {
         public static final DESTIREC.NamespaceWrapper SIMPLE_RECOMMENDATION = DESTIREC.wrap("SimpleRecommendation");
     }
 
+    public static final class Properties {
+        public static final DESTIREC.NamespaceWrapper RECOMMENDED_FOR = DESTIREC.wrap("recommendedFor");
+    }
+
 }
