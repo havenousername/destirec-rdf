@@ -18,7 +18,7 @@ public final class QualityNames {
 
         @Getter
         public enum Quality {
-            BAD("Bad", -1, 1),
+            BAD("Bad", 0, 1),
             POOR("Poor", 1, 25),
             FAIR("Fair", 25, 50),
             AVERAGE("Average", 50, 75),

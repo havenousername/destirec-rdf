@@ -1,10 +1,13 @@
 package org.destirec.destirec.rdf;
 
+import org.destirec.destirec.rdf4j.ontology.DestiRecOntology;
 import org.eclipse.rdf4j.model.Statement;
 import org.eclipse.rdf4j.query.*;
 import org.eclipse.rdf4j.rio.RDFFormat;
 import org.eclipse.rdf4j.rio.Rio;
 import org.eclipse.rdf4j.spring.support.RDF4JTemplate;
+import org.semanticweb.owlapi.formats.TurtleDocumentFormat;
+import org.semanticweb.owlapi.model.OWLOntologyStorageException;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -20,8 +23,10 @@ import java.util.Map;
 public class RDFController {
 
     private final RDF4JTemplate rdf4JTemplate;
-    public RDFController(RDF4JTemplate rdf4JTemplate) {
+    private final DestiRecOntology ontology;
+    public RDFController(RDF4JTemplate rdf4JTemplate, DestiRecOntology ontology) {
         this.rdf4JTemplate = rdf4JTemplate;
+        this.ontology = ontology;
     }
 
     @GetMapping("/turtle")
@@ -31,6 +36,18 @@ public class RDFController {
             conn.export(Rio.createWriter(RDFFormat.TURTLE, out));
             return out.toString(StandardCharsets.UTF_8);
         });
+        return ResponseEntity.ok(output);
+    }
+
+    @GetMapping("/ontology")
+    public ResponseEntity<String> getSchema() {
+        ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+        try {
+            ontology.saveManager(new TurtleDocumentFormat(), outputStream);
+        } catch (OWLOntologyStorageException e) {
+            return ResponseEntity.internalServerError().body(e.getMessage());
+        }
+        String output = outputStream.toString();
         return ResponseEntity.ok(output);
     }
 

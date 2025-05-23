@@ -1,6 +1,8 @@
 package org.destirec.destirec.rdf4j.user;
 
+import org.destirec.destirec.rdf4j.attribute.QualityOntology;
 import org.destirec.destirec.rdf4j.months.MonthDto;
+import org.destirec.destirec.rdf4j.ontology.DestiRecOntology;
 import org.destirec.destirec.rdf4j.preferences.PreferenceDto;
 import org.destirec.destirec.rdf4j.region.cost.CostDto;
 import org.destirec.destirec.rdf4j.region.feature.FeatureDto;
@@ -25,13 +27,25 @@ public class UserPreferenceService {
 
     private final UserDtoCreator creator;
 
+    private final QualityOntology qualityOntology;
+
+    private final DestiRecOntology ontology;
+
 
     public UserPreferenceService(
-            UserDao userDao
+            UserDao userDao,
+            DestiRecOntology ontology
     ) {
         this.userDao = userDao;
         creator =  (UserDtoCreator)userDao
                 .getDtoCreator();
+        this.ontology = ontology;
+
+        qualityOntology = new QualityOntology(
+                ontology,
+                ontology.getFactory(),
+                userDao.getRdf4JTemplate()
+        );
     }
 
     @Transactional
@@ -89,8 +103,12 @@ public class UserPreferenceService {
 
         PreferenceDto preferenceDto = userDao.getPreferenceDao().getDtoCreator()
                 .create(userId, features, months, costDto);
+        preferenceDto = userDao.getPreferenceDao().save(preferenceDto);
+        qualityOntology.definePreferenceQualities(preferenceDto, preferenceDto.getId().stringValue());
+        ontology.migrate(preferenceDto.getId().stringValue());
+        ontology.triggerInference();
 
-        return userDao.getPreferenceDao().saveAndReturnId(preferenceDto);
+        return preferenceDto.getId();
     }
 
     @Transactional

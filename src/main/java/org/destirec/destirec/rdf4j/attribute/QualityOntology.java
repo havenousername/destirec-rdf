@@ -3,7 +3,7 @@ package org.destirec.destirec.rdf4j.attribute;
 import org.apache.commons.lang.StringUtils;
 import org.destirec.destirec.rdf4j.ontology.AppOntology;
 import org.destirec.destirec.rdf4j.ontology.OntologyFeature;
-import org.destirec.destirec.rdf4j.region.RegionDao;
+import org.destirec.destirec.rdf4j.preferences.PreferenceDto;
 import org.destirec.destirec.rdf4j.region.RegionDto;
 import org.destirec.destirec.rdf4j.vocabulary.DESTIREC;
 import org.destirec.destirec.utils.rdfDictionary.AttributeNames;
@@ -11,6 +11,7 @@ import org.destirec.destirec.utils.rdfDictionary.QualityNames;
 import org.destirec.destirec.utils.rdfDictionary.RegionNames;
 import org.destirec.destirec.utils.rdfDictionary.TopOntologyNames;
 import org.eclipse.rdf4j.model.impl.SimpleValueFactory;
+import org.eclipse.rdf4j.spring.support.RDF4JTemplate;
 import org.semanticweb.owlapi.model.*;
 import org.semanticweb.owlapi.vocab.OWL2Datatype;
 
@@ -26,12 +27,12 @@ public class QualityOntology {
     private final OWLClass feature;
     private final OWLClass concept;
     private final OWLObjectProperty hasQuality;
-    private final RegionDao regionDao;
+    private final RDF4JTemplate template;
 
     private final SimpleValueFactory valueFactory;
 
 
-    public QualityOntology(AppOntology ontology, OWLDataFactory factory, RegionDao regionDao) {
+    public QualityOntology(AppOntology ontology, OWLDataFactory factory, RDF4JTemplate template) {
         this.factory = factory;
         this.ontology = ontology;
 
@@ -40,7 +41,7 @@ public class QualityOntology {
         this.concept = factory.getOWLClass(TopOntologyNames.Classes.CONCEPT.owlIri());
 
         this.hasQuality = factory.getOWLObjectProperty(AttributeNames.Properties.HAS_QUALITY.owlIri());
-        this.regionDao = regionDao;
+        this.template = template;
         valueFactory = SimpleValueFactory.getInstance();
     }
 
@@ -81,11 +82,44 @@ public class QualityOntology {
         defineRegionsQualities(regions, OntologyFeature.GENERAL.toString());
     }
 
+    public void definePreferenceQualities(PreferenceDto preferenceDto, String ontologyFeature) {
+        var features = preferenceDto.getFeatureDtos();
+        OWLNamedIndividual regionInd = factory.getOWLNamedIndividual(preferenceDto.id().stringValue());
+        OWLObjectProperty forFeature = factory.getOWLObjectProperty(RegionNames.Properties.FOR_FEATURE.owlIri());
+        for (var feature : features) {
+            int score = feature.getHasScore();
+            OWLIndividual featureInd = factory.getOWLNamedIndividual(feature.getId().stringValue());
+            for (QualityNames.Individuals.Quality qualityEnum : QualityNames.Individuals.Quality.values()) {
+                OWLNamedIndividual qualityInd = factory.getOWLNamedIndividual(qualityEnum.iri().owlIri());
+
+                int lower = qualityEnum.getLower();
+                int upper = qualityEnum.getUpper();
+
+                if (score >= lower && score < upper) {
+                    String featureQuality = "has"
+                            + StringUtils.capitalize(feature.getRegionFeature().name())
+                            + "Quality";
+
+                    OWLObjectProperty hasFQuality = factory.getOWLObjectProperty(DESTIREC.wrap(featureQuality).owlIri());
+
+                    ontology.addAxiom(factory.getOWLObjectPropertyAssertionAxiom(hasFQuality, regionInd, qualityInd), ontologyFeature);
+
+                    // hasFQuality \sqsubseteq hasQuality
+                    ontology.addAxiom(factory.getOWLSubObjectPropertyOfAxiom(hasFQuality, hasQuality), ontologyFeature);
+
+                    OWLIndividual subject = factory.getOWLNamedIndividual(DESTIREC.wrap(featureQuality).pseudoUri());
+                    // hasFQuality :forFeature :Feature
+                    ontology.addAxiom(factory.getOWLObjectPropertyAssertionAxiom(forFeature, subject, featureInd), ontologyFeature);
+                }
+            }
+        }
+    }
+
     public void defineRegionsQualities(List<RegionDto> regions, String ontologyFeature) {
         OWLObjectProperty sfDirectlyContains = factory.getOWLObjectProperty(RegionNames.Properties.SF_D_CONTAINS);
         OWLObjectProperty forFeature = factory.getOWLObjectProperty(RegionNames.Properties.FOR_FEATURE.owlIri());
         for (var region : regions) {
-            boolean isParent = regionDao.getRdf4JTemplate().applyToConnection(connection ->
+            boolean isParent = template.applyToConnection(connection ->
                 connection.hasStatement(region.getId(), valueFactory.createIRI(RegionNames.Properties.SF_D_CONTAINS), null, true)
             );
             OWLNamedIndividual regionInd = factory.getOWLNamedIndividual(region.id.stringValue());
@@ -102,7 +136,7 @@ public class QualityOntology {
                         int lower = qualityEnum.getLower();
                         int upper = qualityEnum.getUpper();
 
-                        if (score > lower && score < upper) {
+                        if (score >= lower && score < upper) {
                             String featureQuality = "has"
                                     + StringUtils.capitalize(feature.getRegionFeature().name())
                                     + "Quality";
@@ -121,7 +155,7 @@ public class QualityOntology {
 
                             OWLIndividual subject = factory.getOWLNamedIndividual(DESTIREC.wrap(featureQuality).pseudoUri());
                             // hasFQuality :forFeature :Feature
-                            ontology.addAxiom(factory.getOWLObjectPropertyAssertionAxiom(forFeature, subject, featureInd));
+                            ontology.addAxiom(factory.getOWLObjectPropertyAssertionAxiom(forFeature, subject, featureInd), ontologyFeature);
                         }
                     }
                 }
@@ -129,11 +163,6 @@ public class QualityOntology {
                 ontology.removeDatabaseAxioms(region.id().stringValue(), region.id());
             }
         }
-    }
-
-    public void defineRegionsQualities() {
-        List<RegionDto> regions = regionDao.list();
-        defineRegionsQualities(regions);
     }
 
     public void defineHasQuality() {

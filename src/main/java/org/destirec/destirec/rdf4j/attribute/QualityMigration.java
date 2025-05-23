@@ -6,6 +6,7 @@ import org.destirec.destirec.rdf4j.interfaces.IriMigration;
 import org.destirec.destirec.rdf4j.interfaces.OntologyDefiner;
 import org.destirec.destirec.rdf4j.ontology.DestiRecOntology;
 import org.destirec.destirec.rdf4j.region.RegionDao;
+import org.destirec.destirec.rdf4j.region.RegionDto;
 import org.destirec.destirec.utils.rdfDictionary.QualityNames;
 import org.destirec.destirec.utils.rdfDictionary.TopOntologyNames;
 import org.eclipse.rdf4j.model.vocabulary.OWL;
@@ -13,6 +14,8 @@ import org.eclipse.rdf4j.model.vocabulary.RDF;
 import org.eclipse.rdf4j.model.vocabulary.RDFS;
 import org.eclipse.rdf4j.spring.support.RDF4JTemplate;
 import org.springframework.stereotype.Component;
+
+import java.util.List;
 
 @Getter
 @Component
@@ -38,10 +41,11 @@ public class QualityMigration extends IriMigration implements OntologyDefiner {
         QualityOntology ontology = new QualityOntology(
                 destirecOntology,
                 destirecOntology.getFactory(),
-                regionDao
+                regionDao.getRdf4JTemplate()
         );
         ontology.defineQuality();
         ontology.defineHasQuality();
-        ontology.defineRegionsQualities();
+        List<RegionDto> regions = regionDao.listLeaf();
+        ontology.defineRegionsQualities(regions);
     }
 }

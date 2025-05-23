@@ -42,7 +42,7 @@ public class RegionService {
         qualityOntology = new QualityOntology(
                 destiRecOntology,
                 destiRecOntology.getFactory(),
-                regionDao
+                regionDao.getRdf4JTemplate()
         );
         this.costDao = costDao;
     }

@@ -34,6 +34,7 @@ import org.springframework.stereotype.Component;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.OutputStream;
 import java.time.Instant;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -176,7 +177,7 @@ public class DestiRecOntology implements AppOntology {
 
     public void migrate(String feature) {
         try (ByteArrayOutputStream output = new ByteArrayOutputStream()) {
-            if (feature.equals(OntologyFeature.GENERAL.toString()) && ontologyFeature.containsKey(feature)) {
+            if (!feature.equals(OntologyFeature.GENERAL.toString()) && ontologyFeature.containsKey(feature)) {
                 OWLOntology newOntology = manager.createOntology();
                 for (OWLAxiom axiom : ontologyFeature.get(feature)) {
                     manager.addAxiom(newOntology, axiom);
@@ -458,5 +459,10 @@ public class DestiRecOntology implements AppOntology {
     @Override
     public void resetOntologyFeature(String feature) {
         ontologyFeature.remove(feature);
+    }
+
+
+    public void saveManager(OWLDocumentFormat format, OutputStream stream) throws OWLOntologyStorageException  {
+        manager.saveOntology(ontology, format, stream);
     }
 }
