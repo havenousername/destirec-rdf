@@ -8,8 +8,10 @@ import org.eclipse.rdf4j.model.IRI;
 import org.eclipse.rdf4j.model.ValueFactory;
 import org.eclipse.rdf4j.model.impl.SimpleValueFactory;
 import org.eclipse.rdf4j.query.BindingSet;
+import org.eclipse.rdf4j.sparqlbuilder.constraint.Expressions;
 import org.eclipse.rdf4j.sparqlbuilder.core.Groupable;
 import org.eclipse.rdf4j.sparqlbuilder.core.Projectable;
+import org.eclipse.rdf4j.sparqlbuilder.core.SparqlBuilder;
 import org.eclipse.rdf4j.sparqlbuilder.core.Variable;
 import org.eclipse.rdf4j.sparqlbuilder.core.query.Queries;
 import org.eclipse.rdf4j.sparqlbuilder.graphpattern.GraphPattern;
@@ -20,6 +22,7 @@ import org.eclipse.rdf4j.spring.dao.support.bindingsBuilder.MutableBindings;
 import org.eclipse.rdf4j.spring.dao.support.sparql.NamedSparqlSupplier;
 import org.eclipse.rdf4j.spring.support.RDF4JTemplate;
 import org.eclipse.rdf4j.spring.util.QueryResultUtils;
+import org.javatuples.Triplet;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -40,6 +43,9 @@ public abstract class GenericDao<FieldEnum extends Enum<FieldEnum> & ConfigField
     protected ValueFactory valueFactory = SimpleValueFactory.getInstance();
     protected AtomicInteger mapEnteredTimes = new AtomicInteger(0);
     protected AppOntology ontology;
+    protected ScheduledExecutorService executor =
+            Executors.newSingleThreadScheduledExecutor();
+
 
 
     public GenericDao(
@@ -124,12 +130,13 @@ public abstract class GenericDao<FieldEnum extends Enum<FieldEnum> & ConfigField
         return getReadQuery(migration.getResource());
     }
 
-
-    protected String getReadQuery(RdfResource graph) {
+    protected Triplet<
+            List<Map.Entry<VariableType, Projectable>>,
+            GraphPattern[],
+            Groupable[]
+    > getSelectParams(RdfResource graph) {
         mapEnteredTimes.set(0);
         List<Map.Entry<VariableType, Projectable>> variables = getReadVariables();
-//        TriplePattern pattern = configFields.getId()
-//                .isA(migration.get());
         List<GraphPattern> graphPatterns = new ArrayList<>();
         graphPatterns.add(configFields.getId().isA(graph));
 
@@ -150,19 +157,27 @@ public abstract class GenericDao<FieldEnum extends Enum<FieldEnum> & ConfigField
                 .map(v -> (Groupable)v)
                 .toList();
         var shouldGroupBy = groupByVariables.size() != variables.size();
+        Groupable[] groupBy = shouldGroupBy ? groupByVariables.toArray(Groupable[]::new) : new Groupable[0];
+
+        return new Triplet<>(
+                variables,
+                graphPatterns.toArray(GraphPattern[]::new),
+                groupBy
+        );
+    }
 
 
-        String query = Queries.SELECT(variables
+    protected String getReadQuery(RdfResource graph) {
+        var queryParams = getSelectParams(graph);
+        return Queries.SELECT(queryParams.getValue0()
                         .stream()
                         .map(Map.Entry::getValue)
                         .toArray(Projectable[]::new)
                 )
                 .distinct()
-                .where(graphPatterns.toArray(GraphPattern[]::new))
-                .groupBy(shouldGroupBy ? groupByVariables.toArray(Groupable[]::new) : new Groupable[0])
+                .where(queryParams.getValue1())
+                .groupBy(queryParams.getValue2())
                 .getQueryString();
-
-        return query;
     }
 
 
@@ -189,7 +204,47 @@ public abstract class GenericDao<FieldEnum extends Enum<FieldEnum> & ConfigField
         return dtoCreator.create(id, map);
     }
 
-    ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor();
+    public List<DTO> listPaginated(int page, int pageSize) {
+        String paginatedQuery = getReadQueryPaginated(migration.getResource(), page, pageSize);
+        return getRdf4JTemplate()
+                .tupleQuery(getClass(), "KEY_READ_PAGINATED_QUERY", () -> paginatedQuery)
+                .evaluateAndConvert()
+                .toList(this::mapSolution, this::postProcessMappedSolution);
+    }
+
+    protected String getReadQueryPaginated(RdfResource graph, int page, int pageSize) {
+        var queryParams = getSelectParams(graph);
+        return Queries.SELECT(queryParams.getValue0()
+                        .stream()
+                        .map(Map.Entry::getValue)
+                        .toArray(Projectable[]::new))
+                .distinct()
+                .where(queryParams.getValue1())
+                .groupBy(queryParams.getValue2())
+                .limit(pageSize)
+                .offset(page * pageSize)
+                .getQueryString();
+    }
+
+    public long getTotalCount() {
+        String countQuery = getCountQuery(migration.getResource());
+        var countResult = getRdf4JTemplate()
+                .tupleQuery(getClass(), "KEY_COUNT_QUERY", () -> countQuery)
+                .evaluateAndConvert()
+                .toStream()
+                .findFirst();
+
+        return countResult.map(bindings -> Long.parseLong(bindings.getBinding("count")
+                .getValue().stringValue())).orElse(0L);
+
+    }
+
+    protected String getCountQuery(RdfResource graph) {
+        return Queries.SELECT(Expressions.countAll().as(SparqlBuilder.var("count")))
+                .where(configFields.getId().isA(graph))
+                .getQueryString();
+    }
+
 
     @Override
     public IRI saveAndReturnId(DTO input) {
