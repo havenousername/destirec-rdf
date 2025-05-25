@@ -2,7 +2,7 @@ package org.destirec.destirec.rdf4j.region.apiDto;
 
 import lombok.Getter;
 import lombok.Setter;
-import org.destirec.destirec.utils.rdfDictionary.RegionNames;
+import org.destirec.destirec.utils.rdfDictionary.RegionNames.Individuals.RegionTypes;
 import org.eclipse.rdf4j.model.IRI;
 
 @Getter
@@ -12,6 +12,5 @@ public class SimpleRegionDto {
     String name;
     IRI source;
     IRI sourceParent;
-
-    RegionNames.Individuals.RegionTypes type;
+    RegionTypes type;
 }

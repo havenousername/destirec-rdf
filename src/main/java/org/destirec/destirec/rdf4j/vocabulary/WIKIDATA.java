@@ -2,6 +2,7 @@ package org.destirec.destirec.rdf4j.vocabulary;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
+import org.destirec.destirec.utils.rdfDictionary.RegionFeatureNames.Individuals.RegionFeature;
 import org.eclipse.rdf4j.model.IRI;
 import org.eclipse.rdf4j.model.Namespace;
 import org.eclipse.rdf4j.model.base.InternedIRI;
@@ -113,6 +114,45 @@ public class WIKIDATA {
             // CULTURE
             MUSEUM("Q33506"),
             ART_GALLERY("Q871905");
+
+            public static RegionFeature getRegionFeature(QTypes qType) {
+                return switch (qType) {
+                    case MOUNTAIN, LAKE, PARK, FOREST, NATURAL_RESERVE, CANYON ->
+                            RegionFeature.NATURE;
+
+                    case HISTORIC_DISTRICT, UNESCO_SITE, CATHEDRAL, CASTLE ->
+                            RegionFeature.ARCHITECTURE;
+
+                    case MUSEUM, ART_GALLERY -> RegionFeature.CULTURE;
+
+                    case HIKING_TRAIL, CLIMBING_AREA, CLIMBING_ROUTE, LOOKOUT_POINT ->
+                            RegionFeature.HIKING;
+
+                    case SNOWBOARDING, SKIING, SKI_JUMPING, SLEDDING, SKI_RESORT, ICE_CLIMBING, SNOW_PARK ->
+                            RegionFeature.WINTERSPORTS;
+
+                    case DIVING_SPOT, SCUBA_DIVING, SURF_SPOT, MARINA, WATER_PARK ->
+                            RegionFeature.WATERSPORTS;
+
+                    case AMUSEMENT_PARK, THEME_PARK, KART_RACING_TRACK, SHOOTING_RANGE,
+                         ARCADE, ESCAPE_ROOM, FESTIVAL_VENUE, ICE_CREAM_SHOP,
+                         BOWLING_ALLEY, BEER_GARDEN, BREWERY ->
+                            RegionFeature.ENTERTAINMENT;
+
+                    case RESTAURANT, STREET_FOOD_VENUE, FOOD_MARKET ->
+                            RegionFeature.CULINARY;
+
+                    case SHOPPING_MALL, SOUVENIR_SHOP, MARKET ->
+                            RegionFeature.SHOPPING;
+
+                    case BEACH ->
+                            RegionFeature.BEACH;
+
+                    case null ->
+                        throw new IllegalArgumentException("QType is not defined");
+                };
+
+            }
 
             private final String type;
         }
