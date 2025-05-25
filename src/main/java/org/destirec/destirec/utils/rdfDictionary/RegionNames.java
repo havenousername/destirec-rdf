@@ -1,7 +1,12 @@
 package org.destirec.destirec.utils.rdfDictionary;
 
+import lombok.AllArgsConstructor;
+import lombok.Getter;
 import org.destirec.destirec.rdf4j.vocabulary.DESTIREC;
+import org.eclipse.rdf4j.model.IRI;
 import org.eclipse.rdf4j.model.vocabulary.GEO;
+
+import java.util.Arrays;
 
 public final class RegionNames {
 
@@ -45,9 +50,38 @@ public final class RegionNames {
         public final static DESTIREC.NamespaceWrapper HAS_MONTH = DESTIREC.wrap("hasMonth");
 
         public final static DESTIREC.NamespaceWrapper HAS_FEATURE = DESTIREC.wrap("hasFeature");
+
+        public final static DESTIREC.NamespaceWrapper HAS_LEVEL = DESTIREC.wrap("level");
     }
 
     public final static class Individuals {
         public final static DESTIREC.NamespaceWrapper NO_REGION = DESTIREC.wrap("emptyRegion");
+
+        @Getter
+        @AllArgsConstructor
+        public enum RegionTypes {
+            WORLD("World"),
+            CONTINENT("Continent"),
+            CONTINENT_REGION("ContinentRegion"),
+            COUNTRY("Country"),
+            DISTRICT("District"),
+            POI("POI");
+
+            private final String name;
+            public DESTIREC.NamespaceWrapper iri() {
+                return DESTIREC.wrap(name);
+            }
+
+            public static RegionTypes fromIRI(IRI iri) {
+                if (iri == null || iri.stringValue().isBlank()) {
+                    throw new IllegalArgumentException("IRI cannot be null or empty");
+                }
+                String lastSegment = Arrays.stream(iri.stringValue().split("/"))
+                        .toList()
+                        .getLast()
+                        .toUpperCase(); // Ensure uppercase
+                return RegionTypes.valueOf(lastSegment);
+            }
+        }
     }
 }

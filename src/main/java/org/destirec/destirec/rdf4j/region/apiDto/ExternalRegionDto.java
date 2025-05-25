@@ -11,6 +11,8 @@ public record ExternalRegionDto(
         String u_name,
 
         String Region,
+
+        String sourceIRI,
         int costPerWeek,
 
         int safety,

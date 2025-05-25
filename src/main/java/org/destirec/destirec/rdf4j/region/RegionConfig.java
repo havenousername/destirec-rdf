@@ -9,6 +9,7 @@ import org.destirec.destirec.utils.ValueContainer;
 import org.destirec.destirec.utils.rdfDictionary.RegionNames;
 import org.eclipse.rdf4j.model.IRI;
 import org.eclipse.rdf4j.model.base.CoreDatatype;
+import org.eclipse.rdf4j.model.vocabulary.DC;
 import org.eclipse.rdf4j.model.vocabulary.FOAF;
 import org.eclipse.rdf4j.model.vocabulary.GEO;
 import org.eclipse.rdf4j.sparqlbuilder.core.SparqlBuilder;
@@ -38,6 +39,8 @@ public class RegionConfig extends GenericConfig<RegionConfig.Fields> {
             case COST -> collectionMigration.getHasCost().get();
             case NAME -> FOAF.NAME;
             case PARENT_REGION -> GEO.sfWithin;
+            case SOURCE ->  DC.SOURCE;
+            case REGION_TYPE -> RegionNames.Properties.HAS_LEVEL.rdfIri();
             case null -> throw new IllegalArgumentException("Field is not defined");
         };
         return new ValueContainer<>(values);
@@ -59,7 +62,7 @@ public class RegionConfig extends GenericConfig<RegionConfig.Fields> {
                         .mapToObj(i -> SparqlBuilder.var(field.name() + i))
                         .collect(Collectors.toList()));
             }
-            case COST, NAME, PARENT_REGION -> {
+            case COST, NAME, PARENT_REGION, SOURCE, REGION_TYPE -> {
                 return new ValueContainer<>(SparqlBuilder.var(field.name()));
             }
             case null -> throw new IllegalArgumentException("Field is not defined");
@@ -75,8 +78,11 @@ public class RegionConfig extends GenericConfig<RegionConfig.Fields> {
     }
 
     @Override
-    public Boolean getIsOptional(RegionConfig.Fields field) {
-        return field == Fields.PARENT_REGION;
+    public Boolean getIsOptional(Fields field) {
+        return switch (field) {
+            case NAME -> false;
+            case PARENT_REGION, FEATURES, MONTHS, SOURCE, COST, REGION_TYPE -> true;
+        };
     }
 
     @Override
@@ -91,7 +97,10 @@ public class RegionConfig extends GenericConfig<RegionConfig.Fields> {
         PARENT_REGION("parentRegion", true),
         FEATURES("features", true),
         MONTHS("months", true),
-        COST("costs", true);
+        SOURCE("sourceIRI", true),
+        COST("costs", true),
+
+        REGION_TYPE("regionType", true);
 
         private final String name;
         private final boolean isRead;

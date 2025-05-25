@@ -19,7 +19,6 @@ public class VersionConfig extends GenericConfig<VersionConfig.Fields> {
         this.schemaPredicate = schemaPredicate;
     }
 
-
     @Override
     public ValueContainer<IRI> getPredicate(Fields field) {
         return new ValueContainer<>(schemaPredicate.get());

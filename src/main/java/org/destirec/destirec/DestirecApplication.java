@@ -1,6 +1,7 @@
 package org.destirec.destirec;
 
 import org.destirec.destirec.rdf4j.ontology.DestiRecOntology;
+import org.destirec.destirec.rdf4j.services.KnowledgeGraphService;
 import org.destirec.destirec.rdf4j.services.MigrationsService;
 import org.destirec.destirec.rdf4j.services.RdfInitializerService;
 import org.eclipse.rdf4j.model.IRI;
@@ -26,11 +27,12 @@ public class DestirecApplication {
     CommandLineRunner commandLineRunner(
             MigrationsService migration,
             RdfInitializerService initializerService,
-            DestiRecOntology ontology
+            DestiRecOntology ontology,
+            KnowledgeGraphService knowledgeGraphService
     ) {
         return args -> {
             logger.info("Application has started. Next initial configuration will be set");
-            var migrated = false;
+            var migrated = initializerService.hasVersion();
             ontology.init();
             if (migrate && !migrated) {
                 migration.runOntologyDefiners();
@@ -52,6 +54,7 @@ public class DestirecApplication {
                 var version = initializerService.version();
                 logger.info("RDF resource version with version " + version  + " is running");
             }
+            knowledgeGraphService.addAllRegionsToRepository();
         };
     }
 }

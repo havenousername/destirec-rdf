@@ -35,6 +35,8 @@ dependencies {
     implementation("org.eclipse.rdf4j:rdf4j-spring:+")
     implementation(platform("org.eclipse.rdf4j:rdf4j-bom:+"))
     implementation("org.eclipse.rdf4j:rdf4j-storage")
+    implementation("org.eclipse.rdf4j:rdf4j-tools-federation:+")
+
     implementation("org.springframework.boot:spring-boot-devtools")
 
     // OWL API core

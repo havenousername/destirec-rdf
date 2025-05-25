@@ -4,11 +4,13 @@ import org.destirec.destirec.rdf4j.vocabulary.DESTIREC;
 import org.destirec.destirec.utils.ValueContainer;
 import org.eclipse.rdf4j.model.IRI;
 import org.eclipse.rdf4j.model.base.CoreDatatype;
+import org.eclipse.rdf4j.sparqlbuilder.constraint.Expression;
 import org.eclipse.rdf4j.sparqlbuilder.core.SparqlBuilder;
 import org.eclipse.rdf4j.sparqlbuilder.core.Variable;
 
 import java.util.Arrays;
 import java.util.Map;
+import java.util.Optional;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -57,6 +59,11 @@ public abstract class GenericConfig<T extends Enum<T> & ConfigFields.Field> impl
     @Override
     public Boolean getIsOptional(T field) {
         return false;
+    }
+
+    @Override
+    public Optional<Expression<?>> getFilter(T field) {
+        return Optional.empty();
     }
 
     @Override

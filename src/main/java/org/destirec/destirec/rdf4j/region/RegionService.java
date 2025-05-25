@@ -6,6 +6,7 @@ import org.destirec.destirec.rdf4j.interfaces.GenericDao;
 import org.destirec.destirec.rdf4j.months.MonthDto;
 import org.destirec.destirec.rdf4j.ontology.DestiRecOntology;
 import org.destirec.destirec.rdf4j.region.apiDto.ExternalRegionDto;
+import org.destirec.destirec.rdf4j.region.apiDto.SimpleRegionDto;
 import org.destirec.destirec.rdf4j.region.cost.CostDao;
 import org.destirec.destirec.rdf4j.region.cost.CostDto;
 import org.destirec.destirec.rdf4j.region.feature.FeatureDto;
@@ -16,10 +17,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 import java.util.function.Function;
 
 
@@ -178,35 +176,83 @@ public class RegionService {
         return regionDao.listLeaf();
     }
 
+
+    private void validateDto(SimpleRegionDto dto) {
+        if (dto == null) {
+            throw new IllegalArgumentException("Region DTO cannot be null");
+        }
+    }
+
+    private Optional<IRI> getParentRegion(SimpleRegionDto dto) {
+        if (dto.getSourceParent() == null) {
+            return Optional.empty();
+        }
+        return Optional.of(regionDao.getBySource(dto.getSourceParent()));
+    }
+
+    private RegionDto createNewRegionWithParent(SimpleRegionDto dto, Optional<IRI> parent) {
+        IRI parentId = parent.orElse(null);
+        return regionDao.getDtoCreator().create(dto, parentId);
+    }
+
+    @Transactional
+    public IRI createRegion(SimpleRegionDto dto, boolean isBulky) {
+        validateDto(dto);
+        Optional<IRI> parentRegion = getParentRegion(dto);
+        RegionDto newRegion = createNewRegionWithParent(dto, parentRegion);
+
+        logger.info("Create region with DTO: {}", newRegion);
+        IRI regionId = regionDao.saveAndReturnId(newRegion);
+
+        if (!isBulky) {
+            updateOntologies(regionId.stringValue());
+        }
+        logger.info("Region with DTO " + regionId + " was created");
+        return regionId;
+    }
+
+    public void updateOntologies(String regionId) {
+        qualityOntology.defineRegionsQualities(regionDao.list(), regionId);
+        destiRecOntology.migrate(regionId);
+        destiRecOntology.triggerInference();
+    }
+
     @Transactional
     public IRI createRegion(ExternalRegionDto regionDto) {
         if (regionDto.graphId() != null) {
             String msg = "Region with ID " + regionDto.id() + " is already present in the RDF database";
             throw new IllegalArgumentException(msg);
         }
+
+        List<MonthDto> monthDtos = new ArrayList<>();
+        List<FeatureDto> featureDtos = new ArrayList<>();
+        CostDto costDto;
         var cost = regionDto.getCost();
         CostDto cost1 = regionDao.getCostDao()
                 .getDtoCreator().create(cost.get(0), cost.get(1));
-        CostDto costDto = regionDao.getCostDao()
+         costDto = regionDao.getCostDao()
                 .save(cost1);
 
+        if (!regionDto.getMonths().isEmpty()) {
+            monthDtos = regionDto
+                    .getMonths()
+                    .entrySet()
+                    .stream()
+                    .map(month -> regionDao.getMonthDao().getDtoCreator()
+                            .create(Map.entry(month.getKey(), new Pair<>(month.getValue(), true))))
+                    .map(dto -> regionDao.getMonthDao().save(dto))
+                    .toList();
+        }
 
-        List<MonthDto> monthDtos = regionDto
-                .getMonths()
-                .entrySet()
-                .stream()
-                .map(month -> regionDao.getMonthDao().getDtoCreator()
-                        .create(Map.entry(month.getKey(), new Pair<>(month.getValue(), true))))
-                .map(dto -> regionDao.getMonthDao().save(dto))
-                .toList();
-
-        List<FeatureDto> featureDtos = regionDto
-                .getFeatures()
-                .entrySet()
-                .stream()
-                .map(feature -> regionDao.getFeatureDao().getDtoCreator().createFromEnum(feature))
-                .map(dto -> regionDao.getFeatureDao().save(dto))
-                .toList();
+        if (!regionDto.getFeatures().isEmpty()) {
+            featureDtos  = regionDto
+                    .getFeatures()
+                    .entrySet()
+                    .stream()
+                    .map(feature -> regionDao.getFeatureDao().getDtoCreator().createFromEnum(feature))
+                    .map(dto -> regionDao.getFeatureDao().save(dto))
+                    .toList();
+        }
 
         RegionDto regionDtoForCreate = regionDao.getDtoCreator()
                 .create(regionDto, featureDtos, monthDtos, costDto);

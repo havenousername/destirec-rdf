@@ -10,19 +10,25 @@ import org.destirec.destirec.utils.rdfDictionary.AttributeNames;
 import org.destirec.destirec.utils.rdfDictionary.RegionNames;
 import org.destirec.destirec.utils.rdfDictionary.TopOntologyNames;
 import org.eclipse.rdf4j.model.IRI;
+import org.eclipse.rdf4j.model.vocabulary.DC;
 import org.eclipse.rdf4j.model.vocabulary.RDF;
 import org.eclipse.rdf4j.model.vocabulary.RDFS;
+import org.eclipse.rdf4j.query.BindingSet;
+import org.eclipse.rdf4j.query.TupleQueryResult;
 import org.eclipse.rdf4j.sparqlbuilder.core.SparqlBuilder;
 import org.eclipse.rdf4j.sparqlbuilder.core.Variable;
 import org.eclipse.rdf4j.sparqlbuilder.core.query.InsertDataQuery;
 import org.eclipse.rdf4j.sparqlbuilder.core.query.ModifyQuery;
 import org.eclipse.rdf4j.sparqlbuilder.core.query.Queries;
+import org.eclipse.rdf4j.sparqlbuilder.core.query.SelectQuery;
 import org.eclipse.rdf4j.sparqlbuilder.graphpattern.GraphPatternNotTriples;
 import org.eclipse.rdf4j.sparqlbuilder.graphpattern.GraphPatterns;
 import org.eclipse.rdf4j.sparqlbuilder.graphpattern.TriplePattern;
 import org.eclipse.rdf4j.sparqlbuilder.rdf.Rdf;
 import org.eclipse.rdf4j.spring.dao.support.opbuilder.TupleQueryEvaluationBuilder;
 import org.eclipse.rdf4j.spring.support.RDF4JTemplate;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
@@ -33,6 +39,7 @@ public class RegionDao extends GenericDao<RegionConfig.Fields, RegionDto> {
     private final CostDao costDao;
     private final FeatureDao featureDao;
     private final MonthDao monthDao;
+    protected Logger logger = LoggerFactory.getLogger(getClass());
 
     public RegionDao(
             RDF4JTemplate rdf4JTemplate,
@@ -116,6 +123,28 @@ public class RegionDao extends GenericDao<RegionConfig.Fields, RegionDto> {
             return queryString;
         });
         return id;
+    }
+
+
+    public IRI getBySource(IRI source) {
+        Variable regionId = SparqlBuilder.var("regionId");
+        SelectQuery query = Queries.SELECT(regionId);
+        query.where(
+                regionId.has(DC.SOURCE, source)
+        ).limit(1);
+
+        return getRdf4JTemplate().applyToConnection(connection -> {
+            try {
+                TupleQueryResult res = connection.prepareTupleQuery(query.getQueryString()).evaluate();
+                if (res.hasNext()) {
+                    BindingSet binding = res.next();
+                    return (IRI)binding.getValue(regionId.getVarName());
+                }
+            } catch (Exception e) {
+                logger.error("Cannot find region version");
+            }
+            return null;
+        });
     }
 
     @Override

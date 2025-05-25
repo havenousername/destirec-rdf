@@ -134,7 +134,12 @@ public abstract class GenericDao<FieldEnum extends Enum<FieldEnum> & ConfigField
         graphPatterns.add(configFields.getId().isA(graph));
 
         configFields.getReadPredicates().forEach((key, value) -> {
-            TriplesSelectVisitor visitor = new TriplesSelectVisitor(value, configFields.getId(), configFields.getIsOptional(key));
+            TriplesSelectVisitor visitor = new TriplesSelectVisitor(
+                    value,
+                    configFields.getId(),
+                    configFields.getIsOptional(key),
+                    configFields.getFilter(key).orElse(null)
+            );
             configFields.getVariable(key).accept(visitor);
             graphPatterns.add(visitor.getPattern());
         });
@@ -147,7 +152,7 @@ public abstract class GenericDao<FieldEnum extends Enum<FieldEnum> & ConfigField
         var shouldGroupBy = groupByVariables.size() != variables.size();
 
 
-        return Queries.SELECT(variables
+        String query = Queries.SELECT(variables
                         .stream()
                         .map(Map.Entry::getValue)
                         .toArray(Projectable[]::new)
@@ -156,6 +161,8 @@ public abstract class GenericDao<FieldEnum extends Enum<FieldEnum> & ConfigField
                 .where(graphPatterns.toArray(GraphPattern[]::new))
                 .groupBy(shouldGroupBy ? groupByVariables.toArray(Groupable[]::new) : new Groupable[0])
                 .getQueryString();
+
+        return query;
     }
 
 

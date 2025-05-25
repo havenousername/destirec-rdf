@@ -18,7 +18,7 @@ public class DESTIREC {
     public static final String NAMESPACE = "http://destirec.com/";
     public static final Namespace NS = new ExternalNamespace("destirec", NAMESPACE);
 
-    private static final String ONTOLOGY_NS = "http://destirec.com/ontology";
+    public static final String ONTOLOGY_NS = "http://destirec.com/ontology";
 
     public static final String GRAPH_NS = "http://destirec.com/graph";
 

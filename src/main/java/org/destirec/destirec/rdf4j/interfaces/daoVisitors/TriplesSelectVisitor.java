@@ -1,9 +1,11 @@
 package org.destirec.destirec.rdf4j.interfaces.daoVisitors;
 
+import io.micrometer.common.lang.Nullable;
 import lombok.Getter;
 import org.destirec.destirec.rdf4j.interfaces.ContainerVisitor;
 import org.destirec.destirec.utils.ValueContainer;
 import org.eclipse.rdf4j.model.IRI;
+import org.eclipse.rdf4j.sparqlbuilder.constraint.Expression;
 import org.eclipse.rdf4j.sparqlbuilder.core.Variable;
 import org.eclipse.rdf4j.sparqlbuilder.graphpattern.GraphPattern;
 import org.eclipse.rdf4j.sparqlbuilder.graphpattern.GraphPatterns;
@@ -16,13 +18,22 @@ public class TriplesSelectVisitor implements ContainerVisitor<Variable> {
 
     private final boolean isOptional;
 
+    private final Expression<?> filterExpression;
+
     @Getter
     private GraphPattern pattern;
 
-    public TriplesSelectVisitor(ValueContainer<IRI> predicate, Variable id, boolean isOptional) {
+    public TriplesSelectVisitor(
+            ValueContainer<IRI> predicate,
+            Variable id,
+            boolean isOptional,
+            @Nullable
+            Expression<?> filterExpression
+    ) {
         this.predicate = predicate;
         this.id = id;
         this.isOptional = isOptional;
+        this.filterExpression = filterExpression;
     }
 
     @Override
@@ -31,6 +42,10 @@ public class TriplesSelectVisitor implements ContainerVisitor<Variable> {
             pattern = GraphPatterns.tp(id, predicate.next(), visitor);
         } else {
             pattern = GraphPatterns.optional(GraphPatterns.tp(id, predicate.next(), visitor));
+        }
+
+        if (filterExpression != null) {
+            pattern = pattern.filter(filterExpression);
         }
     }
 
