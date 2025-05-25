@@ -45,6 +45,11 @@ dependencies {
     implementation("net.sourceforge.owlapi:org.semanticweb.hermit:1.4.5.519")
     implementation("net.sourceforge.owlapi:owlexplanation:+")
 
+    // Libraries for safe internet protocol requests
+    implementation("com.google.guava:guava:33.4.8-jre")
+    implementation("io.github.resilience4j:resilience4j-retry:2.3.0")
+    implementation("io.github.resilience4j:resilience4j-circuitbreaker:2.3.0")
+
 //    implementation("org.drools:drools-core:6.5.0.Final")
 //    implementation("org.drools:drools-compiler:6.5.0.Final")
 //    implementation("org.drools:drools-osgi-integration:6.5.0.Final")

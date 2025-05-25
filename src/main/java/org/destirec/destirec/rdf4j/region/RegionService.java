@@ -1,5 +1,7 @@
 package org.destirec.destirec.rdf4j.region;
 
+import io.github.resilience4j.retry.Retry;
+import io.github.resilience4j.retry.RetryConfig;
 import org.destirec.destirec.rdf4j.attribute.QualityOntology;
 import org.destirec.destirec.rdf4j.interfaces.Dto;
 import org.destirec.destirec.rdf4j.interfaces.GenericDao;
@@ -17,6 +19,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -25,6 +28,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
+import java.util.function.Supplier;
 
 
 @Service
@@ -40,6 +44,8 @@ public class RegionService {
 
     private final ScheduledExecutorService scheduledService;
 
+    private final Retry dbRetry;
+
 
     public RegionService(RegionDao regionDao, DestiRecOntology ontology, CostDao costDao) {
         this.regionDao = regionDao;
@@ -53,6 +59,24 @@ public class RegionService {
         this.costDao = costDao;
 
         scheduledService = Executors.newSingleThreadScheduledExecutor();
+
+        RetryConfig dbRetryConfig = RetryConfig.custom()
+                .maxAttempts(3)
+                .waitDuration(Duration.ofMillis(500))
+                .retryOnException(e -> e instanceof Exception && !(e instanceof IllegalArgumentException))
+                .build();
+        this.dbRetry = Retry.of("rdf-operations", dbRetryConfig);
+    }
+
+    private <T> T executeWithRetry(Supplier<T> operation, String operationName) {
+        return Retry.decorateSupplier(dbRetry, () -> {
+            try {
+                return operation.get();
+            } catch (Exception e) {
+                logger.error("Failed to execute {}", operationName, e);
+                throw new RuntimeException("Failed to execute " + operationName, e);
+            }
+        }).get();
     }
 
     private <DtoT extends Dto, MapKey, MapValue> void updateListEntities(
@@ -212,8 +236,7 @@ public class RegionService {
         RegionDto newRegion = createNewRegionWithParent(dto, parentRegion);
 
         logger.info("Create region with DTO: {}", newRegion);
-        IRI regionId = regionDao.saveAndReturnId(newRegion);
-
+        IRI regionId = executeWithRetry(() -> regionDao.saveAndReturnId(newRegion), "create region");
         if (!isBulky) {
             updateParentChildOntologiesAsync(newRegion);
         }
@@ -264,45 +287,48 @@ public class RegionService {
             throw new IllegalArgumentException(msg);
         }
 
-        List<MonthDto> monthDtos = new ArrayList<>();
-        List<FeatureDto> featureDtos = new ArrayList<>();
-        CostDto costDto;
-        var cost = regionDto.getCost();
-        CostDto cost1 = regionDao.getCostDao()
-                .getDtoCreator().create(cost.get(0), cost.get(1));
-         costDto = regionDao.getCostDao()
-                .save(cost1);
+        return executeWithRetry(() -> {
+            List<MonthDto> monthDtos = new ArrayList<>();
+            List<FeatureDto> featureDtos = new ArrayList<>();
+            CostDto costDto;
+            var cost = regionDto.getCost();
+            CostDto cost1 = regionDao.getCostDao()
+                    .getDtoCreator().create(cost.get(0), cost.get(1));
+            costDto = regionDao.getCostDao()
+                    .save(cost1);
 
-        if (!regionDto.getMonths().isEmpty()) {
-            monthDtos = regionDto
-                    .getMonths()
-                    .entrySet()
-                    .stream()
-                    .map(month -> regionDao.getMonthDao().getDtoCreator()
-                            .create(Map.entry(month.getKey(), new Pair<>(month.getValue(), true))))
-                    .map(dto -> regionDao.getMonthDao().save(dto))
-                    .toList();
-        }
+            if (!regionDto.getMonths().isEmpty()) {
+                monthDtos = regionDto
+                        .getMonths()
+                        .entrySet()
+                        .stream()
+                        .map(month -> regionDao.getMonthDao().getDtoCreator()
+                                .create(Map.entry(month.getKey(), new Pair<>(month.getValue(), true))))
+                        .map(dto -> regionDao.getMonthDao().save(dto))
+                        .toList();
+            }
 
-        if (!regionDto.getFeatures().isEmpty()) {
-            featureDtos  = regionDto
-                    .getFeatures()
-                    .entrySet()
-                    .stream()
-                    .map(feature -> regionDao.getFeatureDao().getDtoCreator().createFromEnum(feature))
-                    .map(dto -> regionDao.getFeatureDao().save(dto))
-                    .toList();
-        }
+            if (!regionDto.getFeatures().isEmpty()) {
+                featureDtos  = regionDto
+                        .getFeatures()
+                        .entrySet()
+                        .stream()
+                        .map(feature -> regionDao.getFeatureDao().getDtoCreator().createFromEnum(feature))
+                        .map(dto -> regionDao.getFeatureDao().save(dto))
+                        .toList();
+            }
 
-        RegionDto regionDtoForCreate = regionDao.getDtoCreator()
-                .create(regionDto, featureDtos, monthDtos, costDto);
+            RegionDto regionDtoForCreate = regionDao.getDtoCreator()
+                    .create(regionDto, featureDtos, monthDtos, costDto);
 
-        logger.info("Create region with DTO " + regionDtoForCreate);
-        RegionDto readyRegionDto = regionDao.save(regionDtoForCreate);
+            logger.info("Create region with DTO " + regionDtoForCreate);
+            RegionDto readyRegionDto = regionDao.save(regionDtoForCreate);
 
-        updateParentChildOntologiesAsync(readyRegionDto);
-        logger.info("Region with DTO " + readyRegionDto + " was created");
-        return readyRegionDto.id();
+            updateParentChildOntologiesAsync(readyRegionDto);
+            logger.info("Region with DTO " + readyRegionDto + " was created");
+            return readyRegionDto.id();
+        }, "create region with dependencies");
+
     }
 
     public String getRegionSelect() {

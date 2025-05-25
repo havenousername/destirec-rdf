@@ -1,5 +1,10 @@
 package org.destirec.destirec.rdf4j.services;
 
+import com.google.common.util.concurrent.RateLimiter;
+import io.github.resilience4j.circuitbreaker.CircuitBreaker;
+import io.github.resilience4j.circuitbreaker.CircuitBreakerConfig;
+import io.github.resilience4j.retry.Retry;
+import io.github.resilience4j.retry.RetryConfig;
 import org.destirec.destirec.rdf4j.region.RegionService;
 import org.destirec.destirec.rdf4j.region.apiDto.SimpleRegionDto;
 import org.destirec.destirec.rdf4j.version.VersionDao;
@@ -9,15 +14,21 @@ import org.eclipse.rdf4j.model.IRI;
 import org.eclipse.rdf4j.model.Value;
 import org.eclipse.rdf4j.model.impl.SimpleValueFactory;
 import org.eclipse.rdf4j.query.Binding;
+import org.eclipse.rdf4j.query.QueryEvaluationException;
 import org.eclipse.rdf4j.query.TupleQuery;
 import org.eclipse.rdf4j.query.TupleQueryResult;
 import org.eclipse.rdf4j.spring.support.RDF4JTemplate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.cache.annotation.Cacheable;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 
+import java.time.Duration;
 import java.util.*;
 import java.util.function.Function;
+import java.util.function.Supplier;
 
 @Service
 public class KnowledgeGraphService {
@@ -26,8 +37,15 @@ public class KnowledgeGraphService {
     protected final RegionService regionService;
     private final Map<RegionTypes, Function<String, String>> queries;
     private final SimpleValueFactory factory = SimpleValueFactory.getInstance();
-
     private final VersionDao versionDao;
+    private final RateLimiter rateLimiter;
+    private static final Duration REQUEST_TIMEOUT = Duration.ofSeconds(2);
+    private static final int MAX_REQUESTS_PER_SECOND = 10;
+
+    @Lazy
+    @Autowired
+    private KnowledgeGraphService self;
+
 
     public KnowledgeGraphService(RDF4JTemplate rdf4JTemplate, RegionService regionService, VersionDao versionDao) {
         this.rdf4JTemplate = rdf4JTemplate;
@@ -40,6 +58,8 @@ public class KnowledgeGraphService {
         queries.put(RegionTypes.CONTINENT_REGION, this::getContinentRegions);
         queries.put(RegionTypes.COUNTRY, this::getRegionCountries);
         queries.put(RegionTypes.DISTRICT, this::getDistrictsCountries);
+
+        rateLimiter = RateLimiter.create(MAX_REQUESTS_PER_SECOND);
     }
 
     private String getWorld(String parent) {
@@ -148,6 +168,48 @@ public class KnowledgeGraphService {
         """.formatted(country);
     }
 
+    @Cacheable(value = "regionQueries", key = "#regionType + '-' + #parent")
+    public List<Map<String, Object>> getQueryHandlerCached(
+            List<Map.Entry<RegionTypes, Function<String, String>>> regionsHierarchy,
+            RegionTypes regionType,
+            Optional<Value> parent
+    ) {
+        return getQueryHandlerWithRetry(regionsHierarchy, regionType, parent);
+    }
+
+
+    private List<Map<String, Object>> getQueryHandlerWithRetry(
+            List<Map.Entry<RegionTypes, Function<String, String>>> regionsHierarchy,
+            RegionTypes regionType,
+            Optional<Value> parent
+    ) {
+        Retry retry = Retry.of(
+                "queryHandlerRetry",
+                RetryConfig.custom()
+                        .maxAttempts(3)
+                        .waitDuration(REQUEST_TIMEOUT)
+                        .retryOnException(e -> e instanceof QueryEvaluationException)
+                        .build()
+        );
+
+        Supplier<List<Map<String, Object>>> supplier = Retry.decorateSupplier(
+                retry,
+                () -> {
+                    rateLimiter.acquire(); // assuming rateLimiter is defined elsewhere
+                    return getQueryHandler(regionsHierarchy, regionType, parent);
+                }
+        );
+
+        return supplier.get();
+    }
+
+    private final CircuitBreaker circuitBreaker = CircuitBreaker.of("wikidata-api",
+            CircuitBreakerConfig.custom()
+                    .failureRateThreshold(50)
+                    .waitDurationInOpenState(Duration.ofMinutes(1))
+                    .build());
+
+
 
     private List<Map<String, Object>> getQueryHandler(
             List<Map.Entry<RegionTypes, Function<String, String>>> regionsHierarchy,
@@ -218,11 +280,13 @@ public class KnowledgeGraphService {
             return;
         }
 
-        getQueryHandler(
-                queries.entrySet().stream().toList(),
-                RegionTypes.WORLD,
-                Optional.of(factory.createIRI("http://www.wikidata.org/entity/Q2")));
-        logger.info("Repository already has all the regions");
+        circuitBreaker.executeRunnable(() -> {
+            self.getQueryHandlerCached(
+                    queries.entrySet().stream().toList(),
+                    RegionTypes.WORLD,
+                    Optional.empty());
+            logger.info("Repository already has all the regions");
+        });
         versionDao.saveRegionVersion(factory.createIRI(WIKIDATA.SPARQL_ENDPOINT.toString()));
     }
 }
