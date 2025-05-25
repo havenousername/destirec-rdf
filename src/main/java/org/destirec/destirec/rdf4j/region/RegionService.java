@@ -17,7 +17,13 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 
 
@@ -32,6 +38,8 @@ public class RegionService {
 
     private final CostDao costDao;
 
+    private final ScheduledExecutorService scheduledService;
+
 
     public RegionService(RegionDao regionDao, DestiRecOntology ontology, CostDao costDao) {
         this.regionDao = regionDao;
@@ -43,6 +51,8 @@ public class RegionService {
                 regionDao.getRdf4JTemplate()
         );
         this.costDao = costDao;
+
+        scheduledService = Executors.newSingleThreadScheduledExecutor();
     }
 
     private <DtoT extends Dto, MapKey, MapValue> void updateListEntities(
@@ -162,8 +172,8 @@ public class RegionService {
     }
 
     @Transactional
-    public List<RegionDto> getRegions() {
-        return regionDao.list();
+    public List<RegionDto> getRegions(int page, int size, String sortField, String sortOrder) {
+        return regionDao.listPaginated(page, size);
     }
 
     @Transactional
@@ -205,16 +215,46 @@ public class RegionService {
         IRI regionId = regionDao.saveAndReturnId(newRegion);
 
         if (!isBulky) {
-            updateOntologies(regionId.stringValue());
+            updateParentChildOntologiesAsync(newRegion);
         }
         logger.info("Region with DTO " + regionId + " was created");
         return regionId;
     }
 
-    public void updateOntologies(String regionId) {
-        qualityOntology.defineRegionsQualities(regionDao.list(), regionId);
-        destiRecOntology.migrate(regionId);
+    private void updateAllOntologies() {
+        long totalNumberOfRegions = regionDao.getTotalCount();
+        int perPage = 250;
+        int currentPage = 0;
+        int numberOfPages = (int) Math.ceil(totalNumberOfRegions / (double) perPage);
+        logger.info("Update ontologies for {} regions", totalNumberOfRegions);
+        while (currentPage < numberOfPages) {
+            List<RegionDto> regions = regionDao.listPaginated(currentPage, perPage);
+            qualityOntology.defineRegionsQualities(regions, ""+currentPage);
+            destiRecOntology.migrate(""+currentPage);
+            destiRecOntology.triggerInference();
+            currentPage++;
+        }
+    }
+
+    private void updateParentChildOntologies(RegionDto child) {
+        if (child.getParentRegion() == null) {
+            qualityOntology.defineRegionsQualities(List.of(child), ""+child.id());
+            destiRecOntology.migrate(""+child.id());
+            destiRecOntology.triggerInference();
+            return;
+        }
+        RegionDto parent = regionDao.getById(child.getParentRegion());
+        qualityOntology.defineRegionsQualities(List.of(child, parent), ""+child.id());
+        destiRecOntology.migrate(""+child.id());
         destiRecOntology.triggerInference();
+    }
+
+    public void updateAllOntologiesAsync() {
+        scheduledService.schedule(this::updateAllOntologies, 100, TimeUnit.MILLISECONDS);
+    }
+
+    public void updateParentChildOntologiesAsync(RegionDto child) {
+        scheduledService.schedule(() -> updateParentChildOntologiesAsync(child), 100, TimeUnit.MILLISECONDS);
     }
 
     @Transactional
@@ -258,14 +298,11 @@ public class RegionService {
                 .create(regionDto, featureDtos, monthDtos, costDto);
 
         logger.info("Create region with DTO " + regionDtoForCreate);
-        IRI regionId = regionDao.saveAndReturnId(regionDtoForCreate);
+        RegionDto readyRegionDto = regionDao.save(regionDtoForCreate);
 
-        String regionStringID = regionId.stringValue();
-        qualityOntology.defineRegionsQualities(regionDao.list(), regionStringID);
-        destiRecOntology.migrate(regionStringID);
-        destiRecOntology.triggerInference();
-        logger.info("Region with DTO " + regionId + " was created");
-        return regionId;
+        updateParentChildOntologiesAsync(readyRegionDto);
+        logger.info("Region with DTO " + readyRegionDto + " was created");
+        return readyRegionDto.id();
     }
 
     public String getRegionSelect() {

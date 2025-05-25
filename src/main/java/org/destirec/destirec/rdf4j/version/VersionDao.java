@@ -94,7 +94,7 @@ public class VersionDao extends GenericDao<VersionConfig.Fields, VersionDto> {
     }
 
     public boolean hasRegionVersion() {
-        Resource subject = valueFactory.createIRI(this.configFields.getResourceLocation() + "/region");
+        Resource subject = valueFactory.createIRI(this.configFields.getResourceLocation() + "region");
         Statement statement = new Statement() {
             @Override
             public Resource getSubject() {

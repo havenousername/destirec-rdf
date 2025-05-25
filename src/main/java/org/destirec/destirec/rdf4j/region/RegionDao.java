@@ -158,7 +158,9 @@ public class RegionDao extends GenericDao<RegionConfig.Fields, RegionDto> {
     }
 
     public List<RegionDto> listLeaf() {
-        return this.getReadQueryOrUseCached().evaluateAndConvert().toList(this::mapSolution, this::postProcessMappedSolution);
+        return this.getReadQueryOrUseCached()
+                .evaluateAndConvert()
+                .toList(this::mapSolution, this::postProcessMappedSolution);
     }
 
     private TupleQueryEvaluationBuilder getReadQueryOrUseCached() {

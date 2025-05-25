@@ -96,7 +96,7 @@ public class RegionDtoCreator implements DtoCreator<RegionDto, RegionConfig.Fiel
                 regionDto.getName(),
                 null,
                 createId(regionDto.parentRegion()),
-                valueFactory.createIRI(regionDto.sourceIRI()),
+                regionDto.sourceIRI() == null  ? null :valueFactory.createIRI(regionDto.sourceIRI()),
                 cost,
                 months,
                 features
