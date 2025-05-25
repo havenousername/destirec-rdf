@@ -1,9 +1,12 @@
 package org.destirec.destirec.rdf4j.region;
 
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
 import org.destirec.destirec.rdf4j.region.apiDto.ExternalRegionDto;
 import org.destirec.destirec.rdf4j.region.cost.CostDto;
 import org.destirec.destirec.utils.ResponseData;
 import org.eclipse.rdf4j.model.IRI;
+import org.springframework.boot.context.properties.bind.DefaultValue;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -13,6 +16,25 @@ import java.util.Optional;
 @RestController
 @RequestMapping("/api/region")
 public class RegionController {
+    public record PaginationRequest(
+            @DefaultValue("0") @Min(0) Integer page,
+            @DefaultValue("10") @Min(1) @Max(100) Integer size,
+            @DefaultValue("id") String sortBy,
+            @DefaultValue("asc") String sortDir
+    ) {
+
+        public PaginationRequest {
+            page = (page == null) ? 0 : page;
+            size = (size == null) ? 10 : size;
+            sortBy = (sortBy == null) ? "id" : sortBy;
+            sortDir = (sortDir == null) ? "asc" : sortDir;
+        }
+
+
+        public boolean isAscending() {
+            return sortDir.equals("asc");
+        }
+    }
     private final RegionService regionService;
 
     public RegionController(RegionService regionService) {
@@ -74,7 +96,12 @@ public class RegionController {
     }
 
     @GetMapping
-    public ResponseEntity<List<RegionDto>> getRegions() {
-        return ResponseEntity.ok(regionService.getRegions());
+    public ResponseEntity<List<RegionDto>> getRegions(@ModelAttribute PaginationRequest pagination) {
+        return ResponseEntity.ok(regionService.getRegions(
+                pagination.page,
+                pagination.size,
+                pagination.sortBy,
+                pagination.sortDir
+        ));
     }
 }
