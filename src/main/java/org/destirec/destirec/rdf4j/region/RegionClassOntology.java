@@ -165,12 +165,10 @@ class RegionClassOntology {
         ontology.addAxiom(factory.getOWLSubClassOfAxiom(parentRegion, region));
         // ∃ sfDirectlyContains⁻¹.Region
         OWLClassExpression someDirectlyContains = factory.getOWLObjectSomeValuesFrom(sfDirectlyContains, region);
-        OWLClassExpression allContains = factory.getOWLObjectAllValuesFrom(sfDirectlyContains, region);
-//        OWLClassExpression oneDWithin = factory.getOWLObjectSomeValuesFrom(sfDirectlyWithin, region);
 
         // ParentRegion ≡ (RootRegion ⊔ InternalRegion) ⊓ Region ⊓ AttributesCollection
         OWLClassExpression parentRegionDefinition = factory
-                .getOWLObjectIntersectionOf(someDirectlyContains, allContains);
+                .getOWLObjectIntersectionOf(someDirectlyContains, region);
 
         // Axiom: ParentRegion ≡ ...
         ontology.addAxiom(
