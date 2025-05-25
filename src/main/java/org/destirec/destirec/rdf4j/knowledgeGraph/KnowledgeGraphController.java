@@ -1,4 +1,4 @@
-package org.destirec.destirec.rdf4j.services;
+package org.destirec.destirec.rdf4j.knowledgeGraph;
 
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;

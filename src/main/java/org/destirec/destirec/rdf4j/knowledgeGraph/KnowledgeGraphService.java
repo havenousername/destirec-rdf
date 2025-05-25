@@ -1,4 +1,4 @@
-package org.destirec.destirec.rdf4j.services;
+package org.destirec.destirec.rdf4j.knowledgeGraph;
 
 import com.google.common.util.concurrent.RateLimiter;
 import io.github.resilience4j.circuitbreaker.CircuitBreaker;

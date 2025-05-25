@@ -1,7 +1,7 @@
 package org.destirec.destirec;
 
 import org.destirec.destirec.rdf4j.ontology.DestiRecOntology;
-import org.destirec.destirec.rdf4j.services.KnowledgeGraphService;
+import org.destirec.destirec.rdf4j.knowledgeGraph.KnowledgeGraphService;
 import org.destirec.destirec.rdf4j.services.MigrationsService;
 import org.destirec.destirec.rdf4j.services.RdfInitializerService;
 import org.eclipse.rdf4j.model.IRI;
