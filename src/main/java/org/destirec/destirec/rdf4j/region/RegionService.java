@@ -5,8 +5,11 @@ import io.github.resilience4j.retry.RetryConfig;
 import org.destirec.destirec.rdf4j.attribute.QualityOntology;
 import org.destirec.destirec.rdf4j.interfaces.Dto;
 import org.destirec.destirec.rdf4j.interfaces.GenericDao;
+import org.destirec.destirec.rdf4j.knowledgeGraph.POIClass;
 import org.destirec.destirec.rdf4j.months.MonthDto;
 import org.destirec.destirec.rdf4j.ontology.DestiRecOntology;
+import org.destirec.destirec.rdf4j.poi.POIDao;
+import org.destirec.destirec.rdf4j.poi.POIDto;
 import org.destirec.destirec.rdf4j.region.apiDto.ExternalRegionDto;
 import org.destirec.destirec.rdf4j.region.apiDto.SimpleRegionDto;
 import org.destirec.destirec.rdf4j.region.cost.CostDao;
@@ -46,8 +49,10 @@ public class RegionService {
 
     private final Retry dbRetry;
 
+    private final POIDao poiDao;
 
-    public RegionService(RegionDao regionDao, DestiRecOntology ontology, CostDao costDao) {
+
+    public RegionService(RegionDao regionDao, DestiRecOntology ontology, CostDao costDao, POIDao poiDao) {
         this.regionDao = regionDao;
 
         destiRecOntology = ontology;
@@ -57,6 +62,7 @@ public class RegionService {
                 regionDao.getRdf4JTemplate()
         );
         this.costDao = costDao;
+        this.poiDao = poiDao;
 
         scheduledService = Executors.newSingleThreadScheduledExecutor();
 
@@ -230,6 +236,28 @@ public class RegionService {
     }
 
     @Transactional
+    public IRI createPOI(POIClass poiClass) {
+        IRI parentRegion = regionDao.getBySource(poiClass.getSourceParent());
+
+        if (parentRegion == null) {
+            throw new IllegalArgumentException("It is a requirement that the parent exists for POI");
+        }
+
+        FeatureDto featureDtoRuntime = poiDao
+                .getFeatureDao()
+                .getDtoCreator()
+                .createFromEnum(Map.entry(poiClass.getFeature(), poiClass.getPercentageScore()));
+
+        FeatureDto savedFeature = poiDao.getFeatureDao()
+                .save(featureDtoRuntime);
+
+        POIDto poiDto = poiDao.getDtoCreator()
+                .create(poiClass, savedFeature, parentRegion);
+
+        return poiDao.saveAndReturnId(poiDto);
+    }
+
+    @Transactional
     public IRI createRegion(SimpleRegionDto dto, boolean isBulky) {
         validateDto(dto);
         Optional<IRI> parentRegion = getParentRegion(dto);
@@ -257,6 +285,22 @@ public class RegionService {
             destiRecOntology.triggerInference();
             currentPage++;
         }
+    }
+
+    public void updateAllOntologiesPOIs() {
+        long totalNumberOfPois = poiDao.getTotalCount();
+        int perPage = 250;
+        int currentPage = 0;
+        int numberOfPages = (int) Math.ceil(totalNumberOfPois / (double) perPage);
+        logger.info("Update ontologies for {} pois", totalNumberOfPois);
+        while (currentPage < numberOfPages) {
+            List<POIDto> pois = poiDao.listPaginated(currentPage, perPage);
+            qualityOntology.definePOIOntology(pois, ""+currentPage);
+            destiRecOntology.migrate(""+currentPage);
+            destiRecOntology.triggerInference();
+            currentPage++;
+        }
+
     }
 
     private void updateParentChildOntologies(RegionDto child) {

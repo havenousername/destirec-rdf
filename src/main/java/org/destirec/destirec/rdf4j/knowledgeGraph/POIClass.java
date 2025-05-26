@@ -1,6 +1,7 @@
 package org.destirec.destirec.rdf4j.knowledgeGraph;
 
 import lombok.*;
+import org.destirec.destirec.rdf4j.region.apiDto.POIRegion;
 import org.destirec.destirec.rdf4j.region.apiDto.SimpleRegionDto;
 import org.destirec.destirec.rdf4j.vocabulary.WIKIDATA.RegionOntology.QTypes;
 import org.destirec.destirec.utils.rdfDictionary.RegionFeatureNames.Individuals.RegionFeature;
@@ -11,7 +12,9 @@ import org.javatuples.Quartet;
 @AllArgsConstructor
 @NoArgsConstructor
 @Getter
-public class POIClass extends SimpleRegionDto {
+@EqualsAndHashCode(callSuper = true)
+@ToString
+public class POIClass extends SimpleRegionDto implements POIRegion {
     private RegionFeature feature;
     private QTypes featureSpecificType;
 
@@ -122,7 +125,12 @@ public class POIClass extends SimpleRegionDto {
                normalizeValue(coords != null ? 1 : 0, 1, 0);
     }
 
-    public double getPercentageScore() {
-        return (getHeuristicScore() * 100) / 7.0;
+    public int getPercentageScore() {
+        return (int)((getHeuristicScore() * 100) / 7.0);
+    }
+
+    @Override
+    public Pair<RegionFeature, Integer> getFeatureScore() {
+        return new Pair<>(feature, getPercentageScore());
     }
 }

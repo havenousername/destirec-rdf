@@ -164,6 +164,10 @@ public class WIKIDATA {
 
             }
 
+            public DESTIREC.NamespaceWrapper iri() {
+                return DESTIREC.wrap(type);
+            }
+
             private final String type;
         }
     }

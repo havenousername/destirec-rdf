@@ -64,7 +64,7 @@ public record ExternalRegionDto(
         String graphId,
 
         String parentRegion
-) {
+) implements RegionDto {
     public Map<RegionFeatureNames.Individuals.RegionFeature, Integer> getFeatures() {
         return Map.ofEntries(
                 Map.entry(RegionFeatureNames.Individuals.RegionFeature.SAFETY, safety),

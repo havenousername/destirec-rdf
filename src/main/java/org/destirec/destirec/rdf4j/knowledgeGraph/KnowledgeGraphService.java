@@ -26,6 +26,11 @@ import org.springframework.cache.annotation.Cacheable;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.time.Duration;
 import java.util.*;
 import java.util.function.Function;
@@ -397,6 +402,25 @@ public class KnowledgeGraphService {
         });
     }
 
+    private void outputListsToFiles(String currentDistrictUri, List<POIClass> pois, List<POIClass> optimized, String type) {
+        try {
+            Path dir = Paths.get("./aco");
+            Files.createDirectories(dir);
+
+            Path filePathAco = dir.resolve("aco-" + Arrays.stream(currentDistrictUri.split("/")).toList().getLast() + ".txt");
+            Path filePathNon = dir.resolve("nonaco-" + Arrays.stream(currentDistrictUri.split("/")).toList().getLast() + ".txt");
+            Files.write(filePathAco, optimized.stream().map(POIClass::toString).toList(), StandardCharsets.UTF_8);
+            Files.write(filePathNon, pois.stream().map(POIClass::toString).toList(), StandardCharsets.UTF_8);
+        } catch (IOException exception) {
+            logger.error("Failed to write optimized POIs to file", exception);
+        }
+    }
+
+    private void createPOIsInRdf(List<POIClass> pois) {
+        List<IRI> iris = pois.stream().map(regionService::createPOI).toList();
+        logger.info("Created {} POIs in RDF", iris.size());
+    }
+
     private void makeQueryForPOIs() {
         List<Pair<IRI, IRI>> allDistricts = regionDao.listByType(RegionTypes.DISTRICT);
         int batchSize = 100;
@@ -435,7 +459,9 @@ public class KnowledgeGraphService {
                     if (!poisFromWikidata.containsKey(currentDistrictUri) || poisFromWikidata.get(currentDistrictUri).isEmpty()) {
                         continue;
                     }
-                    List<POIClass> pois = poisFromWikidata.get(currentDistrictUri);
+                    HashMap<String, POIClass> uniquePois = new HashMap<>();
+                    poisFromWikidata.get(currentDistrictUri).forEach(poi -> uniquePois.put(poi.getSource().stringValue(), poi));
+                    List<POIClass> pois = uniquePois.values().stream().toList();
                     logger.info("Optimizing {} POIs for district {}", pois.size(), currentDistrictUri);
                     ACOHyperparameters hyperparameters = ACOHyperparameters.getDefault();
                     hyperparameters.setSelectionSize(Math.round((double) pois.size() / 4));
@@ -443,12 +469,14 @@ public class KnowledgeGraphService {
                     List<POIClass> optimized = optimizer.optimize();
                     logger.info("Finished optimization for district {}. Optimized: {}, Original in batch for district: {}",
                             currentDistrictUri, optimized.size(), pois.size());
+                    createPOIsInRdf(optimized);
                 }
             } catch (Exception exception) {
                 logger.error("Failed to query Wikidata for districts {}", districtUrisForQuery, exception);
             }
 
         }
+        regionService.updateAllOntologiesPOIs();
     }
 
     private void makeQueryForPOIsWithRetry() {

@@ -9,7 +9,7 @@ import org.destirec.destirec.rdf4j.months.MonthDto;
 import org.destirec.destirec.rdf4j.region.cost.CostDto;
 import org.destirec.destirec.rdf4j.region.feature.FeatureDto;
 import org.destirec.destirec.utils.SimpleDtoTransformations;
-import org.destirec.destirec.utils.rdfDictionary.RegionNames;
+import org.destirec.destirec.utils.rdfDictionary.RegionNames.Individuals.RegionTypes;
 import org.eclipse.rdf4j.model.IRI;
 import org.jetbrains.annotations.Nullable;
 
@@ -23,7 +23,7 @@ import java.util.Map;
 public class RegionDto implements Dto {
     public final IRI id;
     private final String name;
-    private final RegionNames.Individuals.RegionTypes type;
+    private final RegionTypes type;
 
     @Nullable
     private final IRI parentRegion;

@@ -2,6 +2,7 @@ package org.destirec.destirec.rdf4j.region;
 
 import org.destirec.destirec.rdf4j.ontology.AppOntology;
 import org.destirec.destirec.utils.rdfDictionary.AttributeNames;
+import org.destirec.destirec.utils.rdfDictionary.POINames;
 import org.destirec.destirec.utils.rdfDictionary.RegionNames;
 import org.destirec.destirec.utils.rdfDictionary.TopOntologyNames;
 import org.semanticweb.owlapi.model.*;
@@ -29,6 +30,7 @@ class RegionClassOntology {
     private final OWLClassExpression attributeSelection;
     
     private final AppOntology ontology;
+    private final OWLClass poi;
 
 
     RegionClassOntology(AppOntology ontology, OWLDataFactory factory) {
@@ -55,6 +57,7 @@ class RegionClassOntology {
 
         this.regionLike = factory.getOWLClass(RegionNames.Classes.REGION_LIKE.owlIri());
         this.attributeSelection = factory.getOWLClass(AttributeNames.Classes.ATTRIBUTES_COLLECTION.owlIri());
+        this.poi = factory.getOWLClass(POINames.Classes.POI.owlIri());
     }
 
     public void defineRegion() {
@@ -118,8 +121,8 @@ class RegionClassOntology {
         ontology.addAxiom(factory.getOWLSubClassOfAxiom(leafRegion, region));
 //            OWLObjectPropertyExpression sfContains = destiRecOntology.getFactory().getOWLObjectInverseOf(sfWithin);
         //  \exists sfWithin^{-1}.NoRegion
-        var directlyContains = factory.getOWLObjectProperty(RegionNames.Properties.CONTAINS_EMPTY.owlIri());
-        OWLClassExpression subregionsAreOne = factory.getOWLObjectSomeValuesFrom(directlyContains, noRegion);
+//        var directlyContains = factory.getOWLObjectProperty(RegionNames.Properties.CONTAINS_EMPTY.owlIri());
+        OWLClassExpression subregionsAreOne = factory.getOWLObjectSomeValuesFrom(sfDirectlyContains, poi);
 
 //        // (=1 \ sfWithin.Region)
         OWLClassExpression insideOneRegionDirectly = factory

@@ -71,6 +71,7 @@ public class AntColonyOptimizer {
 
             POIClass chosenPOI = available.get(selectedIndex);
             selected.add(chosenPOI);
+            available.remove(selectedIndex);
         }
 
         return selected;

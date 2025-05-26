@@ -3,8 +3,10 @@ package org.destirec.destirec.rdf4j.attribute;
 import org.apache.commons.lang.StringUtils;
 import org.destirec.destirec.rdf4j.ontology.AppOntology;
 import org.destirec.destirec.rdf4j.ontology.OntologyFeature;
+import org.destirec.destirec.rdf4j.poi.POIDto;
 import org.destirec.destirec.rdf4j.preferences.PreferenceDto;
 import org.destirec.destirec.rdf4j.region.RegionDto;
+import org.destirec.destirec.rdf4j.region.feature.FeatureDto;
 import org.destirec.destirec.rdf4j.vocabulary.DESTIREC;
 import org.destirec.destirec.utils.rdfDictionary.AttributeNames;
 import org.destirec.destirec.utils.rdfDictionary.QualityNames;
@@ -106,6 +108,45 @@ public class QualityOntology {
 
                     // hasFQuality \sqsubseteq hasQuality
                     ontology.addAxiom(factory.getOWLSubObjectPropertyOfAxiom(hasFQuality, hasQuality), ontologyFeature);
+
+                    OWLIndividual subject = factory.getOWLNamedIndividual(DESTIREC.wrap(featureQuality).pseudoUri());
+                    // hasFQuality :forFeature :Feature
+                    ontology.addAxiom(factory.getOWLObjectPropertyAssertionAxiom(forFeature, subject, featureInd), ontologyFeature);
+                }
+            }
+        }
+    }
+
+    public void definePOIOntology(List<POIDto> pois, String ontologyFeature) {
+        OWLObjectProperty sfDirectlyContains = factory.getOWLObjectProperty(RegionNames.Properties.SF_D_CONTAINS);
+        OWLObjectProperty forFeature = factory.getOWLObjectProperty(RegionNames.Properties.FOR_FEATURE.owlIri());
+        for (var poiDto : pois) {
+            OWLNamedIndividual poiInd = factory.getOWLNamedIndividual(poiDto.getId().stringValue());
+            FeatureDto featureDto = poiDto.getFeature();
+            int score = featureDto.getHasScore();
+            OWLIndividual featureInd = factory.getOWLNamedIndividual(featureDto.id().stringValue());
+            for (QualityNames.Individuals.Quality qualityEnum : QualityNames.Individuals.Quality.values()) {
+                OWLNamedIndividual qualityInd = factory.getOWLNamedIndividual(qualityEnum.iri().owlIri());
+
+                int lower = qualityEnum.getLower();
+                int upper = qualityEnum.getUpper();
+
+                if (score >= lower && score < upper) {
+                    String featureQuality = "has"
+                            + StringUtils.capitalize(featureDto.getRegionFeature().name())
+                            + "Quality";
+
+                    OWLObjectProperty hasFQuality = factory.getOWLObjectProperty(DESTIREC.wrap(featureQuality).owlIri());
+                    // sfDirectlyWithin \ \circ  has{F}Quality  \sqsubseteq has{F}Quality - for the inference
+                    // on the parent level
+                    OWLSubPropertyChainOfAxiom propertyChainAxiom = factory
+                            .getOWLSubPropertyChainOfAxiom(List.of(sfDirectlyContains, hasFQuality), hasFQuality);
+
+                    ontology.addAxiom(factory.getOWLObjectPropertyAssertionAxiom(hasFQuality, poiInd, qualityInd), ontologyFeature);
+
+                    // hasFQuality \sqsubseteq hasQuality
+                    ontology.addAxiom(factory.getOWLSubObjectPropertyOfAxiom(hasFQuality, hasQuality), ontologyFeature);
+                    ontology.addAxiom(propertyChainAxiom, ontologyFeature);
 
                     OWLIndividual subject = factory.getOWLNamedIndividual(DESTIREC.wrap(featureQuality).pseudoUri());
                     // hasFQuality :forFeature :Feature
