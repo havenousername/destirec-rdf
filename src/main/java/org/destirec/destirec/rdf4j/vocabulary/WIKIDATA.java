@@ -115,6 +115,16 @@ public class WIKIDATA {
             MUSEUM("Q33506"),
             ART_GALLERY("Q871905");
 
+            public static QTypes getQTypeFromIRI(String iri) {
+                for (QTypes qType : QTypes.values()) {
+                    if (iri.contains(qType.getType())) {
+                        return qType;
+                    }
+                }
+
+                throw new IllegalArgumentException("QType cannot be taken from iri " + iri);
+            }
+
             public static RegionFeature getRegionFeature(QTypes qType) {
                 return switch (qType) {
                     case MOUNTAIN, LAKE, PARK, FOREST, NATURAL_RESERVE, CANYON ->

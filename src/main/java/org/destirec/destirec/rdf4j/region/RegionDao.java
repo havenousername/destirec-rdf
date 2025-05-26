@@ -8,6 +8,7 @@ import org.destirec.destirec.rdf4j.region.cost.CostDao;
 import org.destirec.destirec.rdf4j.region.feature.FeatureDao;
 import org.destirec.destirec.utils.rdfDictionary.AttributeNames;
 import org.destirec.destirec.utils.rdfDictionary.RegionNames;
+import org.destirec.destirec.utils.rdfDictionary.RegionNames.Individuals.RegionTypes;
 import org.destirec.destirec.utils.rdfDictionary.TopOntologyNames;
 import org.eclipse.rdf4j.model.IRI;
 import org.eclipse.rdf4j.model.vocabulary.DC;
@@ -27,6 +28,7 @@ import org.eclipse.rdf4j.sparqlbuilder.graphpattern.TriplePattern;
 import org.eclipse.rdf4j.sparqlbuilder.rdf.Rdf;
 import org.eclipse.rdf4j.spring.dao.support.opbuilder.TupleQueryEvaluationBuilder;
 import org.eclipse.rdf4j.spring.support.RDF4JTemplate;
+import org.javatuples.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Repository;
@@ -168,5 +170,37 @@ public class RegionDao extends GenericDao<RegionConfig.Fields, RegionDto> {
                 this.getClass(),
                 "readQuery",
                 () -> getReadQuery(Rdf.iri((RegionNames.Classes.LEAF_REGION.rdfIri()))));
+    }
+
+    public List<Pair<IRI, IRI>> listByType(RegionTypes regionType) {
+        return this.getReadQueryListByType(regionType)
+                .evaluateAndConvert()
+                .toList(solution -> new Pair<>(
+                        valueFactory.createIRI(solution.getValue("regionId").stringValue()),
+                        valueFactory.createIRI(solution.getValue("sourceId").stringValue())))
+                ;
+    }
+
+    @Override
+    protected RegionDto mapSolution(BindingSet bindingSet) {
+        return super.mapSolution(bindingSet);
+    }
+
+    private TupleQueryEvaluationBuilder getReadQueryListByType(RegionTypes regionType) {
+        return this.getRdf4JTemplate()
+                .tupleQuery(getClass(), "KEY_LIST_ALL_BY_TYPE", () -> getListAllByTypeQuery(regionType));
+    }
+
+    protected String getListAllByTypeQuery(RegionTypes regionType) {
+        Variable regionId = SparqlBuilder.var("regionId");
+        Variable sourceId = SparqlBuilder.var("sourceId");
+        TriplePattern selectRegion = GraphPatterns.tp(regionId, RDF.TYPE, Rdf.iri(RegionNames.Classes.REGION.rdfIri()));
+        TriplePattern selectLeaf = GraphPatterns.tp(
+                regionId,
+                RegionNames.Properties.HAS_LEVEL.rdfIri(),
+                regionType.iri().rdfIri());
+
+        TriplePattern source = GraphPatterns.tp(regionId, DC.SOURCE, sourceId);
+        return Queries.SELECT(regionId, sourceId).where(selectRegion, selectLeaf, source).getQueryString();
     }
 }

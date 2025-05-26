@@ -54,6 +54,7 @@ public class DestirecApplication {
                 logger.info("RDF resource version with version {} is running", version);
             }
             knowledgeGraphService.addAllRegionsToRepository();
+            knowledgeGraphService.addAllPOIs();
             ontology.triggerInference();
         };
     }

@@ -121,4 +121,8 @@ public class POIClass extends SimpleRegionDto {
                normalizeValue(officialWebsite != null ? 1 : 0, 1, 0) +
                normalizeValue(coords != null ? 1 : 0, 1, 0);
     }
+
+    public double getPercentageScore() {
+        return (getHeuristicScore() * 100) / 7.0;
+    }
 }

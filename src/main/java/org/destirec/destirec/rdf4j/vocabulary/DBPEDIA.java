@@ -7,6 +7,8 @@ import org.eclipse.rdf4j.model.base.InternedIRI;
 public class DBPEDIA {
     public static final String NAMESPACE = "http://dbpedia.org/ontology/";
 
+    public static final String RDF = "http://dbpedia.org/sparql/";
+
     public static final Namespace NS = new ExternalNamespace("dbpedia", NAMESPACE);
 
     public static final IRI COST = new InternedIRI(NAMESPACE, "cost");

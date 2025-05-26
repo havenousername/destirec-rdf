@@ -9,6 +9,7 @@ import org.eclipse.rdf4j.model.Statement;
 import org.eclipse.rdf4j.model.Value;
 import org.eclipse.rdf4j.model.vocabulary.DC;
 import org.eclipse.rdf4j.model.vocabulary.RDF;
+import org.eclipse.rdf4j.model.vocabulary.RDFS;
 import org.eclipse.rdf4j.query.BindingSet;
 import org.eclipse.rdf4j.query.QueryEvaluationException;
 import org.eclipse.rdf4j.query.TupleQueryResult;
@@ -19,23 +20,27 @@ import org.eclipse.rdf4j.sparqlbuilder.core.query.Queries;
 import org.eclipse.rdf4j.sparqlbuilder.core.query.SelectQuery;
 import org.eclipse.rdf4j.sparqlbuilder.graphpattern.GraphPatterns;
 import org.eclipse.rdf4j.sparqlbuilder.graphpattern.TriplePattern;
+import org.eclipse.rdf4j.sparqlbuilder.rdf.RdfPredicate;
 import org.eclipse.rdf4j.spring.support.RDF4JTemplate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Repository;
 
+import java.util.List;
+
 @Repository
 public class VersionDao extends GenericDao<VersionConfig.Fields, VersionDto> {
+    private final RDF4JTemplate getRdf4JTemplate;
     protected Logger logger = LoggerFactory.getLogger(getClass());
     public VersionDao(
             RDF4JTemplate rdf4JTemplate,
             VersionConfig model,
             SchemaVersionMigration migration,
             VersionDtoCreator creator,
-            DestiRecOntology ontology
-    ) {
+            DestiRecOntology ontology,
+            RDF4JTemplate getRdf4JTemplate) {
         super(rdf4JTemplate, model, migration, creator, ontology);
-
+        this.getRdf4JTemplate = getRdf4JTemplate;
     }
 
     public IRI saveRegionVersionId(IRI from) {
@@ -68,6 +73,52 @@ public class VersionDao extends GenericDao<VersionConfig.Fields, VersionDto> {
 
             return getRegionVersion();
         });
+    }
+
+
+    public void savePOIVersion(List<IRI> from, int amount) {
+        getRdf4JTemplate().applyToConnection(connection -> {
+            IRI subject = valueFactory.createIRI(this.configFields.getResourceLocation() + "poi");
+            TriplePattern version = GraphPatterns.tp(subject, RDF.TYPE, VersionNames.Classes.VERSION.rdfIri());
+            from.forEach(fromSource -> {
+                version.andHas((RdfPredicate) DC.SOURCE, fromSource);
+            });
+
+            version.andHas(RDFS.LABEL, amount);
+
+            connection.begin();
+            ModifyQuery insertQuery = Queries.INSERT(version);
+            connection.prepareUpdate(insertQuery.getQueryString()).execute();
+            connection.commit();
+
+            return getRegionVersion();
+        });
+    }
+
+    public boolean hasPOIVersion() {
+        Resource subject = valueFactory.createIRI(this.configFields.getResourceLocation() + "poi");
+        Statement statement = new Statement() {
+            @Override
+            public Resource getSubject() {
+                return subject;
+            }
+
+            @Override
+            public IRI getPredicate() {
+                return RDF.TYPE;
+            }
+
+            @Override
+            public Value getObject() {
+                return VersionNames.Classes.VERSION.rdfIri();
+            }
+
+            @Override
+            public Resource getContext() {
+                return null;
+            }
+        };
+        return getRdf4JTemplate().applyToConnection(connection -> connection.hasStatement(statement, true));
     }
 
     public IRI getRegionVersion() {

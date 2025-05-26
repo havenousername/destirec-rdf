@@ -5,10 +5,11 @@ import io.github.resilience4j.circuitbreaker.CircuitBreaker;
 import io.github.resilience4j.circuitbreaker.CircuitBreakerConfig;
 import io.github.resilience4j.retry.Retry;
 import io.github.resilience4j.retry.RetryConfig;
-import lombok.NonNull;
+import org.destirec.destirec.rdf4j.region.RegionDao;
 import org.destirec.destirec.rdf4j.region.RegionService;
 import org.destirec.destirec.rdf4j.region.apiDto.SimpleRegionDto;
 import org.destirec.destirec.rdf4j.version.VersionDao;
+import org.destirec.destirec.rdf4j.vocabulary.DBPEDIA;
 import org.destirec.destirec.rdf4j.vocabulary.WIKIDATA;
 import org.destirec.destirec.utils.SafeIRI;
 import org.destirec.destirec.utils.rdfDictionary.RegionNames.Individuals.RegionTypes;
@@ -17,6 +18,7 @@ import org.eclipse.rdf4j.model.Value;
 import org.eclipse.rdf4j.model.impl.SimpleValueFactory;
 import org.eclipse.rdf4j.query.*;
 import org.eclipse.rdf4j.spring.support.RDF4JTemplate;
+import org.javatuples.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -27,6 +29,7 @@ import org.springframework.stereotype.Service;
 import java.time.Duration;
 import java.util.*;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 
 @Service
 public class KnowledgeGraphService {
@@ -39,10 +42,18 @@ public class KnowledgeGraphService {
     private final RateLimiter rateLimiter;
     private static final Duration REQUEST_TIMEOUT = Duration.ofSeconds(2);
     private static final int MAX_REQUESTS_PER_SECOND = 10;
+    private static final int MAX_REQUESTS_PER_SECOND_POI = 2;
+    private final CircuitBreaker circuitBreaker = CircuitBreaker.of("wikidata-api",
+            CircuitBreakerConfig.custom()
+                    .failureRateThreshold(50)
+                    .waitDurationInOpenState(Duration.ofMinutes(1))
+                    .build());
 
     @Lazy
     @Autowired
     private KnowledgeGraphService self;
+    @Autowired
+    private RegionDao regionDao;
 
 
     public KnowledgeGraphService(RDF4JTemplate rdf4JTemplate, RegionService regionService, VersionDao versionDao) {
@@ -51,212 +62,231 @@ public class KnowledgeGraphService {
         this.versionDao = versionDao;
         queries = new LinkedHashMap<>();
 
-        queries.put(RegionTypes.WORLD, this::getWorld);
-        queries.put(RegionTypes.CONTINENT, this::getContinentQuery);
-        queries.put(RegionTypes.CONTINENT_REGION, this::getContinentRegions);
-        queries.put(RegionTypes.COUNTRY, this::getRegionCountries);
+        queries.put(RegionTypes.WORLD, this::buildWorldQueryString);
+        queries.put(RegionTypes.CONTINENT, this::buildContinentQueryString);
+        queries.put(RegionTypes.CONTINENT_REGION, this::buildContinentRegionQueryString);
+        queries.put(RegionTypes.COUNTRY, this::buildCountyQueryString);
         queries.put(RegionTypes.DISTRICT, this::getDistrictsCountries);
-        queries.put(RegionTypes.POI, this::getPOIs);
+//        queries.put(RegionTypes.POI, this::getPOIs);
 
         rateLimiter = RateLimiter.create(MAX_REQUESTS_PER_SECOND);
     }
 
-    private String getPOIs(String district) {
+    private String buildPOIDBPediaQueryString(List<String> iri) {
         return """
                 PREFIX owl: <http://www.w3.org/2002/07/owl#>
                 PREFIX bd: <http://www.bigdata.com/rdf#>
-                PREFIX wdt: <http://www.wikidata.org/prop/direct/>
-                PREFIX wd: <http://www.wikidata.org/entity/>
                 PREFIX wikibase: <http://wikiba.se/ontology#>
                 PREFIX dbo: <http://dbpedia.org/ontology/>
                 PREFIX dct: <http://purl.org/dc/terms/>
                 PREFIX foaf: <http://xmlns.com/foaf/0.1/>
                 PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
                 PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
-        
-                SELECT ?poi ?poiLabel ?officialWebsite ?image ?coord
-                 ?osmId ?statementCount ?siteLinks ?dbpedia ?outDegree ?thumb
-                 ?quoraTopicID ?tripAdvisorID ?twitterUsername ?imdbKeywordID
-                WHERE {
-                  SERVICE <https://query.wikidata.org/sparql> {
-                    SELECT ?poi ?poiLabel ?officialWebsite ?image ?coord
-                    ?osmId ?statementCount ?siteLinks ?dbpedia
-                    ?quoraTopicID ?tripAdvisorID ?twitterUsername ?imdbKeywordID
-                    WHERE {
-                      VALUES ?type {
-                        wd:Q8502    # MOUNTAIN
-                        wd:Q23397   # LAKE
-                        wd:Q22698   # PARK
-                        wd:Q4421    # FOREST
-                        wd:Q472972  # NATURAL_RESERVE
-                        wd:Q623578  # CANYON
-                        wd:Q839954  # HISTORIC_DISTRICT
-                        wd:Q41176   # CATHEDRAL
-                        wd:Q124714  # CASTLE
-                        wd:Q209939  # HIKING_TRAIL
-                        wd:Q1779811 # CLIMBING_ROUTE
-                        wd:Q207326  # LOOKOUT_POINT
-                        wd:Q210327  # SNOWBOARDING
-                        wd:Q54202   # SKIING
-                        wd:Q180809  # SKI_JUMPING
-                        wd:Q1506654 # SLEDDING
-                        wd:Q875538  # SKI_RESORT
-                        wd:Q173211  # ICE_CLIMBING
-                        wd:Q2202162 # SNOW_PARK
-                        wd:Q1493709 # AMUSEMENT_PARK
-                        wd:Q1824207 # THEME_PARK
-                        wd:Q1735272 # KART_RACING_TRACK
-                        wd:Q1407358 # SHOOTING_RANGE
-                        wd:Q133357  # ARCADE
-                        wd:Q28154028# ESCAPE_ROOM
-                        wd:Q183424  # FESTIVAL_VENUE
-                        wd:Q27017155# ICE_CREAM_SHOP
-                        wd:Q1502956 # BOWLING_ALLEY
-                        wd:Q1324011 # BEER_GARDEN
-                        wd:Q131734  # BREWERY
-                        wd:Q11707   # RESTAURANT
-                        wd:Q18119866# STREET_FOOD_VENUE
-                        wd:Q210272  # FOOD_MARKET
-                        wd:Q55488   # SHOPPING_MALL
-                        wd:Q18534524# SOUVENIR_SHOP
-                        wd:Q3305213 # MARKET
+                 # DBpedia enrichment using owl:sameAs
+                 SELECT ?outDegree ?dbpedia ?thumb WHERE {
+                    SERVICE <https://dbpedia.org/sparql> {
+                      SELECT ?outDegree ?dbpedia ?thumb {
+                        VALUES ?wikidataPoiUri {  %s }
+                        ?dbpedia owl:sameAs ?wikidataPoiUri .
+                        OPTIONAL { ?dbpedia dbo:wikiPageOutDegree ?outDegree }
+                        OPTIONAL { ?dbpedia dbo:thumbnail ?thumb }
                       }
-        
-                      ?poi wdt:P31 ?type ;
-                           wdt:P131 <%s> .  # Located in Berlin
-        
-                      # Wikidata enrichments
-                      OPTIONAL { ?poi wdt:P856 ?officialWebsite }
-                      OPTIONAL { ?poi wdt:P18 ?image }
-                      OPTIONAL { ?poi wdt:P625 ?coord }
-                      OPTIONAL { ?poi wdt:P402 ?osmId }
-                      OPTIONAL { ?poi wikibase:statements ?statementCount. }
-        
-                      # Popularity indicators
-                      OPTIONAL { ?poi wdt:P3417 ?quoraTopicID }        # Quora
-                      OPTIONAL { ?poi wdt:P3134 ?tripAdvisorID }       # TripAdvisor
-                      OPTIONAL { ?poi wdt:P2002 ?twitterUsername }      # Twitter
-                      OPTIONAL { ?poi wdt:P5021 ?imdbKeywordID }        # IMDb keyword
-        
+                  }
+                 }
+                """.formatted(iri.stream().map(uri -> "<" + uri + ">")
+                .collect(Collectors.joining(" ")));
+    }
+
+    private String buildPoiQueryString(List<String> districts) {
+        String districtValues = districts.stream().map(uri -> "<" + uri + ">").collect(Collectors.joining(" "));
+        return """
+                        PREFIX owl: <http://www.w3.org/2002/07/owl#>
+                        PREFIX bd: <http://www.bigdata.com/rdf#>
+                        PREFIX wdt: <http://www.wikidata.org/prop/direct/>
+                        PREFIX wd: <http://www.wikidata.org/entity/>
+                        PREFIX wikibase: <http://wikiba.se/ontology#>
+                        PREFIX dbo: <http://dbpedia.org/ontology/>
+                        PREFIX dct: <http://purl.org/dc/terms/>
+                        PREFIX foaf: <http://xmlns.com/foaf/0.1/>
+                        PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+                        PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+                
+                        SELECT ?poi ?poiLabel ?officialWebsite ?image ?coord
+                         ?osmId ?statementCount ?siteLinks ?dbpedia ?district
+                         ?quoraTopicID ?tripAdvisorID ?twitterUsername ?imdbKeywordID ?type
+                        WHERE {
+                          SERVICE <https://query.wikidata.org/sparql> {
+                            SELECT ?poi ?poiLabel ?officialWebsite ?image ?coord
+                            ?osmId ?statementCount ?siteLinks ?dbpedia ?district
+                            ?quoraTopicID ?tripAdvisorID ?twitterUsername ?imdbKeywordID ?type
+                            WHERE {
+                              VALUES ?district { %s }
+                              VALUES ?type {
+                                wd:Q8502    # MOUNTAIN
+                                wd:Q23397   # LAKE
+                                wd:Q22698   # PARK
+                                wd:Q4421    # FOREST
+                                wd:Q472972  # NATURAL_RESERVE
+                                wd:Q623578  # CANYON
+                                wd:Q839954  # HISTORIC_DISTRICT
+                                wd:Q41176   # CATHEDRAL
+                                wd:Q124714  # CASTLE
+                                wd:Q209939  # HIKING_TRAIL
+                                wd:Q1779811 # CLIMBING_ROUTE
+                                wd:Q207326  # LOOKOUT_POINT
+                                wd:Q210327  # SNOWBOARDING
+                                wd:Q54202   # SKIING
+                                wd:Q180809  # SKI_JUMPING
+                                wd:Q1506654 # SLEDDING
+                                wd:Q875538  # SKI_RESORT
+                                wd:Q173211  # ICE_CLIMBING
+                                wd:Q2202162 # SNOW_PARK
+                                wd:Q1493709 # AMUSEMENT_PARK
+                                wd:Q1824207 # THEME_PARK
+                                wd:Q1735272 # KART_RACING_TRACK
+                                wd:Q1407358 # SHOOTING_RANGE
+                                wd:Q133357  # ARCADE
+                                wd:Q28154028# ESCAPE_ROOM
+                                wd:Q183424  # FESTIVAL_VENUE
+                                wd:Q27017155# ICE_CREAM_SHOP
+                                wd:Q1502956 # BOWLING_ALLEY
+                                wd:Q1324011 # BEER_GARDEN
+                                wd:Q131734  # BREWERY
+                                wd:Q11707   # RESTAURANT
+                                wd:Q18119866# STREET_FOOD_VENUE
+                                wd:Q210272  # FOOD_MARKET
+                                wd:Q55488   # SHOPPING_MALL
+                                wd:Q18534524# SOUVENIR_SHOP
+                                wd:Q3305213 # MARKET
+                              }
+                
+                              ?poi wdt:P31 ?type ;
+                                   wdt:P131 ?district .  # Located in district
+                
+                              # Wikidata enrichments
+                              OPTIONAL { ?poi wdt:P856 ?officialWebsite }
+                              OPTIONAL { ?poi wdt:P18 ?image }
+                              OPTIONAL { ?poi wdt:P625 ?coord }
+                              OPTIONAL { ?poi wdt:P402 ?osmId }
+                              OPTIONAL { ?poi wikibase:statements ?statementCount. }
+                
+                              # Popularity indicators
+                              OPTIONAL { ?poi wdt:P3417 ?quoraTopicID }        # Quora
+                              OPTIONAL { ?poi wdt:P3134 ?tripAdvisorID }       # TripAdvisor
+                              OPTIONAL { ?poi wdt:P2002 ?twitterUsername }      # Twitter
+                              OPTIONAL { ?poi wdt:P5021 ?imdbKeywordID }        # IMDb keyword
+                
+                              SERVICE wikibase:label { bd:serviceParam wikibase:language "[AUTO_LANGUAGE],en". }
+                            }
+                          }
+                        }
+                """.formatted(districtValues);
+    }
+
+    private String buildWorldQueryString(String parent) {
+        return """
+                PREFIX bd: <http://www.bigdata.com/rdf#>
+                PREFIX wdt: <http://www.wikidata.org/prop/direct/>
+                PREFIX wd: <http://www.wikidata.org/entity/>
+                PREFIX wikibase: <http://wikiba.se/ontology#>
+                
+                SELECT ?earth ?earthLabel {
+                    SERVICE <https://query.wikidata.org/sparql> {
+                        SELECT ?earth ?earthLabel WHERE {
+                                    BIND(wd:Q2 AS ?earth)
+                                    SERVICE wikibase:label {
+                                bd:serviceParam wikibase:language "[AUTO_LANGUAGE],en" .
+                            }
+                        }
+                    }
+                }
+                """;
+    }
+
+    private String buildContinentQueryString(String noName) {
+        return """
+                    PREFIX bd: <http://www.bigdata.com/rdf#>
+                    PREFIX wdt: <http://www.wikidata.org/prop/direct/>
+                    PREFIX wd: <http://www.wikidata.org/entity/>
+                    PREFIX wikibase: <http://wikiba.se/ontology#>
+                
+                    SELECT ?continent ?continentLabel {
+                        SERVICE <https://query.wikidata.org/sparql> {
+                            SELECT ?continent ?continentLabel WHERE {
+                                ?continent wdt:P31 wd:Q5107 .
+                                ?continent wdt:P361 wd:Q2 .
+                                SERVICE wikibase:label {
+                                    bd:serviceParam wikibase:language "[AUTO_LANGUAGE],en" .
+                                }
+                            }
+                        }
+                    }
+                """;
+    }
+
+    private String buildContinentRegionQueryString(String continent) {
+        return """
+                    PREFIX bd: <http://www.bigdata.com/rdf#>
+                    PREFIX wdt: <http://www.wikidata.org/prop/direct/>
+                    PREFIX wd: <http://www.wikidata.org/entity/>
+                    PREFIX wikibase: <http://wikiba.se/ontology#>
+                
+                    SELECT ?region ?regionLabel {
+                        SERVICE <https://query.wikidata.org/sparql> {
+                            SELECT ?region ?regionLabel WHERE {
+                                ?region wdt:P31 wd:Q82794 .
+                                 # part of
+                                ?region wdt:P361 <%s> .
+                                SERVICE wikibase:label { bd:serviceParam wikibase:language "[AUTO_LANGUAGE],en". }\s
+                            }
+                        }
+                    }
+                """.formatted(continent);
+    }
+
+    private String buildCountyQueryString(String region) {
+        return """
+                    PREFIX bd: <http://www.bigdata.com/rdf#>
+                    PREFIX wdt: <http://www.wikidata.org/prop/direct/>
+                    PREFIX wd: <http://www.wikidata.org/entity/>
+                    PREFIX wikibase: <http://wikiba.se/ontology#>
+                
+                    SELECT ?country ?countryLabel {
+                        SERVICE <https://query.wikidata.org/sparql> {
+                            SELECT ?country ?countryLabel WHERE {
+                                {
+                        ?country wdt:P31 wd:Q15239622 ;  # Q15239622 = continent region
+                                        wdt:P361 <%s> .     # Q27381 = Eurasia
+                      }
+                      UNION
+                      {
+                        ?country wdt:P31 wd:Q6256 ;      # Q6256 = country
+                                        wdt:P361 <%s> .
+                      }
                       SERVICE wikibase:label { bd:serviceParam wikibase:language "[AUTO_LANGUAGE],en". }
+                            }
+                        }
                     }
-                  }
-        
-                  # DBpedia enrichment using owl:sameAs
-                  SERVICE <https://dbpedia.org/sparql> {
-                    ?dbpedia owl:sameAs ?poi .
-                    OPTIONAL { ?dbpedia dbo:wikiPageOutDegree ?outDegree }
-                    OPTIONAL { ?dbpedia dbo:thumbnail ?thumb }
-                  }
-                }
-                ORDER BY DESC(?statementCount)
-        """.formatted(district);
-    }
-
-    private String getWorld(String parent) {
-        return """
-        PREFIX bd: <http://www.bigdata.com/rdf#>
-        PREFIX wdt: <http://www.wikidata.org/prop/direct/>
-        PREFIX wd: <http://www.wikidata.org/entity/>
-        PREFIX wikibase: <http://wikiba.se/ontology#>
-
-        SELECT ?earth ?earthLabel {
-            SERVICE <https://query.wikidata.org/sparql> {
-                SELECT ?earth ?earthLabel WHERE {
-                            BIND(wd:Q2 AS ?earth)
-                            SERVICE wikibase:label {
-                        bd:serviceParam wikibase:language "[AUTO_LANGUAGE],en" .
-                    }
-                }
-            }
-        }
-        """;
-    }
-
-    private String getContinentQuery(String noName) {
-        return """
-        PREFIX bd: <http://www.bigdata.com/rdf#>
-        PREFIX wdt: <http://www.wikidata.org/prop/direct/>
-        PREFIX wd: <http://www.wikidata.org/entity/>
-        PREFIX wikibase: <http://wikiba.se/ontology#>
-    
-        SELECT ?continent ?continentLabel {
-            SERVICE <https://query.wikidata.org/sparql> {
-                SELECT ?continent ?continentLabel WHERE {
-                    ?continent wdt:P31 wd:Q5107 .
-                    ?continent wdt:P361 wd:Q2 .
-                    SERVICE wikibase:label {
-                        bd:serviceParam wikibase:language "[AUTO_LANGUAGE],en" .
-                    }
-                }
-            }
-        }
-    """;
-    }
-
-    private String getContinentRegions(String continent) {
-        return """
-        PREFIX bd: <http://www.bigdata.com/rdf#>
-        PREFIX wdt: <http://www.wikidata.org/prop/direct/>
-        PREFIX wd: <http://www.wikidata.org/entity/>
-        PREFIX wikibase: <http://wikiba.se/ontology#>
-    
-        SELECT ?region ?regionLabel {
-            SERVICE <https://query.wikidata.org/sparql> {
-                SELECT ?region ?regionLabel WHERE {
-                    ?region wdt:P31 wd:Q82794 .
-                     # part of
-                    ?region wdt:P361 <%s> .
-                    SERVICE wikibase:label { bd:serviceParam wikibase:language "[AUTO_LANGUAGE],en". }\s
-                }
-            }
-        }
-    """.formatted(continent);
-    }
-
-    private String getRegionCountries(String region) {
-        return """
-        PREFIX bd: <http://www.bigdata.com/rdf#>
-        PREFIX wdt: <http://www.wikidata.org/prop/direct/>
-        PREFIX wd: <http://www.wikidata.org/entity/>
-        PREFIX wikibase: <http://wikiba.se/ontology#>
-    
-        SELECT ?country ?countryLabel {
-            SERVICE <https://query.wikidata.org/sparql> {
-                SELECT ?country ?countryLabel WHERE {
-                    {
-            ?country wdt:P31 wd:Q15239622 ;  # Q15239622 = continent region
-                            wdt:P361 <%s> .     # Q27381 = Eurasia
-          }
-          UNION
-          {
-            ?country wdt:P31 wd:Q6256 ;      # Q6256 = country
-                            wdt:P361 <%s> .
-          }
-          SERVICE wikibase:label { bd:serviceParam wikibase:language "[AUTO_LANGUAGE],en". }
-                }
-            }
-        }
-    """.formatted(region, region);
+                """.formatted(region, region);
     }
 
     private String getDistrictsCountries(String country) {
         return
-        """
-        PREFIX bd: <http://www.bigdata.com/rdf#>
-        PREFIX wdt: <http://www.wikidata.org/prop/direct/>
-        PREFIX wd: <http://www.wikidata.org/entity/>
-        PREFIX wikibase: <http://wikiba.se/ontology#>
-        
-        SELECT ?district ?districtLabel {
-            SERVICE <https://query.wikidata.org/sparql> {
-                SELECT ?district ?districtLabel WHERE {
-                   <%s> wdt:P150 ?district .  # Germany contains these administrative territorial entities
-                  SERVICE wikibase:label { bd:serviceParam wikibase:language "[AUTO_LANGUAGE],en". }
-                }
-            }
-        }
-        """.formatted(country);
+                """
+                        PREFIX bd: <http://www.bigdata.com/rdf#>
+                        PREFIX wdt: <http://www.wikidata.org/prop/direct/>
+                        PREFIX wd: <http://www.wikidata.org/entity/>
+                        PREFIX wikibase: <http://wikiba.se/ontology#>
+                        
+                        SELECT ?district ?districtLabel {
+                            SERVICE <https://query.wikidata.org/sparql> {
+                                SELECT ?district ?districtLabel WHERE {
+                                   <%s> wdt:P150 ?district .  # Germany contains these administrative territorial entities
+                                  SERVICE wikibase:label { bd:serviceParam wikibase:language "[AUTO_LANGUAGE],en". }
+                                }
+                            }
+                        }
+                        """.formatted(country);
     }
 
     @Cacheable(value = "regionQueries", key = "#regionType + '-' + #parent")
@@ -299,13 +329,6 @@ public class KnowledgeGraphService {
         }
     }
 
-    private final CircuitBreaker circuitBreaker = CircuitBreaker.of("wikidata-api",
-            CircuitBreakerConfig.custom()
-                    .failureRateThreshold(50)
-                    .waitDurationInOpenState(Duration.ofMinutes(1))
-                    .build());
-
-
 
     private void getQueryHandler(
             List<Map.Entry<RegionTypes, Function<String, String>>> regionsHierarchy,
@@ -317,12 +340,7 @@ public class KnowledgeGraphService {
             String query = queries.get(regionType).apply(parentValue);
             TupleQuery tupleQuery = connection.prepareTupleQuery(query);
             try (TupleQueryResult result = tupleQuery.evaluate()) {
-                if (RegionTypes.POI == regionType && parentValue != null) {
-                    List<POIClass> pois = transformQueryResultsToPOIs(result, parentValue);
-                    AntColonyOptimizer optimizer = new AntColonyOptimizer(
-                            pois, ACOHyperparameters.getDefault());
-                    List<POIClass> optimized = optimizer.optimize();
-                } else if (RegionTypes.POI != regionType) {
+                if (RegionTypes.POI != regionType) {
                     createRegionFromQueryResults(
                             result,
                             regionsHierarchy,
@@ -332,22 +350,6 @@ public class KnowledgeGraphService {
                 }
             }
         });
-    }
-
-    public void addAllRegionsToRepository() {
-        if (versionDao.hasRegionVersion()) {
-            logger.info("Repository already has all the regions");
-            return;
-        }
-
-        circuitBreaker.executeRunnable(() -> {
-            self.getQueryHandlerCached(
-                    queries.entrySet().stream().toList(),
-                    RegionTypes.WORLD,
-                    Optional.empty());
-            logger.info("Repository already has all the regions");
-        });
-        versionDao.saveRegionVersion(factory.createIRI(WIKIDATA.SPARQL_ENDPOINT.toString()));
     }
 
     private void createRegionFromQueryResults(
@@ -395,25 +397,124 @@ public class KnowledgeGraphService {
         });
     }
 
-    private List<POIClass> transformQueryResultsToPOIs(TupleQueryResult results, @NonNull String parent) {
-        List<POIClass> pois = new ArrayList<>();
+    private void makeQueryForPOIs() {
+        List<Pair<IRI, IRI>> allDistricts = regionDao.listByType(RegionTypes.DISTRICT);
+        int batchSize = 100;
+        for (int i = 0; i < allDistricts.size(); i += batchSize) {
+            List<Pair<IRI, IRI>> currentBatch = allDistricts.subList(i, Math.min(i + batchSize, allDistricts.size()));
+            if (currentBatch.isEmpty()) {
+                continue;
+            }
+            List<String> districtUrisForQuery = currentBatch
+                    .stream()
+                    .map(pair -> pair.getValue1().stringValue())
+                    .toList();
 
+            String wikidataQueryString = buildPoiQueryString(districtUrisForQuery);
+            Map<String, List<POIClass>> poisFromWikidata = new HashMap<>();
+
+            try {
+                rdf4JTemplate.consumeConnection(connection -> {
+                    TupleQuery tupleQuery = connection.prepareTupleQuery(wikidataQueryString);
+                    transformQueryResultsToPOIs(tupleQuery.evaluate(), poisFromWikidata);
+                });
+
+                List<String> wikidataPois = new ArrayList<>();
+                for (List<POIClass> list : poisFromWikidata.values()) {
+                    wikidataPois.addAll(list.stream().map(POIClass::getSource).map(IRI::stringValue).toList());
+                }
+
+                String dbpediaQueryString = buildPOIDBPediaQueryString(wikidataPois);
+                rdf4JTemplate.consumeConnection(connection -> {
+                    TupleQuery tupleQuery = connection.prepareTupleQuery(dbpediaQueryString);
+                    transformDBPediaResults(tupleQuery.evaluate(), poisFromWikidata);
+                });
+
+                for (Pair<IRI, IRI> district : currentBatch) {
+                    String currentDistrictUri = district.getValue1().stringValue();
+                    if (!poisFromWikidata.containsKey(currentDistrictUri) || poisFromWikidata.get(currentDistrictUri).isEmpty()) {
+                        continue;
+                    }
+                    List<POIClass> pois = poisFromWikidata.get(currentDistrictUri);
+                    logger.info("Optimizing {} POIs for district {}", pois.size(), currentDistrictUri);
+                    ACOHyperparameters hyperparameters = ACOHyperparameters.getDefault();
+                    hyperparameters.setSelectionSize(Math.round((double) pois.size() / 4));
+                    AntColonyOptimizer optimizer = new AntColonyOptimizer(pois, hyperparameters);
+                    List<POIClass> optimized = optimizer.optimize();
+                    logger.info("Finished optimization for district {}. Optimized: {}, Original in batch for district: {}",
+                            currentDistrictUri, optimized.size(), pois.size());
+                }
+            } catch (Exception exception) {
+                logger.error("Failed to query Wikidata for districts {}", districtUrisForQuery, exception);
+            }
+
+        }
+    }
+
+    private void makeQueryForPOIsWithRetry() {
+        Retry retry = Retry.of(
+                "queryHandlerRetry",
+                RetryConfig.custom()
+                        .maxAttempts(3)
+                        .waitDuration(REQUEST_TIMEOUT)
+                        .retryOnException(e -> e instanceof QueryEvaluationException)
+                        .build()
+        );
+
+        Runnable runnable = Retry.decorateRunnable(
+                retry,
+                () -> {
+                    rateLimiter.acquire();
+                    makeQueryForPOIs();
+                }
+        );
+
+        try {
+            runnable.run();
+        } catch (Exception e) {
+            logger.error("Failed to get query handler for POIs", e);
+            throw new RuntimeException(e);
+        }
+    }
+
+    private void transformDBPediaResults(TupleQueryResult results, Map<String, List<POIClass>> poisFromWikidata) {
+        results.forEach(bindings -> {
+            if (bindings.getValue("wikidataPoiUri") == null) {
+                return;
+            }
+            List<POIClass> poiList = poisFromWikidata.values().stream().flatMap(Collection::stream).toList();
+            Optional<POIClass> poi = poiList.stream().filter(p -> p.getSource().stringValue().contains(bindings.getValue("wikidataPoiUri").stringValue())).findFirst();
+            Value outDegree = bindings.getValue("outDegree");
+            if (outDegree != null && poi.isPresent()) {
+                poi.get().setOutgoingLinks(Integer.parseInt(outDegree.stringValue()));
+            }
+
+            Value thumb = bindings.getValue("thumb");
+            if (thumb != null && poi.isPresent()) {
+                Pair<String, String> images = poi.get().getImages();
+                poi.get().setImages(images.getValue0(), thumb.stringValue());
+            }
+        });
+    }
+
+    private void transformQueryResultsToPOIs(TupleQueryResult results, Map<String, List<POIClass>> poisFromWikidata) {
         results.forEach(bindings -> {
             POIClass poi = new POIClass();
 
             // setup simple region dto base
+            String parentValue = bindings.getValue("district").stringValue();
             Value poiValue = bindings.getValue("poi");
             poi.setSource(factory.createIRI(poiValue.stringValue()));
             Value poiLabelValue = bindings.getValue("poiLabel");
             poi.setName(poiLabelValue.stringValue());
             poi.setId(SafeIRI.toSafeIRIForm(poiLabelValue.stringValue()));
-            poi.setSourceParent(factory.createIRI(parent));
+            poi.setSourceParent(parentValue != null ? factory.createIRI(parentValue) : null);
             poi.setType(RegionTypes.POI);
 
 
             // setup poi class fields
             Value typeValue = bindings.getValue("type");
-            poi.setFeature(WIKIDATA.RegionOntology.QTypes.valueOf(typeValue.stringValue()));
+            poi.setFeature(WIKIDATA.RegionOntology.QTypes.getQTypeFromIRI(typeValue.stringValue()));
             Value officialWebsiteValue = bindings.getValue("officialWebsite");
             poi.setOfficialWebsite(officialWebsiteValue != null ? officialWebsiteValue.stringValue() : null);
             Value coordValue = bindings.getValue("coord");
@@ -431,22 +532,14 @@ public class KnowledgeGraphService {
             Value wikidataImage = bindings.getValue("image");
             Value dbpediaThumb = bindings.getValue("thumb");
             poi.setImages(
-                wikidataImage != null ? wikidataImage.stringValue() : null,
-                dbpediaThumb != null ? dbpediaThumb.stringValue() : null
+                    wikidataImage != null ? wikidataImage.stringValue() : null,
+                    dbpediaThumb != null ? dbpediaThumb.stringValue() : null
             );
 
             // Set OSM link
             Value osmId = bindings.getValue("osmId");
             if (osmId != null) {
                 poi.setOsmLink("https://www.openstreetmap.org/" + osmId.stringValue());
-            }
-
-            // Set outgoing links from DBpedia
-            Value outDegree = bindings.getValue("outDegree");
-            if (outDegree != null) {
-                poi.setOutgoingLinks(Integer.parseInt(outDegree.stringValue()));
-            } else {
-                poi.setOutgoingLinks(0);
             }
 
             Value siteLinks = bindings.getValue("siteLinks");
@@ -456,20 +549,51 @@ public class KnowledgeGraphService {
 
             // Set internet mentions
             poi.setInternetMentions(
-                getStringValueOrNull(bindings, "quoraTopicID"),
-                getStringValueOrNull(bindings, "tripAdvisorID"),
-                getStringValueOrNull(bindings, "twitterUsername"),
-                getStringValueOrNull(bindings, "imdbKeywordID")
+                    getStringValueOrNull(bindings, "quoraTopicID"),
+                    getStringValueOrNull(bindings, "tripAdvisorID"),
+                    getStringValueOrNull(bindings, "twitterUsername"),
+                    getStringValueOrNull(bindings, "imdbKeywordID")
             );
 
-            pois.add(poi);
+            if (poisFromWikidata.containsKey(parentValue)) {
+                poisFromWikidata.get(parentValue).add(poi);
+            } else {
+                poisFromWikidata.put(parentValue, new ArrayList<>(List.of(poi)));
+            }
         });
+    }
 
-    return pois;
-}
+    private String getStringValueOrNull(BindingSet bindings, String name) {
+        Value value = bindings.getValue(name);
+        return value != null ? value.stringValue() : null;
+    }
 
-private String getStringValueOrNull(BindingSet bindings, String name) {
-    Value value = bindings.getValue(name);
-    return value != null ? value.stringValue() : null;
-}
+    public void addAllRegionsToRepository() {
+        if (versionDao.hasRegionVersion()) {
+            logger.info("Repository already has all the regions");
+            return;
+        }
+
+        circuitBreaker.executeRunnable(() -> {
+            self.getQueryHandlerCached(
+                    queries.entrySet().stream().toList(),
+                    RegionTypes.WORLD,
+                    Optional.empty());
+            logger.info("Repository already has all the regions");
+        });
+        versionDao.saveRegionVersion(factory.createIRI(WIKIDATA.SPARQL_ENDPOINT.toString()));
+    }
+
+    public void addAllPOIs() {
+        if (versionDao.hasPOIVersion()) {
+            logger.info("Repository already has all the POIs");
+            return;
+        }
+
+
+        circuitBreaker.executeRunnable(this::makeQueryForPOIsWithRetry);
+        versionDao.savePOIVersion(List.of(
+                factory.createIRI(WIKIDATA.SPARQL_ENDPOINT.toString()),
+                factory.createIRI(DBPEDIA.RDF)), 20);
+    }
 }
