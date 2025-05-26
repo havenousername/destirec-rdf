@@ -1,7 +1,6 @@
 package org.destirec.destirec.rdf4j.region;
 
 import org.destirec.destirec.rdf4j.ontology.AppOntology;
-import org.destirec.destirec.utils.rdfDictionary.AttributeNames;
 import org.destirec.destirec.utils.rdfDictionary.POINames;
 import org.destirec.destirec.utils.rdfDictionary.RegionNames;
 import org.destirec.destirec.utils.rdfDictionary.TopOntologyNames;
@@ -26,9 +25,6 @@ class RegionClassOntology {
     private final OWLObjectProperty sfDirectlyContains;
     private final OWLObjectProperty sfTransitiveWithin;
     private final OWLObjectProperty sfTransitiveContains;
-
-    private final OWLClassExpression attributeSelection;
-    
     private final AppOntology ontology;
     private final OWLClass poi;
 
@@ -56,7 +52,6 @@ class RegionClassOntology {
         this.sfTransitiveContains = factory.getOWLObjectProperty(RegionNames.Properties.SF_CONTAINS);
 
         this.regionLike = factory.getOWLClass(RegionNames.Classes.REGION_LIKE.owlIri());
-        this.attributeSelection = factory.getOWLClass(AttributeNames.Classes.ATTRIBUTES_COLLECTION.owlIri());
         this.poi = factory.getOWLClass(POINames.Classes.POI.owlIri());
     }
 
@@ -135,8 +130,7 @@ class RegionClassOntology {
                                 factory.getOWLObjectIntersectionOf(
 //                                        subregionsAreNothing,
                                         subregionsAreOne,
-                                        insideOneRegionDirectly,
-                                        attributeSelection
+                                        insideOneRegionDirectly
 //                                        onlyInsideRegion
                                 ))
                         );

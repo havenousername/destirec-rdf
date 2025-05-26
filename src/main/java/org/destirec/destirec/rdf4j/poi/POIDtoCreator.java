@@ -41,7 +41,7 @@ public class POIDtoCreator implements DtoCreator<POIDto, POIConfig.Fields> {
                 .orElse(null);
 
         String concreteFeature = map.get(POIConfig.Fields.FEATURE_SPECIFIC_TYPE);
-        WIKIDATA.RegionOntology.QTypes type = concreteFeature != null ? WIKIDATA.RegionOntology.QTypes.valueOf(concreteFeature.toUpperCase()) : null;
+        WIKIDATA.RegionOntology.QTypes type = concreteFeature != null ? WIKIDATA.RegionOntology.QTypes.getQTypeFromIRI(concreteFeature.toUpperCase()) : null;
 
         String image = map.get(POIConfig.Fields.IMAGE);
         String thumb = map.get(POIConfig.Fields.THUMBNAIL);
@@ -54,12 +54,12 @@ public class POIDtoCreator implements DtoCreator<POIDto, POIConfig.Fields> {
                 featureDto,
                 type,
                 map.get(POIConfig.Fields.OSM),
-                Integer.parseInt(map.get(POIConfig.Fields.SITE_LINKS_NUMBER)),
+                Integer.parseInt(Optional.ofNullable(map.get(POIConfig.Fields.SITE_LINKS_NUMBER)).orElse("0")),
                 image != null || thumb != null,
                 map.get(POIConfig.Fields.OFFICIAL_WEBSITE),
                 new Pair<>(image, thumb),
-                Integer.parseInt(map.get(POIConfig.Fields.OUTGOING_LINKS_NUMBER)),
-                Integer.parseInt(map.get(POIConfig.Fields.WIKI_STATEMENTS)),
+                Integer.parseInt(Optional.ofNullable(map.get(POIConfig.Fields.OUTGOING_LINKS_NUMBER)).orElse("0")),
+                Integer.parseInt(Optional.ofNullable(map.get(POIConfig.Fields.WIKI_STATEMENTS)).orElse("0")),
                 map.get(POIConfig.Fields.QUORA_TOPIC_ID) != null,
                 map.get(POIConfig.Fields.TWITTER_ID) != null,
                 map.get(POIConfig.Fields.IMDB_ID) != null,

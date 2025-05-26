@@ -20,12 +20,12 @@ import org.eclipse.rdf4j.sparqlbuilder.core.query.Queries;
 import org.eclipse.rdf4j.sparqlbuilder.core.query.SelectQuery;
 import org.eclipse.rdf4j.sparqlbuilder.graphpattern.GraphPatterns;
 import org.eclipse.rdf4j.sparqlbuilder.graphpattern.TriplePattern;
-import org.eclipse.rdf4j.sparqlbuilder.rdf.RdfPredicate;
 import org.eclipse.rdf4j.spring.support.RDF4JTemplate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Repository;
 
+import java.util.ArrayList;
 import java.util.List;
 
 @Repository
@@ -79,15 +79,19 @@ public class VersionDao extends GenericDao<VersionConfig.Fields, VersionDto> {
     public void savePOIVersion(List<IRI> from, int amount) {
         getRdf4JTemplate().applyToConnection(connection -> {
             IRI subject = valueFactory.createIRI(this.configFields.getResourceLocation() + "poi");
+            List<TriplePattern> patterns = new ArrayList<>();
+
             TriplePattern version = GraphPatterns.tp(subject, RDF.TYPE, VersionNames.Classes.VERSION.rdfIri());
-            from.forEach(fromSource -> {
-                version.andHas((RdfPredicate) DC.SOURCE, fromSource);
-            });
+            patterns.add(version);
+
+            for (IRI fromSource : from) {
+                patterns.add(GraphPatterns.tp(subject, DC.SOURCE, fromSource));
+            }
 
             version.andHas(RDFS.LABEL, amount);
 
             connection.begin();
-            ModifyQuery insertQuery = Queries.INSERT(version);
+            ModifyQuery insertQuery = Queries.INSERT(patterns.toArray(TriplePattern[]::new));
             connection.prepareUpdate(insertQuery.getQueryString()).execute();
             connection.commit();
 

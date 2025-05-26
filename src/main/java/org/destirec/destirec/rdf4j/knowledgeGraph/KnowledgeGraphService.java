@@ -17,6 +17,7 @@ import org.eclipse.rdf4j.model.IRI;
 import org.eclipse.rdf4j.model.Value;
 import org.eclipse.rdf4j.model.impl.SimpleValueFactory;
 import org.eclipse.rdf4j.query.*;
+import org.eclipse.rdf4j.query.impl.MutableTupleQueryResult;
 import org.eclipse.rdf4j.spring.support.RDF4JTemplate;
 import org.javatuples.Pair;
 import org.slf4j.Logger;
@@ -59,6 +60,8 @@ public class KnowledgeGraphService {
     private KnowledgeGraphService self;
     @Autowired
     private RegionDao regionDao;
+
+    private boolean isTestRun = true;
 
 
     public KnowledgeGraphService(RDF4JTemplate rdf4JTemplate, RegionService regionService, VersionDao versionDao) {
@@ -334,6 +337,17 @@ public class KnowledgeGraphService {
         }
     }
 
+    private TupleQueryResult reduceTurtleQueryCapacity(TupleQueryResult result, RegionTypes regionType) {
+        List<BindingSet> allResults = org.eclipse.rdf4j.query.QueryResults.asList(result);
+
+        if (regionType == RegionTypes.CONTINENT_REGION
+                || regionType == RegionTypes.COUNTRY
+                || regionType == RegionTypes.DISTRICT) {
+            allResults = allResults.stream().limit(2).toList();
+        }
+        return new MutableTupleQueryResult(result.getBindingNames(), allResults);
+    }
+
 
     private void getQueryHandler(
             List<Map.Entry<RegionTypes, Function<String, String>>> regionsHierarchy,
@@ -347,7 +361,7 @@ public class KnowledgeGraphService {
             try (TupleQueryResult result = tupleQuery.evaluate()) {
                 if (RegionTypes.POI != regionType) {
                     createRegionFromQueryResults(
-                            result,
+                            isTestRun ? reduceTurtleQueryCapacity(result, regionType) : result,
                             regionsHierarchy,
                             parentValue,
                             regionType
@@ -424,24 +438,30 @@ public class KnowledgeGraphService {
     private void makeQueryForPOIs() {
         List<Pair<IRI, IRI>> allDistricts = regionDao.listByType(RegionTypes.DISTRICT);
         int batchSize = 100;
-        for (int i = 0; i < allDistricts.size(); i += batchSize) {
-            List<Pair<IRI, IRI>> currentBatch = allDistricts.subList(i, Math.min(i + batchSize, allDistricts.size()));
-            if (currentBatch.isEmpty()) {
-                continue;
-            }
-            List<String> districtUrisForQuery = currentBatch
-                    .stream()
-                    .map(pair -> pair.getValue1().stringValue())
-                    .toList();
+        rdf4JTemplate.consumeConnection(connection -> {
+            for (int i = 0; i < allDistricts.size(); i += batchSize) {
+                List<Pair<IRI, IRI>> currentBatch = allDistricts.subList(i, Math.min(i + batchSize, allDistricts.size()));
+                if (currentBatch.isEmpty()) {
+                    continue;
+                }
+                List<String> districtUrisForQuery = currentBatch
+                        .stream()
+                        .map(pair -> pair.getValue1().stringValue())
+                        .toList();
 
-            String wikidataQueryString = buildPoiQueryString(districtUrisForQuery);
-            Map<String, List<POIClass>> poisFromWikidata = new HashMap<>();
+                String wikidataQueryString = buildPoiQueryString(districtUrisForQuery);
+                Map<String, List<POIClass>> poisFromWikidata = new HashMap<>();
 
-            try {
-                rdf4JTemplate.consumeConnection(connection -> {
-                    TupleQuery tupleQuery = connection.prepareTupleQuery(wikidataQueryString);
-                    transformQueryResultsToPOIs(tupleQuery.evaluate(), poisFromWikidata);
-                });
+                TupleQuery tupleQuery = connection.prepareTupleQuery(wikidataQueryString);
+                TupleQueryResult result = null;
+                try {
+                    result = tupleQuery.evaluate();
+                    transformQueryResultsToPOIs(result, poisFromWikidata);
+                } finally {
+                    if (result != null) {
+                        result.close();
+                    }
+                }
 
                 List<String> wikidataPois = new ArrayList<>();
                 for (List<POIClass> list : poisFromWikidata.values()) {
@@ -449,10 +469,17 @@ public class KnowledgeGraphService {
                 }
 
                 String dbpediaQueryString = buildPOIDBPediaQueryString(wikidataPois);
-                rdf4JTemplate.consumeConnection(connection -> {
-                    TupleQuery tupleQuery = connection.prepareTupleQuery(dbpediaQueryString);
-                    transformDBPediaResults(tupleQuery.evaluate(), poisFromWikidata);
-                });
+                TupleQuery tupleQueryDbpedia = connection.prepareTupleQuery(dbpediaQueryString);
+                TupleQueryResult resultPedia = null;
+                try {
+                    resultPedia = tupleQueryDbpedia.evaluate();
+                    transformDBPediaResults(resultPedia, poisFromWikidata);
+                } finally {
+                    if (resultPedia != null) {
+                        result.close();
+                    }
+                }
+
 
                 for (Pair<IRI, IRI> district : currentBatch) {
                     String currentDistrictUri = district.getValue1().stringValue();
@@ -471,12 +498,9 @@ public class KnowledgeGraphService {
                             currentDistrictUri, optimized.size(), pois.size());
                     createPOIsInRdf(optimized);
                 }
-            } catch (Exception exception) {
-                logger.error("Failed to query Wikidata for districts {}", districtUrisForQuery, exception);
             }
-
-        }
-        regionService.updateAllOntologiesPOIs();
+            regionService.updateAllOntologiesPOIs();
+        });
     }
 
     private void makeQueryForPOIsWithRetry() {

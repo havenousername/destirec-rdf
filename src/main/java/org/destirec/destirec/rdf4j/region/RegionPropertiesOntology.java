@@ -8,7 +8,7 @@ class RegionPropertiesOntology {
     private final OWLDataFactory factory;
     private final AppOntology ontology;
 
-    private final OWLClass region;
+    private final OWLClass regionLike;
     private final OWLObjectProperty sfWithin;
     private final OWLObjectProperty sfContains;
     private final OWLObjectProperty sfDirectlyWithin;
@@ -22,14 +22,14 @@ class RegionPropertiesOntology {
         this.sfContains = factory.getOWLObjectProperty(RegionNames.Properties.SF_CONTAINS);
         this.sfDirectlyWithin = factory.getOWLObjectProperty(RegionNames.Properties.SF_D_WITHIN);
         this.sfDirectlyContains = factory.getOWLObjectProperty(RegionNames.Properties.SF_D_CONTAINS);
-        this.region = factory.getOWLClass(RegionNames.Classes.REGION.owlIri());
+        this.regionLike = factory.getOWLClass(RegionNames.Classes.REGION_LIKE.owlIri());
     }
 
 
     // sfWithin ⊑ Region×Region
     public void defineSfWithinMapping() {
-        ontology.addAxiom(factory.getOWLObjectPropertyDomainAxiom(sfWithin, region));
-        ontology.addAxiom(factory.getOWLObjectPropertyRangeAxiom(sfWithin, region));
+        ontology.addAxiom(factory.getOWLObjectPropertyDomainAxiom(sfWithin, regionLike));
+        ontology.addAxiom(factory.getOWLObjectPropertyRangeAxiom(sfWithin, regionLike));
     }
 
     // sfWithin^−1≡sfContains
@@ -41,8 +41,8 @@ class RegionPropertiesOntology {
     // sfDirectlyWithin
     public void defineSfDirectlyWithin() {
         ontology.addAxiom( factory.getOWLSubObjectPropertyOfAxiom(sfDirectlyWithin, sfWithin));
-        ontology.addAxiom(factory.getOWLObjectPropertyDomainAxiom(sfDirectlyWithin, region));
-        ontology.addAxiom(factory.getOWLObjectPropertyRangeAxiom(sfDirectlyWithin, region));
+        ontology.addAxiom(factory.getOWLObjectPropertyDomainAxiom(sfDirectlyWithin, regionLike));
+        ontology.addAxiom(factory.getOWLObjectPropertyRangeAxiom(sfDirectlyWithin, regionLike));
         // ≤1sfDirectlyWithin
         ontology.addAxiom(factory.getOWLFunctionalObjectPropertyAxiom(sfDirectlyWithin));
 
