@@ -82,6 +82,20 @@ public final class RegionNames {
                         .toUpperCase(); // Ensure uppercase
                 return RegionTypes.valueOf(lastSegment);
             }
+
+            public static RegionTypes fromString(String value) {
+                if (value == null || value.isBlank()) {
+                    throw new IllegalArgumentException("IRI cannot be null or empty");
+                }
+
+                for (RegionTypes type : RegionTypes.values()) {
+                    if (type.name().equalsIgnoreCase(value)) {
+                        return type;
+                    }
+                }
+
+                throw new IllegalArgumentException("No enum constant for value: " + value);
+            }
         }
     }
 }

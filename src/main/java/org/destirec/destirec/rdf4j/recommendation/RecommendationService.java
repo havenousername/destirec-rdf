@@ -10,6 +10,7 @@ import org.destirec.destirec.utils.SimpleDtoTransformations;
 import org.destirec.destirec.utils.URIHandling;
 import org.destirec.destirec.utils.rdfDictionary.RecommendationNames;
 import org.destirec.destirec.utils.rdfDictionary.RecommendationNames.Individuals.RecommendationStrategies;
+import org.destirec.destirec.utils.rdfDictionary.RegionNames;
 import org.eclipse.rdf4j.model.IRI;
 import org.eclipse.rdf4j.model.Statement;
 import org.eclipse.rdf4j.model.ValueFactory;
@@ -25,11 +26,11 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Service
 public class RecommendationService {
-
     private final UserDao userDao;
 
     private final RegionDao regionDao;
@@ -55,14 +56,13 @@ public class RecommendationService {
 
     private Recommendation handleRecommendationQuery(
             String query,
-            RecommendationStrategies strategy
+            RecommendationStrategies strategy,
+            RecommendationParameters parameters
     ) {
         GraphQueryResult result = userDao.getRdf4JTemplate().applyToConnection(connection -> {
             var tupleQueryReady = connection.prepareGraphQuery(query);
             return tupleQueryReady.evaluate();
         });
-
-//        boolean isFirstIt = false;
 
         List<RecommendationEntity> recommendations = new ArrayList<>();
         RegionDto tmpRegion = null;
@@ -122,7 +122,13 @@ public class RecommendationService {
                 logger.error("URL is invalid", e);
             }
         }
-        return new Recommendation(strategy.getName(), recommendations, query.replaceAll("\n", ""), workbenchURL);
+        return new Recommendation(
+                strategy.getName(),
+                recommendations,
+                query.replaceAll("\n", ""),
+                workbenchURL,
+                parameters
+        );
     }
 
 
@@ -139,13 +145,26 @@ public class RecommendationService {
         return uriBuilder.build();
     }
 
-    public Recommendation getSimpleRecommendation() {
+    public Recommendation getSimpleRecommendation(RecommendationParameters parameters) {
         String query = recommendationQueries.simpleRecommendationQuery();
-        return handleRecommendationQuery(query, RecommendationStrategies.SIMPLE_RECOMMENDATION);
+        return handleRecommendationQuery(query, RecommendationStrategies.SIMPLE_RECOMMENDATION, parameters);
     }
 
     public Recommendation getBiggerThanRecommendation(RecommendationParameters parameters) {
+        if (parameters.getFromRegion() == null) {
+            Optional<IRI> parentByType = regionDao.getByType(RegionNames.Individuals.RegionTypes.WORLD);
+            if (parentByType.isPresent()) {
+                parameters.setFromRegion(parentByType.get());
+                parameters.setFromRegionType(RegionNames.Individuals.RegionTypes.WORLD);
+            } else {
+                throw new RuntimeException("World individual should be presented in the database");
+            }
+        } else {
+            RegionDto parentRegion = regionDao.getById(parameters.getFromRegion());
+            parameters.setFromRegionType(parentRegion.getType());
+        }
+
         String query = recommendationQueries.biggerThanRecommendationQuery(parameters);
-        return handleRecommendationQuery(query, RecommendationStrategies.BIGGER_THAN_RECOMMENDATION);
+        return handleRecommendationQuery(query, RecommendationStrategies.BIGGER_THAN_RECOMMENDATION, parameters);
     }
 }

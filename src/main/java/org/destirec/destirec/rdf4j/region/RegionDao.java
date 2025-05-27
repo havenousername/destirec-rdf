@@ -34,6 +34,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
+import java.util.Optional;
 
 @Getter
 @Repository
@@ -125,6 +126,10 @@ public class RegionDao extends GenericDao<RegionConfig.Fields, RegionDto> {
             return queryString;
         });
         return id;
+    }
+
+    public Optional<IRI> getByType(RegionTypes regionType) {
+        return Optional.of(listByType(regionType).stream().findFirst().map(Pair::getValue0)).orElse(null);
     }
 
 

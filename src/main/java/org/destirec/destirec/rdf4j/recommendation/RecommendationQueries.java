@@ -17,6 +17,7 @@ import org.eclipse.rdf4j.sparqlbuilder.core.Variable;
 import org.eclipse.rdf4j.sparqlbuilder.core.query.ConstructQuery;
 import org.eclipse.rdf4j.sparqlbuilder.core.query.Queries;
 import org.eclipse.rdf4j.sparqlbuilder.graphpattern.*;
+import org.eclipse.rdf4j.sparqlbuilder.rdf.Iri;
 import org.eclipse.rdf4j.sparqlbuilder.rdf.Rdf;
 import org.eclipse.rdf4j.sparqlbuilder.rdf.RdfLiteral;
 import org.eclipse.rdf4j.sparqlbuilder.rdf.RdfPredicate;
@@ -24,7 +25,6 @@ import org.springframework.stereotype.Repository;
 
 @Repository
 public class RecommendationQueries {
-
     private final Variable region = SparqlBuilder.var("region");
     private final Variable user = SparqlBuilder.var("user");
     private final Variable totalPreferences = SparqlBuilder.var("totalPreferences");
@@ -79,9 +79,20 @@ public class RecommendationQueries {
         Variable qualityPreference = SparqlBuilder.var("qualityPreference");
         Variable featurePreference = SparqlBuilder.var("featurePreference");
 
+        // hierarchy variables
+        Variable fromParent = SparqlBuilder.var("fromParent");
+        Iri fromParentValue = Rdf.iri(parameters.getFromRegion());
+
+        Variable fromRegionType = SparqlBuilder.var("fromRegionType");
+        Iri fromRegionValue = Rdf.iri(parameters.getFromRegionType().iri().rdfIri());
+        Variable toRegionType = SparqlBuilder.var("toRegionType");
+        Iri toRegionValue = Rdf.iri(parameters.getToRegionType().iri().rdfIri());
+
         // parameters
         Variable tolerance = SparqlBuilder.var("tolerance");
         RdfLiteral<?> toleranceLiteral = Rdf.literalOf(parameters.getTolerance());
+
+        // ^hasFeature
         RdfPredicate reverseHasFeatureIRI = () -> "^<" + AttributeNames.Properties.HAS_FEATURE.pseudoUri() + ">";
 
         Expression<?> replaceExpr = Expressions.function(
@@ -99,8 +110,24 @@ public class RecommendationQueries {
                         Expressions.group_concat("\"%s\"".formatted(WORDS_SEPARATOR), replaceExpr).distinct().as(aggregateOfFeatures),
                         Expressions.divide(Expressions.sum(deltaScore), Expressions.avg(deltaScore)).as(avgDeltaScore))
                 .where(
+                        // Class bindings
+                        GraphPatterns.and().values(builder -> {
+                           builder.variables(fromRegionType);
+                           builder.value(fromRegionValue);
+                        }),
+                        GraphPatterns.and().values(builder -> {
+                            builder.variables(toRegionType);
+                            builder.value(toRegionValue);
+                        }),
+                        GraphPatterns.and().values(builder -> {
+                            builder.variables(fromParent);
+                            builder.value(fromParentValue);
+                        }),
                         // REGION triples
-                        GraphPatterns.tp(region, RDF.TYPE, RegionNames.Classes.LEAF_REGION.rdfIri()),
+                        GraphPatterns.tp(region, RDF.TYPE, RegionNames.Classes.REGION.rdfIri()),
+                        GraphPatterns.tp(region, RegionNames.Properties.HAS_LEVEL.rdfIri(), toRegionType),
+                        GraphPatterns.tp(region, vf.createIRI(RegionNames.Properties.SF_WITHIN), fromParent),
+                        GraphPatterns.tp(fromParent, RegionNames.Properties.HAS_LEVEL.rdfIri(), fromRegionType),
                         GraphPatterns.tp(region, hasFQuality, qualityRegion),
                         GraphPatterns.tp(hasFQuality, RDFS.SUBPROPERTYOF, AttributeNames.Properties.HAS_QUALITY.rdfIri()),
                         GraphPatterns.tp(hasFQuality, RegionNames.Properties.FOR_FEATURE.rdfIri(), featureRegion),

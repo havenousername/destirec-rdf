@@ -18,7 +18,8 @@ public class RecommendationController {
 
     @GetMapping("/simple")
     public ResponseEntity<Recommendation> getSimpleRecommendation() {
-        return ResponseEntity.ok(service.getSimpleRecommendation());
+        return ResponseEntity.ok(service.getSimpleRecommendation(
+                RecommendationParameters.getDefault()));
     }
 
     @GetMapping("/greater-than")
