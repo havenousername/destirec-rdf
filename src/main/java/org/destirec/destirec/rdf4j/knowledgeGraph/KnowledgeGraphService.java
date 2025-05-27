@@ -60,7 +60,17 @@ public class KnowledgeGraphService {
     @Autowired
     private RegionDao regionDao;
 
-    private final boolean isTestRun = true;
+    @org.springframework.beans.factory.annotation.Value("${app.env.kg.is_test_run}")
+    private boolean isTestRun;
+
+    @org.springframework.beans.factory.annotation.Value("${app.env.kg.max_query_number}")
+    private int queryNumberLimit;
+
+    @org.springframework.beans.factory.annotation.Value("${app.env.kg.regions_version}")
+    private int regionVersion;
+
+    @org.springframework.beans.factory.annotation.Value("${app.env.kg.poi_version}")
+    private int poiVersion;
 
 
     public KnowledgeGraphService(RDF4JTemplate rdf4JTemplate, RegionService regionService, VersionDao versionDao) {
@@ -620,7 +630,7 @@ public class KnowledgeGraphService {
     }
 
     public void addAllRegionsToRepository() {
-        if (versionDao.hasRegionVersion()) {
+        if (versionDao.hasRegionVersion(regionVersion)) {
             logger.info("Repository already has all the regions");
             return;
         }
@@ -632,11 +642,11 @@ public class KnowledgeGraphService {
                     Optional.empty());
             logger.info("Repository already has all the regions");
         });
-        versionDao.saveRegionVersion(factory.createIRI(WIKIDATA.SPARQL_ENDPOINT.toString()));
+        versionDao.saveRegionVersion(factory.createIRI(WIKIDATA.SPARQL_ENDPOINT.toString()), regionVersion);
     }
 
     public void addAllPOIs() {
-        if (versionDao.hasPOIVersion()) {
+        if (versionDao.hasPOIVersion(poiVersion)) {
             logger.info("Repository already has all the POIs");
             return;
         }
@@ -645,6 +655,6 @@ public class KnowledgeGraphService {
         circuitBreaker.executeRunnable(this::makeQueryForPOIsWithRetry);
         versionDao.savePOIVersion(List.of(
                 factory.createIRI(WIKIDATA.SPARQL_ENDPOINT.toString()),
-                factory.createIRI(DBPEDIA.RDF)), 20);
+                factory.createIRI(DBPEDIA.RDF)), poiVersion);
     }
 }

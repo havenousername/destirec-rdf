@@ -22,6 +22,8 @@ public final class TopOntologyNames {
 
         public final static DESTIREC.NamespaceWrapper EVENT  = DESTIREC.wrap("Event");
 
+        public final static DESTIREC.NamespaceWrapper VERSION = DESTIREC.wrap("SchemaVersion");
+
     }
 
     public final static class Graph {
@@ -36,6 +38,9 @@ public final class TopOntologyNames {
         public final static DESTIREC.NamespaceWrapper LAST_MODIFIED = DESTIREC.wrap("lastModified");
 
         public final static DESTIREC.NamespaceWrapper INFERRED = DESTIREC.wrap("inferred");
+
+        public final static DESTIREC.NamespaceWrapper HAS_SCHEMA_VERSION = DESTIREC.wrap("hasSchemaVersion");
+        public final static DESTIREC.NamespaceWrapper HAS_VERSION = DESTIREC.wrap("hasVersion");
 
     }
 }
