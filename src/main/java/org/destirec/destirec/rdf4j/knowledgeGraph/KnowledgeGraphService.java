@@ -11,7 +11,7 @@ import org.destirec.destirec.rdf4j.region.apiDto.SimpleRegionDto;
 import org.destirec.destirec.rdf4j.version.VersionDao;
 import org.destirec.destirec.rdf4j.vocabulary.DBPEDIA;
 import org.destirec.destirec.rdf4j.vocabulary.WIKIDATA;
-import org.destirec.destirec.utils.SafeIRI;
+import org.destirec.destirec.utils.URIHandling;
 import org.destirec.destirec.utils.rdfDictionary.RegionNames.Individuals.RegionTypes;
 import org.eclipse.rdf4j.model.IRI;
 import org.eclipse.rdf4j.model.Value;
@@ -48,7 +48,6 @@ public class KnowledgeGraphService {
     private final RateLimiter rateLimiter;
     private static final Duration REQUEST_TIMEOUT = Duration.ofSeconds(2);
     private static final int MAX_REQUESTS_PER_SECOND = 10;
-    private static final int MAX_REQUESTS_PER_SECOND_POI = 2;
     private final CircuitBreaker circuitBreaker = CircuitBreaker.of("wikidata-api",
             CircuitBreakerConfig.custom()
                     .failureRateThreshold(50)
@@ -61,7 +60,7 @@ public class KnowledgeGraphService {
     @Autowired
     private RegionDao regionDao;
 
-    private boolean isTestRun = true;
+    private final boolean isTestRun = true;
 
 
     public KnowledgeGraphService(RDF4JTemplate rdf4JTemplate, RegionService regionService, VersionDao versionDao) {
@@ -559,7 +558,7 @@ public class KnowledgeGraphService {
             poi.setSource(factory.createIRI(poiValue.stringValue()));
             Value poiLabelValue = bindings.getValue("poiLabel");
             poi.setName(poiLabelValue.stringValue());
-            poi.setId(SafeIRI.toSafeIRIForm(poiLabelValue.stringValue()));
+            poi.setId(URIHandling.toSafeIRIForm(poiLabelValue.stringValue()));
             poi.setSourceParent(parentValue != null ? factory.createIRI(parentValue) : null);
             poi.setType(RegionTypes.POI);
 

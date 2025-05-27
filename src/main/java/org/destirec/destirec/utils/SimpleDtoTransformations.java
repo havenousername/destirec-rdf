@@ -9,8 +9,12 @@ import java.util.stream.Collectors;
 
 public class SimpleDtoTransformations {
     public static String toStringIds(List<? extends Dto> dto) {
+        return toStringIds(dto, ",");
+    }
+
+    public static String toStringIds(List<? extends Dto> dto, String delimiter) {
         return dto.stream()
-                .map(month -> month.id() + ",")
+                .map(d -> d.id() + delimiter)
                 .collect(Collectors.joining());
     }
 
@@ -20,7 +24,11 @@ public class SimpleDtoTransformations {
                 .collect(Collectors.joining());
     }
 
+    public static List<String> toListString(String str, String delimiter) {
+        return Arrays.stream(str.split(delimiter)).toList();
+    }
+
     public static List<String> toListString(String str) {
-        return Arrays.stream(str.split(",")).toList();
+        return toListString(str, ",");
     }
 }

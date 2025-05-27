@@ -2,6 +2,7 @@ package org.destirec.destirec.rdf4j;
 
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
+import org.destirec.destirec.utils.ShortRepositoryInfo;
 import org.eclipse.rdf4j.repository.Repository;
 import org.eclipse.rdf4j.repository.http.HTTPRepository;
 import org.eclipse.rdf4j.repository.sail.SailRepository;
@@ -39,6 +40,15 @@ public class ApplicationConfig {
         return repository;
     }
 
+    @Bean
+    public String getRepositoryName() {
+        return repositoryName;
+    }
+
+    @Bean
+    public ShortRepositoryInfo getRepositoryInfo() {
+        return new ShortRepositoryInfo(isRemote, repository);
+    }
 
     @PostConstruct
     public void init() {
