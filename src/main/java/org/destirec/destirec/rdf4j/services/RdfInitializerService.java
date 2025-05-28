@@ -26,4 +26,16 @@ public class RdfInitializerService {
                 .create(Map.of(VersionConfig.Fields.VERSION, "1"));
         return versionDao.saveAndReturnId(versionDto);
     }
+
+    public boolean hasVersion() {
+        var versions = versionDao.list();
+
+        return !versions.isEmpty();
+    }
+
+    public VersionDto version() {
+        var versions = versionDao.list();
+
+        return versions.getFirst();
+    }
 }

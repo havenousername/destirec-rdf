@@ -1,5 +1,7 @@
 package org.destirec.destirec.rdf4j.region.apiDto;
 
+import org.destirec.destirec.utils.rdfDictionary.RegionFeatureNames;
+
 import java.time.Month;
 import java.util.List;
 import java.util.Map;
@@ -9,6 +11,8 @@ public record ExternalRegionDto(
         String u_name,
 
         String Region,
+
+        String sourceIRI,
         int costPerWeek,
 
         int safety,
@@ -60,20 +64,20 @@ public record ExternalRegionDto(
         String graphId,
 
         String parentRegion
-) {
-    public Map<String, Integer> getFeatures() {
+) implements RegionDto {
+    public Map<RegionFeatureNames.Individuals.RegionFeature, Integer> getFeatures() {
         return Map.ofEntries(
-                Map.entry("safety", safety),
-                Map.entry("nature", nature),
-                Map.entry("hiking", hiking),
-                Map.entry("beach", beach),
-                Map.entry("watersports", watersports),
-                Map.entry("entertainment", entertainment),
-                Map.entry("wintersports", wintersports),
-                Map.entry("culture", culture),
-                Map.entry("culinary", culinary),
-                Map.entry("architecture", architecture),
-                Map.entry("shopping", shopping)
+                Map.entry(RegionFeatureNames.Individuals.RegionFeature.SAFETY, safety),
+                Map.entry(RegionFeatureNames.Individuals.RegionFeature.NATURE, nature),
+                Map.entry(RegionFeatureNames.Individuals.RegionFeature.HIKING, hiking),
+                Map.entry(RegionFeatureNames.Individuals.RegionFeature.BEACH, beach),
+                Map.entry(RegionFeatureNames.Individuals.RegionFeature.WATERSPORTS, watersports),
+                Map.entry(RegionFeatureNames.Individuals.RegionFeature.ENTERTAINMENT, entertainment),
+                Map.entry(RegionFeatureNames.Individuals.RegionFeature.WINTERSPORTS, wintersports),
+                Map.entry(RegionFeatureNames.Individuals.RegionFeature.CULTURE, culture),
+                Map.entry(RegionFeatureNames.Individuals.RegionFeature.CULINARY, culinary),
+                Map.entry(RegionFeatureNames.Individuals.RegionFeature.ARCHITECTURE, architecture),
+                Map.entry(RegionFeatureNames.Individuals.RegionFeature.SHOPPING, shopping)
         );
     }
 

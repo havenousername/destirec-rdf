@@ -3,33 +3,31 @@ package org.destirec.destirec.rdf4j;
 import org.destirec.destirec.rdf4j.model.ModelRDF;
 import org.destirec.destirec.rdf4j.model.resource.User;
 import org.destirec.destirec.rdf4j.model.resource.UserPreferences;
-import org.destirec.destirec.rdf4j.preferences.PreferenceDtoCreator;
-import org.destirec.destirec.rdf4j.preferences.PreferenceConfig;
 import org.destirec.destirec.rdf4j.months.MonthDao;
-import org.destirec.destirec.rdf4j.user.UserPreferenceService;
+import org.destirec.destirec.rdf4j.region.cost.CostDao;
+import org.destirec.destirec.rdf4j.region.feature.FeatureDao;
 import org.destirec.destirec.rdf4j.user.UserDto;
-import org.eclipse.rdf4j.model.IRI;
+import org.destirec.destirec.rdf4j.user.UserPreferenceService;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.ArrayList;
 import java.util.Map;
-import java.util.Random;
 
 @RestController
 public class TestModelController {
     ModelRDF modelRDF = new ModelRDF();
 
     private final UserPreferenceService userService;
-    private final PreferenceDtoCreator preferenceDtoCreator;
 
     public TestModelController(
             UserPreferenceService userService,
-            MonthDao monthDao
+            MonthDao monthDao,
+            FeatureDao featureDao,
+            CostDao costDao
     ) {
         this.userService = userService;
-        preferenceDtoCreator = new PreferenceDtoCreator(monthDao);
     }
 
 
@@ -86,28 +84,6 @@ public class TestModelController {
                         Map.entry(UserPreferences.Fields.IS_POPULARITY_IMPORTANT, "true")
                 )
         );
-    }
-
-    @GetMapping(value = "/add-user", produces = "text/turtle")
-    public String testDao() {
-        IRI userIRI = userService.addUser(
-                new UserDto("Andrei", "andrei997", "andrei.cristea@gmail.com", "Worker")
-        );
-        var preferences = Map.of(
-                PreferenceConfig.Fields.PRICE_RANGE, "50",
-                PreferenceConfig.Fields.IS_PRICE_IMPORTANT, "true",
-                PreferenceConfig.Fields.POPULARITY_RANGE, "79",
-                PreferenceConfig.Fields.IS_POPULARITY_IMPORTANT, "false"
-        );
-
-        Float[] randomNumbers = new Random()
-                .doubles(12, 0, 100)
-                .mapToObj(d -> (float) d)
-                .toArray(Float[]::new);
-
-//        return userService.getUser(userIRI).toString();
-        return userService.addPreference(preferenceDtoCreator
-                .create(null, userIRI, preferences, randomNumbers)).toString();
     }
 
     @GetMapping(path = "/test-rdf-model", produces = "text/turtle")

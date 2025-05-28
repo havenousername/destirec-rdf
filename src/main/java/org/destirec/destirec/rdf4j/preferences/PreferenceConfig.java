@@ -2,12 +2,13 @@ package org.destirec.destirec.rdf4j.preferences;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
+import org.destirec.destirec.rdf4j.attribute.AttributesCollectionMigration;
 import org.destirec.destirec.rdf4j.interfaces.GenericConfig;
 import org.destirec.destirec.utils.ValueContainer;
-import org.destirec.destirec.rdf4j.vocabulary.DESTIREC;
+import org.destirec.destirec.utils.rdfDictionary.AttributeNames;
+import org.destirec.destirec.utils.rdfDictionary.PreferenceNames;
 import org.eclipse.rdf4j.model.IRI;
 import org.eclipse.rdf4j.model.base.CoreDatatype;
-import org.eclipse.rdf4j.model.vocabulary.DC;
 import org.eclipse.rdf4j.sparqlbuilder.core.SparqlBuilder;
 import org.eclipse.rdf4j.sparqlbuilder.core.Variable;
 import org.springframework.stereotype.Component;
@@ -20,21 +21,21 @@ import java.util.stream.IntStream;
 @Component
 public class PreferenceConfig extends GenericConfig<PreferenceConfig.Fields> {
     private final PreferenceMigration preferenceMigration;
+    private final AttributesCollectionMigration attributesCollectionMigration;
 
-    public PreferenceConfig(PreferenceMigration preferenceMigration) {
-        super("preference_id");
+    public PreferenceConfig(PreferenceMigration preferenceMigration, AttributesCollectionMigration attributesCollectionMigration) {
+        super("preference");
         this.preferenceMigration = preferenceMigration;
+        this.attributesCollectionMigration = attributesCollectionMigration;
     }
 
     @Getter
     @AllArgsConstructor
     public enum Fields implements Field {
-        IS_POPULARITY_IMPORTANT("isPopularityImportant", true),
-        POPULARITY_RANGE("popularityRange", true),
-        IS_PRICE_IMPORTANT("isPriceImportant", true),
-        PRICE_RANGE("priceRange", true),
-        PREFERENCE_AUTHOR("author", true),
-        MONTHS("monthsPreference", true);
+        HAS_COST(AttributeNames.Properties.HAS_COST.str(), true),
+        HAS_MONTH(AttributeNames.Properties.HAS_MONTH.str(), true),
+        HAS_FEATURE(AttributeNames.Properties.HAS_FEATURE.str(), true),
+        PREFERENCE_AUTHOR(PreferenceNames.Properties.PREFERENCE_AUTHOR.getLocalName(), true);
 
         private final String name;
         private final boolean isRead;
@@ -48,12 +49,10 @@ public class PreferenceConfig extends GenericConfig<PreferenceConfig.Fields> {
     @Override
     public ValueContainer<IRI> getPredicate(Fields field) {
         var values = switch (field) {
-            case IS_POPULARITY_IMPORTANT -> preferenceMigration.getIsPopularityImportant().get();
-            case PRICE_RANGE -> preferenceMigration.getPriceRange().get();
-            case POPULARITY_RANGE -> preferenceMigration.getPopularityRange().get();
-            case IS_PRICE_IMPORTANT -> preferenceMigration.getIsPriceImportant().get();
-            case PREFERENCE_AUTHOR -> DC.CREATOR;
-            case MONTHS -> preferenceMigration.getMonthPreference().get();
+            case HAS_COST -> attributesCollectionMigration.getHasCost().get();
+            case HAS_FEATURE -> attributesCollectionMigration.getHasFeatures().get();
+            case HAS_MONTH -> attributesCollectionMigration.getHasMonths().get();
+            case PREFERENCE_AUTHOR -> PreferenceNames.Properties.PREFERENCE_AUTHOR;
             case null -> throw new IllegalArgumentException("Field is not defined");
         };
 
@@ -62,9 +61,16 @@ public class PreferenceConfig extends GenericConfig<PreferenceConfig.Fields> {
 
     @Override
     public ValueContainer<Variable> getVariable(Fields field) {
-        if (field == Fields.MONTHS) {
+        if (field == Fields.HAS_MONTH) {
             return new ValueContainer<>(IntStream
                     .rangeClosed(0, 11)
+                    .mapToObj(i -> SparqlBuilder.var(field.name() + i))
+                    .collect(Collectors.toList())
+            );
+        }
+        if (field == Fields.HAS_FEATURE) {
+            return new ValueContainer<>(IntStream
+                    .rangeClosed(0, 9)
                     .mapToObj(i -> SparqlBuilder.var(field.name() + i))
                     .collect(Collectors.toList())
             );
@@ -74,18 +80,11 @@ public class PreferenceConfig extends GenericConfig<PreferenceConfig.Fields> {
 
     @Override
     public ValueContainer<CoreDatatype> getType(Fields field) {
-        var type = switch (field) {
-            case IS_POPULARITY_IMPORTANT, IS_PRICE_IMPORTANT -> CoreDatatype.XSD.BOOLEAN;
-            case POPULARITY_RANGE, PRICE_RANGE -> CoreDatatype.XSD.FLOAT;
-            case PREFERENCE_AUTHOR, MONTHS -> null;
+        CoreDatatype type = switch (field) {
+            case PREFERENCE_AUTHOR, HAS_COST, HAS_FEATURE, HAS_MONTH -> null;
             case null -> throw new IllegalArgumentException("Field is not defined");
         };
 
         return new ValueContainer<>(type);
-    }
-
-    @Override
-    public String getResourceLocation() {
-        return DESTIREC.NAMESPACE + "resource/preference/";
     }
 }

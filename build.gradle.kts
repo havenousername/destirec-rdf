@@ -29,19 +29,38 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter-jdbc")
     implementation("org.springframework.boot:spring-boot-starter-web")
     implementation("org.springframework.boot:spring-boot-starter-batch")
+    implementation("org.apache.commons:commons-lang3")
 
-    // .dotenv
-    implementation("io.github.cdimascio:dotenv-java:3.1.0")
 
     implementation("org.eclipse.rdf4j:rdf4j-spring:+")
     implementation(platform("org.eclipse.rdf4j:rdf4j-bom:+"))
     implementation("org.eclipse.rdf4j:rdf4j-storage")
+    implementation("org.eclipse.rdf4j:rdf4j-tools-federation:+")
+
+    implementation("org.springframework.boot:spring-boot-devtools")
+
+    // OWL API core
+    implementation("net.sourceforge.owlapi:owlapi-distribution:5.5.0")
+    implementation("net.sourceforge.owlapi:owlapi-rio:5.5.0")
+    implementation("net.sourceforge.owlapi:org.semanticweb.hermit:1.4.5.519")
+    implementation("net.sourceforge.owlapi:owlexplanation:+")
+
+    // Libraries for safe internet protocol requests
+    implementation("com.google.guava:guava:33.4.8-jre")
+    implementation("io.github.resilience4j:resilience4j-retry:2.3.0")
+    implementation("io.github.resilience4j:resilience4j-circuitbreaker:2.3.0")
+
+//    implementation("org.drools:drools-core:6.5.0.Final")
+//    implementation("org.drools:drools-compiler:6.5.0.Final")
+//    implementation("org.drools:drools-osgi-integration:6.5.0.Final")
 
     runtimeOnly("com.h2database:h2:2.3.+")
-    compileOnly("org.projectlombok:lombok")
     runtimeOnly("org.postgresql:postgresql")
+    implementation("org.javatuples:javatuples:1.2")
+
     annotationProcessor("org.springframework.boot:spring-boot-configuration-processor")
     annotationProcessor("org.projectlombok:lombok")
+
     testImplementation("org.springframework.boot:spring-boot-starter-test")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 }

@@ -2,13 +2,14 @@ package org.destirec.destirec.rdf4j.user;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import org.destirec.destirec.rdf4j.interfaces.Dto;
 import org.destirec.destirec.rdf4j.interfaces.ConfigFields;
+import org.destirec.destirec.rdf4j.interfaces.Dto;
 import org.eclipse.rdf4j.model.IRI;
 import org.springframework.lang.NonNull;
 import org.springframework.lang.Nullable;
 
 import java.io.Serializable;
+import java.util.HashMap;
 import java.util.Map;
 
 public record UserDto(
@@ -41,7 +42,7 @@ public record UserDto(
     }
 
    public Map<ConfigFields.Field, String> getMap() {
-        Map<ConfigFields.Field, String> requiredFields = new java.util.HashMap<>(Map.ofEntries(
+        Map<ConfigFields.Field, String> requiredFields = new HashMap<>(Map.ofEntries(
                 Map.entry(UserConfig.Fields.USERNAME, username),
                 Map.entry(UserConfig.Fields.EMAIL, email)
         ));

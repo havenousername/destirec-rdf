@@ -4,9 +4,9 @@ import org.eclipse.rdf4j.spring.support.RDF4JTemplate;
 
 import java.util.function.Consumer;
 
-public class PredicateInstance extends Migration {
+public class IriMigrationInstance extends IriMigration {
     private final Consumer<PredicateConsumer> fx;
-    public PredicateInstance(RDF4JTemplate rdf4jMethods, String iriName, Consumer<PredicateConsumer> setupPredicates) {
+    public IriMigrationInstance(RDF4JTemplate rdf4jMethods, String iriName, Consumer<PredicateConsumer> setupPredicates) {
         super(rdf4jMethods, iriName);
         fx = setupPredicates;
     }

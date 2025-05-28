@@ -7,6 +7,8 @@ import lombok.ToString;
 import org.destirec.destirec.rdf4j.interfaces.ConfigFields;
 import org.destirec.destirec.rdf4j.interfaces.Dto;
 import org.destirec.destirec.rdf4j.months.MonthDto;
+import org.destirec.destirec.rdf4j.region.cost.CostDto;
+import org.destirec.destirec.rdf4j.region.feature.FeatureDto;
 import org.destirec.destirec.utils.SimpleDtoTransformations;
 import org.eclipse.rdf4j.model.IRI;
 
@@ -19,21 +21,19 @@ import java.util.Map;
 public final class PreferenceDto implements Dto {
     private final IRI id;
     private final IRI preferenceAuthor;
-    private final boolean isPriceImportant;
-    private final float priceRange;
-    private final boolean isPopularityImportant;
-    private float popularityRange;
     @Setter
-    private List<MonthDto> monthsDto;
+    private List<FeatureDto> featureDtos;
+    @Setter
+    private CostDto costDto;
+    @Setter
+    private List<MonthDto> monthDtos;
 
     public Map<ConfigFields.Field, String> getMap() {
         return Map.of(
-          PreferenceConfig.Fields.IS_PRICE_IMPORTANT, Boolean.toString(isPriceImportant),
-          PreferenceConfig.Fields.PRICE_RANGE, Float.toString(priceRange),
-          PreferenceConfig.Fields.IS_POPULARITY_IMPORTANT, Boolean.toString(isPopularityImportant),
-          PreferenceConfig.Fields.POPULARITY_RANGE, Float.toString(popularityRange),
-          PreferenceConfig.Fields.PREFERENCE_AUTHOR, preferenceAuthor.stringValue(),
-          PreferenceConfig.Fields.MONTHS, SimpleDtoTransformations.toStringIds(monthsDto)
+          PreferenceConfig.Fields.HAS_FEATURE, SimpleDtoTransformations.toStringIds(featureDtos),
+          PreferenceConfig.Fields.HAS_MONTH, SimpleDtoTransformations.toStringIds(monthDtos),
+          PreferenceConfig.Fields.HAS_COST, costDto.id().stringValue(),
+          PreferenceConfig.Fields.PREFERENCE_AUTHOR, preferenceAuthor.stringValue()
         );
     }
 

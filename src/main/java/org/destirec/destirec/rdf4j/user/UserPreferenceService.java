@@ -1,17 +1,20 @@
 package org.destirec.destirec.rdf4j.user;
 
-import org.destirec.destirec.rdf4j.months.MonthDao;
+import org.destirec.destirec.rdf4j.attribute.QualityOntology;
 import org.destirec.destirec.rdf4j.months.MonthDto;
-import org.destirec.destirec.rdf4j.preferences.PreferenceDao;
+import org.destirec.destirec.rdf4j.ontology.DestiRecOntology;
 import org.destirec.destirec.rdf4j.preferences.PreferenceDto;
+import org.destirec.destirec.rdf4j.region.cost.CostDto;
+import org.destirec.destirec.rdf4j.region.feature.FeatureDto;
 import org.destirec.destirec.rdf4j.user.apiDto.ExternalUserDto;
 import org.eclipse.rdf4j.model.IRI;
+import org.javatuples.Pair;
+import org.javatuples.Triplet;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
@@ -19,29 +22,34 @@ import java.util.Optional;
 @Service
 public class UserPreferenceService {
     private final UserDao userDao;
-    private final PreferenceDao preferenceDao;
-
-    private final MonthDao monthDao;
 
     protected Logger logger = LoggerFactory.getLogger(getClass());
 
     private final UserDtoCreator creator;
 
+    private final QualityOntology qualityOntology;
+
+    private final DestiRecOntology ontology;
+
 
     public UserPreferenceService(
             UserDao userDao,
-            PreferenceDao preferenceDao,
-            MonthDao monthDao
+            DestiRecOntology ontology
     ) {
         this.userDao = userDao;
-        this.preferenceDao = preferenceDao;
-        this.monthDao = monthDao;
         creator =  (UserDtoCreator)userDao
                 .getDtoCreator();
+        this.ontology = ontology;
+
+        qualityOntology = new QualityOntology(
+                ontology,
+                ontology.getFactory(),
+                userDao.getRdf4JTemplate()
+        );
     }
 
     @Transactional
-    public IRI createUser(ExternalUserDto externalUserDto) {
+    public Pair<IRI, IRI> createUser(ExternalUserDto externalUserDto) {
         UserDto userDto = creator.create(externalUserDto);
         Optional<UserDto> existUser = userDao.getByIdOptional(userDto.id());
         if (existUser.isPresent()) {
@@ -50,10 +58,57 @@ public class UserPreferenceService {
             throw new IllegalArgumentException(msg);
         }
 
+
         logger.info("Create user with DTO" + userDto);
         IRI userId = userDao.saveAndReturnId(userDto);
         logger.info("User with ID " + userId + " was created");
-        return userId;
+
+
+        IRI preferenceId = null;
+        if (externalUserDto.hasPreferences()) {
+            preferenceId = createPreference(externalUserDto, userId);
+        }
+
+        return new Pair<>(userId, preferenceId);
+    }
+
+    @Transactional
+    public IRI createPreference(ExternalUserDto externalUserDto, IRI userId) {
+        List<FeatureDto> features = externalUserDto
+                .getFeatures().entrySet().stream()
+                .map((feature) ->
+                        userDao.getPreferenceDao().getFeatureDao()
+                                .getDtoCreator()
+                                .createFromTuple(feature.getKey(), feature.getValue()))
+                .map(featureDto -> userDao.getPreferenceDao().getFeatureDao().save(featureDto))
+                .toList();
+
+        List<MonthDto> months = externalUserDto
+                .getMonths().entrySet().stream()
+                .map(month ->
+                        userDao.getPreferenceDao().getMonthDao()
+                                .getDtoCreator()
+                                .create(month))
+                .map(month ->
+                        userDao.getPreferenceDao().getMonthDao().save(month))
+                .toList();
+
+        Triplet<Integer, Integer, Boolean> costTriplet = externalUserDto
+                .getCost();
+        CostDto costDto = userDao.getPreferenceDao()
+                .getCostDao()
+                .getDtoCreator()
+                .create(costTriplet.getValue0(), costTriplet.getValue1(), costTriplet.getValue2());
+        costDto = userDao.getPreferenceDao().getCostDao().save(costDto);
+
+        PreferenceDto preferenceDto = userDao.getPreferenceDao().getDtoCreator()
+                .create(userId, features, months, costDto);
+        preferenceDto = userDao.getPreferenceDao().save(preferenceDto);
+        qualityOntology.definePreferenceQualities(preferenceDto, preferenceDto.getId().stringValue());
+        ontology.migrate(preferenceDto.getId().stringValue());
+        ontology.triggerInference();
+
+        return preferenceDto.getId();
     }
 
     @Transactional
@@ -81,20 +136,9 @@ public class UserPreferenceService {
     }
 
     @Transactional
-    public PreferenceDto addPreference(PreferenceDto preferenceDto) {
-        List<MonthDto> monthDtos = new ArrayList<>(preferenceDto.getMonthsDto());
-
-        for (int i = 0; i < monthDtos.size(); i++) {
-            MonthDto month = monthDtos.get(i);
-            IRI id = monthDao.saveAndReturnId(month);
-            MonthDto newMonthDto = new MonthDto(id, month.month(), month.monthRange());
-            monthDtos.set(i, newMonthDto);
-        }
-
-        preferenceDto.setMonthsDto(monthDtos);
-//        PreferenceDto preference = preferenceDao.save(preferenceDto);
-//        System.out.println(preference);
-//        System.out.println(preferenceDao.getReadQuery());
-        return preferenceDao.save(preferenceDto);
+    public PreferenceDto getPreference(String id) {
+        return userDao.getPreferenceDao().getById(
+                userDao.getPreferenceDao().getDtoCreator().createId(id)
+        );
     }
  }

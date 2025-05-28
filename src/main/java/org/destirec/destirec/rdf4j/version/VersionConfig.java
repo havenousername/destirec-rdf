@@ -15,10 +15,9 @@ import org.springframework.stereotype.Component;
 public class VersionConfig extends GenericConfig<VersionConfig.Fields> {
     private final SchemaPredicateMigration schemaPredicate;
     public VersionConfig(SchemaPredicateMigration schemaPredicate) {
-        super("version_id");
+        super("version");
         this.schemaPredicate = schemaPredicate;
     }
-
 
     @Override
     public ValueContainer<IRI> getPredicate(Fields field) {
@@ -33,11 +32,6 @@ public class VersionConfig extends GenericConfig<VersionConfig.Fields> {
     @Override
     public ValueContainer<CoreDatatype> getType(Fields field) {
         return new ValueContainer<>(CoreDatatype.XSD.FLOAT);
-    }
-
-    @Override
-    public String getResourceLocation() {
-        return "resource/version/";
     }
 
     @Override
