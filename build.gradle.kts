@@ -63,6 +63,9 @@ dependencies {
 
     testImplementation("org.springframework.boot:spring-boot-starter-test")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
+
+    implementation("org.eclipse.jetty:jetty-client:12.0.16")
+    implementation("org.eclipse.jetty:jetty-util:12.0.16")
 }
 
 tasks.withType<Test> {

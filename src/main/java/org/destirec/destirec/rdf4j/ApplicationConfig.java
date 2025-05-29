@@ -17,6 +17,7 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
 
 import java.io.File;
+import java.util.Map;
 
 @EnableCaching
 @Configuration
@@ -33,6 +34,7 @@ public class ApplicationConfig {
 
     @Value("${app.env.graphdb.is_remote}")
     private Boolean isRemote;
+
     public ApplicationConfig() {}
 
     @Bean
@@ -50,10 +52,19 @@ public class ApplicationConfig {
         return new ShortRepositoryInfo(isRemote, repository);
     }
 
+
+    private void configSystem() {
+        System.setProperty("org.eclipse.rdf4j.repository.debug", "false");
+
+    }
+
     @PostConstruct
     public void init() {
+        configSystem();
         if (isRemote) {
-            repository = new HTTPRepository(url, repositoryName);
+            var repo = new HTTPRepository(url, repositoryName);
+            repo.setAdditionalHttpHeaders(Map.of("User-Agent", "Destirec/1.0 (+https://destination-finder-production.up.railway.app; contact:cristea.andrei997@gmail.com)"));
+            repository = repo;
         } else {
             createLocalRepository();
         }

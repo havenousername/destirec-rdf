@@ -15,4 +15,6 @@ public class SimpleRegionDto {
     IRI source;
     IRI sourceParent;
     RegionTypes type;
+    String iso;
+    IRI geoShape;
 }

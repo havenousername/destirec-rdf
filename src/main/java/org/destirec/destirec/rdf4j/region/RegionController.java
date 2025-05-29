@@ -2,9 +2,11 @@ package org.destirec.destirec.rdf4j.region;
 
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
+import org.destirec.destirec.rdf4j.interfaces.ResponsePaginated;
 import org.destirec.destirec.rdf4j.region.apiDto.ExternalRegionDto;
 import org.destirec.destirec.rdf4j.region.cost.CostDto;
 import org.destirec.destirec.utils.ResponseData;
+import org.destirec.destirec.utils.rdfDictionary.RegionNames.Individuals.RegionTypes;
 import org.eclipse.rdf4j.model.IRI;
 import org.springframework.boot.context.properties.bind.DefaultValue;
 import org.springframework.http.ResponseEntity;
@@ -20,7 +22,8 @@ public class RegionController {
             @DefaultValue("0") @Min(0) Integer page,
             @DefaultValue("10") @Min(1) @Max(100) Integer size,
             @DefaultValue("id") String sortBy,
-            @DefaultValue("asc") String sortDir
+            @DefaultValue("asc") String sortDir,
+            String regionType
     ) {
 
         public PaginationRequest {
@@ -30,11 +33,20 @@ public class RegionController {
             sortDir = (sortDir == null) ? "asc" : sortDir;
         }
 
+        public RegionTypes getRegionType() {
+            try {
+                return RegionTypes.fromString(regionType);
+            } catch (Exception exception) {
+                return null;
+            }
+        }
 
         public boolean isAscending() {
             return sortDir.equals("asc");
         }
     }
+
+
     private final RegionService regionService;
 
     public RegionController(RegionService regionService) {
@@ -96,12 +108,31 @@ public class RegionController {
     }
 
     @GetMapping
-    public ResponseEntity<List<RegionDto>> getRegions(@ModelAttribute PaginationRequest pagination) {
-        return ResponseEntity.ok(regionService.getRegions(
-                pagination.page,
-                pagination.size,
-                pagination.sortBy,
-                pagination.sortDir
-        ));
+    public ResponseEntity<ResponsePaginated<List<RegionDto>>> getRegions(@ModelAttribute PaginationRequest pagination) {
+        List<RegionDto> regions;
+        long total;
+        if (pagination.getRegionType() != null) {
+            regions = regionService.getRegionsByType(
+                    pagination.getRegionType(),
+                    pagination.page,
+                    pagination.size
+            );
+            total = regionService.getTotalRegionsByType(pagination.getRegionType());
+        } else {
+            regions = regionService.getRegions(
+                    pagination.page,
+                    pagination.size,
+                    pagination.sortBy,
+                    pagination.sortDir
+            );
+            total = regionService.getTotalRegions();
+        }
+
+        ResponsePaginated<List<RegionDto>> responsePaginated = new ResponsePaginated<>(
+                regions,new ResponsePaginated.Pagination(pagination.page, total, pagination.size)
+
+        );
+
+        return ResponseEntity.ok(responsePaginated);
     }
 }

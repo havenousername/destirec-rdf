@@ -15,6 +15,7 @@ import org.destirec.destirec.rdf4j.region.apiDto.SimpleRegionDto;
 import org.destirec.destirec.rdf4j.region.cost.CostDao;
 import org.destirec.destirec.rdf4j.region.cost.CostDto;
 import org.destirec.destirec.rdf4j.region.feature.FeatureDto;
+import org.destirec.destirec.utils.rdfDictionary.RegionNames.Individuals.RegionTypes;
 import org.eclipse.rdf4j.model.IRI;
 import org.javatuples.Pair;
 import org.slf4j.Logger;
@@ -206,6 +207,12 @@ public class RegionService {
         return regionDao.listPaginated(page, size);
     }
 
+
+    @Transactional
+    public List<RegionDto> getRegionsByType(RegionTypes type, int page, int size) {
+        return regionDao.listAllByType(type, page, size);
+    }
+
     @Transactional
     public List<CostDto> getCosts() {
         return costDao.list();
@@ -229,6 +236,7 @@ public class RegionService {
         }
         return Optional.of(regionDao.getBySource(dto.getSourceParent()));
     }
+
 
     private RegionDto createNewRegionWithParent(SimpleRegionDto dto, Optional<IRI> parent) {
         IRI parentId = parent.orElse(null);
@@ -258,7 +266,7 @@ public class RegionService {
     }
 
     @Transactional
-    public IRI createRegion(SimpleRegionDto dto, boolean isBulky) {
+    public void createRegion(SimpleRegionDto dto, boolean isBulky) {
         validateDto(dto);
         Optional<IRI> parentRegion = getParentRegion(dto);
         RegionDto newRegion = createNewRegionWithParent(dto, parentRegion);
@@ -269,7 +277,14 @@ public class RegionService {
             updateParentChildOntologiesAsync(newRegion);
         }
         logger.info("Region with DTO " + regionId + " was created");
-        return regionId;
+    }
+
+    public long getTotalRegionsByType(RegionTypes type) {
+        return regionDao.getTotalCountByType(type);
+    }
+
+    public long getTotalRegions() {
+        return regionDao.getTotalCount();
     }
 
     private void updateAllOntologies() {

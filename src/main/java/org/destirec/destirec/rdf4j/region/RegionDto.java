@@ -31,9 +31,17 @@ public class RegionDto implements Dto {
     @Nullable
     private final IRI sourceIRI;
 
+    @Nullable
     private CostDto cost;
+
     private List<MonthDto> months;
     private List<FeatureDto> features;
+
+    @Nullable
+    private String iso;
+
+    @Nullable
+    private IRI geoShape;
 
     @Override
     public Map<ConfigFields.Field, String> getMap() {
@@ -64,6 +72,14 @@ public class RegionDto implements Dto {
 
         if (type != null) {
             requiredFields.put(RegionConfig.Fields.REGION_TYPE, type.iri().rdfIri().stringValue());
+        }
+
+        if (geoShape != null) {
+            requiredFields.put(RegionConfig.Fields.GEO_SHAPE, geoShape.stringValue());
+        }
+
+        if (iso != null) {
+            requiredFields.put(RegionConfig.Fields.ISO, iso);
         }
         return requiredFields;
     }

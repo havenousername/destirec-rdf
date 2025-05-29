@@ -66,6 +66,9 @@ public class RegionDtoCreator implements DtoCreator<RegionDto, RegionConfig.Fiel
         String regionType = map.get(RegionConfig.Fields.REGION_TYPE);
         RegionNames.Individuals.RegionTypes type = regionType != null ?
                 RegionNames.Individuals.RegionTypes.valueOf(regionType) : null;
+
+        IRI geoShape = map.get(RegionConfig.Fields.GEO_SHAPE) != null ?
+                valueFactory.createIRI(map.get(RegionConfig.Fields.GEO_SHAPE)) : null;
         return new RegionDto(
                 id,
                 map.get(RegionConfig.Fields.NAME),
@@ -74,7 +77,9 @@ public class RegionDtoCreator implements DtoCreator<RegionDto, RegionConfig.Fiel
                 source,
                 cost,
                 months,
-                features
+                features,
+                map.get(RegionConfig.Fields.ISO),
+                geoShape
         );
     }
 
@@ -99,7 +104,9 @@ public class RegionDtoCreator implements DtoCreator<RegionDto, RegionConfig.Fiel
                 regionDto.sourceIRI() == null  ? null :valueFactory.createIRI(regionDto.sourceIRI()),
                 cost,
                 months,
-                features
+                features,
+                null,
+                null
         );
     }
 
@@ -116,7 +123,9 @@ public class RegionDtoCreator implements DtoCreator<RegionDto, RegionConfig.Fiel
                 dto.getSource(),
                 null,
                 null,
-                null
+                null,
+                dto.getIso(),
+                dto.getGeoShape()
         );
     }
 

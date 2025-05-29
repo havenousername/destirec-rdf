@@ -5,7 +5,9 @@ import io.github.resilience4j.circuitbreaker.CircuitBreaker;
 import io.github.resilience4j.circuitbreaker.CircuitBreakerConfig;
 import io.github.resilience4j.retry.Retry;
 import io.github.resilience4j.retry.RetryConfig;
+import org.destirec.destirec.rdf4j.overpass.OverpassService;
 import org.destirec.destirec.rdf4j.region.RegionDao;
+import org.destirec.destirec.rdf4j.region.RegionDto;
 import org.destirec.destirec.rdf4j.region.RegionService;
 import org.destirec.destirec.rdf4j.region.apiDto.SimpleRegionDto;
 import org.destirec.destirec.rdf4j.version.VersionDao;
@@ -27,6 +29,7 @@ import org.springframework.cache.annotation.Cacheable;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 
+import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -34,6 +37,10 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.Duration;
 import java.util.*;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -48,11 +55,17 @@ public class KnowledgeGraphService {
     private final RateLimiter rateLimiter;
     private static final Duration REQUEST_TIMEOUT = Duration.ofSeconds(2);
     private static final int MAX_REQUESTS_PER_SECOND = 10;
+    private static final int WIKIDATA_BATCH_SIZE = 50;
+    private static final int DBPEDIA_BATCH_SIZE = 500;
     private final CircuitBreaker circuitBreaker = CircuitBreaker.of("wikidata-api",
             CircuitBreakerConfig.custom()
                     .failureRateThreshold(50)
                     .waitDurationInOpenState(Duration.ofMinutes(1))
                     .build());
+
+    private static final String MAP_JSON_DIR = "./maps";
+
+    private final OverpassService overpassService;
 
     @Lazy
     @Autowired
@@ -73,10 +86,11 @@ public class KnowledgeGraphService {
     private int poiVersion;
 
 
-    public KnowledgeGraphService(RDF4JTemplate rdf4JTemplate, RegionService regionService, VersionDao versionDao) {
+    public KnowledgeGraphService(RDF4JTemplate rdf4JTemplate, RegionService regionService, VersionDao versionDao, OverpassService overpassService) {
         this.rdf4JTemplate = rdf4JTemplate;
         this.regionService = regionService;
         this.versionDao = versionDao;
+        this.overpassService = overpassService;
         queries = new LinkedHashMap<>();
 
         queries.put(RegionTypes.WORLD, this::buildWorldQueryString);
@@ -227,11 +241,12 @@ public class KnowledgeGraphService {
                     PREFIX wd: <http://www.wikidata.org/entity/>
                     PREFIX wikibase: <http://wikiba.se/ontology#>
                 
-                    SELECT ?continent ?continentLabel {
+                    SELECT ?continent ?continentLabel ?geoShape {
                         SERVICE <https://query.wikidata.org/sparql> {
-                            SELECT ?continent ?continentLabel WHERE {
+                            SELECT ?continent ?continentLabel ?geoShape WHERE {
                                 ?continent wdt:P31 wd:Q5107 .
                                 ?continent wdt:P361 wd:Q2 .
+                                OPTIONAL { ?continent wdt:P3896 ?geoShape }
                                 SERVICE wikibase:label {
                                     bd:serviceParam wikibase:language "[AUTO_LANGUAGE],en" .
                                 }
@@ -268,17 +283,21 @@ public class KnowledgeGraphService {
                     PREFIX wd: <http://www.wikidata.org/entity/>
                     PREFIX wikibase: <http://wikiba.se/ontology#>
                 
-                    SELECT ?country ?countryLabel {
+                    SELECT ?country ?countryLabel ?geoShape ?iso {
                         SERVICE <https://query.wikidata.org/sparql> {
-                            SELECT ?country ?countryLabel WHERE {
+                            SELECT ?country ?countryLabel ?iso ?geoShape WHERE {
                                 {
-                        ?country wdt:P31 wd:Q15239622 ;  # Q15239622 = continent region
-                                        wdt:P361 <%s> .     # Q27381 = Eurasia
+                                    ?country wdt:P31 wd:Q15239622 ;  # Q15239622 = continent region
+                                        wdt:P361 <%s> ;     # Q27381 = Eurasia
+                                        wdt:P297 ?iso .
+                                    OPTIONAL { ?country wdt:P3896 ?geoShape }
                       }
                       UNION
                       {
                         ?country wdt:P31 wd:Q6256 ;      # Q6256 = country
-                                        wdt:P361 <%s> .
+                                        wdt:P361 <%s> ;
+                                        wdt:P297 ?iso .
+                        OPTIONAL { ?country wdt:P3896 ?geoShape }
                       }
                       SERVICE wikibase:label { bd:serviceParam wikibase:language "[AUTO_LANGUAGE],en". }
                             }
@@ -299,6 +318,8 @@ public class KnowledgeGraphService {
                             SERVICE <https://query.wikidata.org/sparql> {
                                 SELECT ?district ?districtLabel WHERE {
                                    <%s> wdt:P150 ?district .  # Germany contains these administrative territorial entities
+                                   ?district wdt:P300 ?iso .
+                                   OPTIONAL { ?district wdt:P3896 ?geoShape }
                                   SERVICE wikibase:label { bd:serviceParam wikibase:language "[AUTO_LANGUAGE],en". }
                                 }
                             }
@@ -352,7 +373,7 @@ public class KnowledgeGraphService {
         if (regionType == RegionTypes.CONTINENT_REGION
                 || regionType == RegionTypes.COUNTRY
                 || regionType == RegionTypes.DISTRICT) {
-            allResults = allResults.stream().limit(2).toList();
+            allResults = allResults.stream().limit(queryNumberLimit).toList();
         }
         return new MutableTupleQueryResult(result.getBindingNames(), allResults);
     }
@@ -402,6 +423,10 @@ public class KnowledgeGraphService {
                 if (binding.getName().toLowerCase().contains("label")) {
                     region.setName(binding.getValue().stringValue());
                     region.setId(binding.getValue().stringValue().replaceAll(" ", ""));
+                } else if (binding.getName().toLowerCase().contains("geoshape")) {
+                   region.setGeoShape(factory.createIRI(binding.getValue().stringValue()));
+                } else if (binding.getName().toLowerCase().contains("iso")) {
+                    region.setIso(binding.getValue().stringValue());
                 }
             }
 
@@ -445,71 +470,140 @@ public class KnowledgeGraphService {
     }
 
     private void makeQueryForPOIs() {
-        List<Pair<IRI, IRI>> allDistricts = regionDao.listByType(RegionTypes.DISTRICT);
-        int batchSize = 100;
-        rdf4JTemplate.consumeConnection(connection -> {
-            for (int i = 0; i < allDistricts.size(); i += batchSize) {
-                List<Pair<IRI, IRI>> currentBatch = allDistricts.subList(i, Math.min(i + batchSize, allDistricts.size()));
-                if (currentBatch.isEmpty()) {
-                    continue;
-                }
-                List<String> districtUrisForQuery = currentBatch
-                        .stream()
-                        .map(pair -> pair.getValue1().stringValue())
-                        .toList();
+        ExecutorService service = Executors.newFixedThreadPool(4);
+        List<CompletableFuture<Void>> futures = new ArrayList<>();
 
-                String wikidataQueryString = buildPoiQueryString(districtUrisForQuery);
-                Map<String, List<POIClass>> poisFromWikidata = new HashMap<>();
-
-                TupleQuery tupleQuery = connection.prepareTupleQuery(wikidataQueryString);
-                TupleQueryResult result = null;
-                try {
-                    result = tupleQuery.evaluate();
-                    transformQueryResultsToPOIs(result, poisFromWikidata);
-                } finally {
-                    if (result != null) {
-                        result.close();
-                    }
-                }
-
-                List<String> wikidataPois = new ArrayList<>();
-                for (List<POIClass> list : poisFromWikidata.values()) {
-                    wikidataPois.addAll(list.stream().map(POIClass::getSource).map(IRI::stringValue).toList());
-                }
-
-                String dbpediaQueryString = buildPOIDBPediaQueryString(wikidataPois);
-                TupleQuery tupleQueryDbpedia = connection.prepareTupleQuery(dbpediaQueryString);
-                TupleQueryResult resultPedia = null;
-                try {
-                    resultPedia = tupleQueryDbpedia.evaluate();
-                    transformDBPediaResults(resultPedia, poisFromWikidata);
-                } finally {
-                    if (resultPedia != null) {
-                        result.close();
-                    }
-                }
-
-
-                for (Pair<IRI, IRI> district : currentBatch) {
-                    String currentDistrictUri = district.getValue1().stringValue();
-                    if (!poisFromWikidata.containsKey(currentDistrictUri) || poisFromWikidata.get(currentDistrictUri).isEmpty()) {
-                        continue;
-                    }
-                    HashMap<String, POIClass> uniquePois = new HashMap<>();
-                    poisFromWikidata.get(currentDistrictUri).forEach(poi -> uniquePois.put(poi.getSource().stringValue(), poi));
-                    List<POIClass> pois = uniquePois.values().stream().toList();
-                    logger.info("Optimizing {} POIs for district {}", pois.size(), currentDistrictUri);
-                    ACOHyperparameters hyperparameters = ACOHyperparameters.getDefault();
-                    hyperparameters.setSelectionSize(Math.round((double) pois.size() / 4));
-                    AntColonyOptimizer optimizer = new AntColonyOptimizer(pois, hyperparameters);
-                    List<POIClass> optimized = optimizer.optimize();
-                    logger.info("Finished optimization for district {}. Optimized: {}, Original in batch for district: {}",
-                            currentDistrictUri, optimized.size(), pois.size());
-                    createPOIsInRdf(optimized);
-                }
+        List<Pair<IRI, IRI>> allDistricts = regionDao.listByTypeId(RegionTypes.DISTRICT);
+        for (int i = 0; i < allDistricts.size(); i += WIKIDATA_BATCH_SIZE) {
+            List<Pair<IRI, IRI>> currentBatch = allDistricts.subList(i, Math.min(i + WIKIDATA_BATCH_SIZE, allDistricts.size()));
+            if (currentBatch.isEmpty()) {
+                continue;
             }
+
+            CompletableFuture<Void> future = CompletableFuture.runAsync(() -> {
+                rdf4JTemplate.consumeConnection((connection) -> {
+                    List<String> districtUrisForQuery = currentBatch
+                            .stream()
+                            .map(pair -> pair.getValue1().stringValue())
+                            .toList();
+                    String wikidataQueryString = buildPoiQueryString(districtUrisForQuery);
+                    Map<String, List<POIClass>> poisFromWikidata = new HashMap<>();
+
+                    // wikidata access step
+                    TupleQuery tupleQuery = connection.prepareTupleQuery(wikidataQueryString);
+                    TupleQueryResult result = null;
+                    try {
+                        result = tupleQuery.evaluate();
+                        transformQueryResultsToPOIs(result, poisFromWikidata);
+                    } finally {
+                        if (result != null) {
+                            result.close();
+                        }
+                    }
+                    try {
+                        Thread.sleep(100);
+                    } catch (InterruptedException e) {
+                        throw new RuntimeException(e);
+                    }
+
+                    List<String> wikidataPois = new ArrayList<>();
+                    for (List<POIClass> list : poisFromWikidata.values()) {
+                        wikidataPois.addAll(list.stream().map(POIClass::getSource).map(IRI::stringValue).toList());
+                    }
+
+                    // dbpedia access step
+                    if (!wikidataPois.isEmpty()) {
+                        for (int j = 0; j < wikidataPois.size(); j += DBPEDIA_BATCH_SIZE) {
+                            List<String> wikidataPoisForQuery = wikidataPois.subList(j, Math.min(j + DBPEDIA_BATCH_SIZE, wikidataPois.size()));
+                            if (wikidataPoisForQuery.isEmpty()) {
+                                continue;
+                            }
+
+                            String dbpediaQueryString = buildPOIDBPediaQueryString(wikidataPoisForQuery);
+                            TupleQuery tupleQueryDbpedia = connection.prepareTupleQuery(dbpediaQueryString);
+                            TupleQueryResult resultPedia = null;
+
+                            try {
+                                resultPedia = tupleQueryDbpedia.evaluate();
+                                transformDBPediaResults(resultPedia, poisFromWikidata);
+                            } catch (QueryEvaluationException exception) {
+                                logger.error("Failed to transform DBPedia results for a POI sub-batch (size: {}) in batch starting with district: {}",
+                                        wikidataPoisForQuery.size(), districtUrisForQuery.getFirst(), exception);
+                            } finally {
+                                if (resultPedia != null) {
+                                    resultPedia.close();
+                                }
+                            }
+                        }
+                    }
+
+
+                    try {
+                        Thread.sleep(100);
+                    } catch (InterruptedException e) {
+                        throw new RuntimeException(e);
+                    }
+
+                    // ACO optimization step
+                    for (Pair<IRI, IRI> district : currentBatch) {
+                        String currentDistrictUri = district.getValue1().stringValue();
+                        if (!poisFromWikidata.containsKey(currentDistrictUri) || poisFromWikidata.get(currentDistrictUri).isEmpty()) {
+                            continue;
+                        }
+                        HashMap<String, POIClass> uniquePois = new HashMap<>();
+                        poisFromWikidata.get(currentDistrictUri).forEach(poi -> uniquePois.put(poi.getSource().stringValue(), poi));
+                        List<POIClass> pois = uniquePois.values().stream().toList();
+                        logger.info("Optimizing {} POIs for district {}", pois.size(), currentDistrictUri);
+                        ACOHyperparameters hyperparameters = ACOHyperparameters.getDefault();
+                        hyperparameters.setSelectionSize(Math.round((double) pois.size() / 4));
+                        AntColonyOptimizer optimizer = new AntColonyOptimizer(pois, hyperparameters);
+                        List<POIClass> optimized = optimizer.optimize();
+                        logger.info("Finished optimization for district {}. Optimized: {}, Original in batch for district: {}",
+                                currentDistrictUri, optimized.size(), pois.size());
+
+                        try {
+                            createPOIsInRdf(optimized);
+                        } catch (Exception exception) {
+                            logger.error("Failed to create POIs in RDF", exception);
+                        }
+                    }
+                });
+            }, service);
+            futures.add(future);
+        }
+
+        try {
+            CompletableFuture.allOf(futures.toArray(new CompletableFuture[0])).join();
+            logger.info("Finished querying for POIs");
+        } catch (Exception exception) {
+            logger.error("An error occurred while querying for POIs", exception);
+        } finally {
+            service.shutdown();
+            try {
+                if (!service.awaitTermination(60, TimeUnit.SECONDS)) {
+                    service.shutdownNow();
+                }
+            } catch (InterruptedException e) {
+                logger.error("Interrupted while waiting for POI query thread to finish", e);
+                service.shutdownNow();
+                Thread.currentThread().interrupt();
+            } catch (Exception exception) {
+                logger.error("Unknown Exception has occured", exception);
+                service.shutdownNow();
+                Thread.currentThread().interrupt();
+            }
+        }
+
+        try {
             regionService.updateAllOntologiesPOIs();
-        });
+            logger.info("Finished updating ontology POIs");
+        } catch (Exception exception) {
+            logger.error("An error occurred while updating ontology POIs", exception);
+        }
+    }
+
+    public void updateKGOntologies() {
+        regionService.updateAllOntologiesPOIs();
     }
 
     private void makeQueryForPOIsWithRetry() {
@@ -534,7 +628,6 @@ public class KnowledgeGraphService {
             runnable.run();
         } catch (Exception e) {
             logger.error("Failed to get query handler for POIs", e);
-            throw new RuntimeException(e);
         }
     }
 
@@ -629,6 +722,86 @@ public class KnowledgeGraphService {
         return value != null ? value.stringValue() : null;
     }
 
+    private void saveRegionGeoJson(String fileContent, RegionTypes type, String regionId) {
+        try {
+            Path dir = Paths.get(MAP_JSON_DIR);
+            Files.createDirectories(dir);
+
+            Path location = dir.resolve(type.name().toLowerCase());
+            Files.createDirectories(location);
+
+            File jsonFile = location.resolve(regionId + ".json").toFile();
+            Files.writeString(jsonFile.toPath(), fileContent, StandardCharsets.UTF_8);
+        } catch (IOException exception) {
+            logger.error("Failed to write optimized POIs to file", exception);
+        }
+    }
+
+    public boolean regionGeoJsonExists(RegionTypes type, String regionId) {
+        Path dir = Paths.get(MAP_JSON_DIR);
+        Path location = dir.resolve(type.name().toLowerCase());
+        Path jsonFilePath = location.resolve(regionId + ".json");
+
+        return Files.exists(jsonFilePath) && Files.isRegularFile(jsonFilePath);
+    }
+
+
+
+    private void fetchTopMaps(RegionTypes type) {
+        // get continents
+        List<RegionDto> topRegions = regionDao.listAllByType(type);
+        for (RegionDto region : topRegions) {
+            if (fetchMapFromWikimedia(type, region)) continue;
+
+            List<RegionDto> countries = regionDao
+                    .listAllCountriesForRegion(region.id())
+                    .stream()
+                    .map(countryIRI -> regionDao.getById(countryIRI))
+                    .toList();
+
+            if (countries.isEmpty()) {
+                continue;
+            }
+            String mapInfo = overpassService.runQuerySuperRegion(countries.stream().map(RegionDto::getIso).toList());
+            saveRegionGeoJson(mapInfo, type, region.getId().getLocalName());
+        }
+    }
+
+    private void fetchBottomMaps(RegionTypes type) {
+        List<RegionDto> bottomRegions = regionDao.listAllByType(type);
+        for (RegionDto region : bottomRegions) {
+            if (fetchMapFromWikimedia(type, region)) continue;
+            String mapInfo = overpassService.runQuerySuperRegion(bottomRegions.stream().map(RegionDto::getIso).toList());
+            saveRegionGeoJson(mapInfo, type, region.getId().getLocalName());
+        }
+    }
+
+    private boolean fetchMapFromWikimedia(RegionTypes type, RegionDto region) {
+        if (regionGeoJsonExists(type, region.id.getLocalName())) {
+            return true;
+        }
+
+        if (region.getGeoShape() != null) {
+            try {
+                String mapInfo = overpassService.runWikimediaQuery(region.getGeoShape().stringValue());
+                saveRegionGeoJson(mapInfo, type, region.getId().getLocalName());
+                return true;
+            } catch (Exception exception) {
+                logger.warn("Cannot fetch using geoshape. Rolling to countries iso method");
+            }
+        }
+        return false;
+    }
+
+
+    public void fetchAllMaps() {
+        fetchTopMaps(RegionTypes.CONTINENT);
+        fetchTopMaps(RegionTypes.CONTINENT_REGION);
+        fetchBottomMaps(RegionTypes.COUNTRY);
+        fetchBottomMaps(RegionTypes.DISTRICT);
+    }
+
+
     public void addAllRegionsToRepository() {
         if (versionDao.hasRegionVersion(regionVersion)) {
             logger.info("Repository already has all the regions");
@@ -642,6 +815,7 @@ public class KnowledgeGraphService {
                     Optional.empty());
             logger.info("Repository already has all the regions");
         });
+
         versionDao.saveRegionVersion(factory.createIRI(WIKIDATA.SPARQL_ENDPOINT.toString()), regionVersion);
     }
 
