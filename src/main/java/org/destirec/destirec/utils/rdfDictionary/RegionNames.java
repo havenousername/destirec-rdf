@@ -78,9 +78,8 @@ public final class RegionNames {
                 }
                 String lastSegment = Arrays.stream(iri.stringValue().split("/"))
                         .toList()
-                        .getLast()
-                        .toUpperCase(); // Ensure uppercase
-                return RegionTypes.valueOf(lastSegment);
+                        .getLast(); // Ensure uppercase
+                return RegionTypes.fromString(lastSegment);
             }
 
             public static RegionTypes fromString(String value) {
@@ -89,7 +88,9 @@ public final class RegionNames {
                 }
 
                 for (RegionTypes type : RegionTypes.values()) {
-                    if (type.name().equalsIgnoreCase(value)) {
+                    String name = type.getName().toLowerCase();
+                    String valueName = value.toLowerCase();
+                    if (name.equalsIgnoreCase(valueName)) {
                         return type;
                     }
                 }

@@ -96,7 +96,7 @@ public class KnowledgeGraphService {
         queries.put(RegionTypes.WORLD, this::buildWorldQueryString);
         queries.put(RegionTypes.CONTINENT, this::buildContinentQueryString);
         queries.put(RegionTypes.CONTINENT_REGION, this::buildContinentRegionQueryString);
-        queries.put(RegionTypes.COUNTRY, this::buildCountyQueryString);
+        queries.put(RegionTypes.COUNTRY, this::buildCountryQueryString);
         queries.put(RegionTypes.DISTRICT, this::getDistrictsCountries);
 //        queries.put(RegionTypes.POI, this::getPOIs);
 
@@ -276,7 +276,7 @@ public class KnowledgeGraphService {
                 """.formatted(continent);
     }
 
-    private String buildCountyQueryString(String region) {
+    private String buildCountryQueryString(String region) {
         return """
                     PREFIX bd: <http://www.bigdata.com/rdf#>
                     PREFIX wdt: <http://www.wikidata.org/prop/direct/>

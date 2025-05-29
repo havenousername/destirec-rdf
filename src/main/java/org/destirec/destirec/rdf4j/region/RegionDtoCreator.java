@@ -41,10 +41,12 @@ public class RegionDtoCreator implements DtoCreator<RegionDto, RegionConfig.Fiel
                 .orElse(Collections.emptyList());
         List<MonthDto> months = monthsString
                 .stream()
+                .filter((month) -> !month.isEmpty())
                 .map(month -> monthDao.getById(monthDao.getValueFactory().createIRI(month)))
                 .toList();
 
         List<String> featuresString = Optional.ofNullable(map.get(RegionConfig.Fields.FEATURES))
+                .filter((feature) -> !feature.isEmpty())
                 .map(SimpleDtoTransformations::toListString)
                 .orElse(Collections.emptyList());
         List<FeatureDto> features = featuresString
@@ -52,22 +54,25 @@ public class RegionDtoCreator implements DtoCreator<RegionDto, RegionConfig.Fiel
                 .map(feature -> featureDao.getById(valueFactory.createIRI(feature)))
                 .toList();
         CostDto cost = Optional.ofNullable(map.get(RegionConfig.Fields.COST))
+                .filter(i -> !i.isEmpty())
                 .map(valueFactory::createIRI)
                 .map(costDao::getById)
                 .orElse(null);
         IRI parent = Optional.ofNullable(map.get(RegionConfig.Fields.PARENT_REGION))
+                .filter(i -> !i.isEmpty())
                 .map(valueFactory::createIRI)
                 .orElse(null);
 
         IRI source = Optional.ofNullable(map.get(RegionConfig.Fields.SOURCE))
+                .filter(i -> !i.isEmpty())
                 .map(valueFactory::createIRI)
                 .orElse(null);
 
         String regionType = map.get(RegionConfig.Fields.REGION_TYPE);
-        RegionNames.Individuals.RegionTypes type = regionType != null ?
-                RegionNames.Individuals.RegionTypes.valueOf(regionType) : null;
+        RegionNames.Individuals.RegionTypes type = regionType != null && !regionType.isBlank() ?
+                RegionNames.Individuals.RegionTypes.fromIRI(valueFactory.createIRI(regionType)) : null;
 
-        IRI geoShape = map.get(RegionConfig.Fields.GEO_SHAPE) != null ?
+        IRI geoShape = map.get(RegionConfig.Fields.GEO_SHAPE) != null && !map.get(RegionConfig.Fields.GEO_SHAPE).isBlank() ?
                 valueFactory.createIRI(map.get(RegionConfig.Fields.GEO_SHAPE)) : null;
         return new RegionDto(
                 id,
