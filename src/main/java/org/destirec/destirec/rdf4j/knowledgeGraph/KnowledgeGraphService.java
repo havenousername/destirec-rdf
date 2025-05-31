@@ -29,7 +29,6 @@ import org.springframework.cache.annotation.Cacheable;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 
-import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -62,8 +61,6 @@ public class KnowledgeGraphService {
                     .failureRateThreshold(50)
                     .waitDurationInOpenState(Duration.ofMinutes(1))
                     .build());
-
-    private static final String MAP_JSON_DIR = "./maps";
 
     private final OverpassService overpassService;
 
@@ -722,36 +719,22 @@ public class KnowledgeGraphService {
         return value != null ? value.stringValue() : null;
     }
 
-    private void saveRegionGeoJson(String fileContent, RegionTypes type, String regionId) {
-        try {
-            Path dir = Paths.get(MAP_JSON_DIR);
-            Files.createDirectories(dir);
-
-            Path location = dir.resolve(type.name().toLowerCase());
-            Files.createDirectories(location);
-
-            File jsonFile = location.resolve(regionId + ".json").toFile();
-            Files.writeString(jsonFile.toPath(), fileContent, StandardCharsets.UTF_8);
-        } catch (IOException exception) {
-            logger.error("Failed to write optimized POIs to file", exception);
-        }
-    }
-
-    public boolean regionGeoJsonExists(RegionTypes type, String regionId) {
-        Path dir = Paths.get(MAP_JSON_DIR);
-        Path location = dir.resolve(type.name().toLowerCase());
-        Path jsonFilePath = location.resolve(regionId + ".json");
-
-        return Files.exists(jsonFilePath) && Files.isRegularFile(jsonFilePath);
-    }
-
-
-
     private void fetchTopMaps(RegionTypes type) {
+        logger.info("Starting to fetch top maps for region type: {}", type);
+
         // get continents
         List<RegionDto> topRegions = regionDao.listAllByType(type);
+        logger.debug("Found {} regions of type {}", topRegions.size(), type);
+
         for (RegionDto region : topRegions) {
-            if (fetchMapFromWikimedia(type, region)) continue;
+            logger.debug("Processing region: {}", region.id());
+
+            if (fetchMapFromWikimedia(type, region)) {
+                logger.debug("Successfully fetched map from Wikimedia for region: {}", region.id());
+                continue;
+            }
+
+            logger.debug("Wikimedia fetch failed, trying alternative approach for region: {}", region.id());
 
             List<RegionDto> countries = regionDao
                     .listAllCountriesForRegion(region.id())
@@ -759,35 +742,78 @@ public class KnowledgeGraphService {
                     .map(countryIRI -> regionDao.getById(countryIRI))
                     .toList();
 
+            logger.debug("Found {} countries for region {}", countries.size(), region.id());
+
             if (countries.isEmpty()) {
+                logger.debug("No countries found for region {}, skipping", region.id());
                 continue;
             }
+
+            logger.info("Fetching map data from Overpass for {} countries in region {}", countries.size(), region.id());
             String mapInfo = overpassService.runQuerySuperRegion(countries.stream().map(RegionDto::getIso).toList());
-            saveRegionGeoJson(mapInfo, type, region.getId().getLocalName());
+
+            logger.debug("Saving geoJSON for region {}", region.id());
+            overpassService.saveRegionGeoJson(mapInfo, type, region.getId().getLocalName());
+            logger.info("Successfully saved map for region {}", region.id());
         }
+
+        logger.info("Completed fetching top maps for region type: {}", type);
     }
 
     private void fetchBottomMaps(RegionTypes type) {
+        logger.info("Starting to fetch bottom maps for region type: {}", type);
+
         List<RegionDto> bottomRegions = regionDao.listAllByType(type);
+        logger.debug("Found {} regions of type {}", bottomRegions.size(), type);
+
         for (RegionDto region : bottomRegions) {
-            if (fetchMapFromWikimedia(type, region)) continue;
-            String mapInfo = overpassService.runQuerySuperRegion(bottomRegions.stream().map(RegionDto::getIso).toList());
-            saveRegionGeoJson(mapInfo, type, region.getId().getLocalName());
+            logger.debug("Processing region: {} ({})", region.getId().getLocalName(), region.getIso());
+
+            if (fetchMapFromWikimedia(type, region)) {
+                logger.info("Successfully fetched map from Wikimedia for region: {}", region.getId());
+                continue;
+            }
+            logger.debug("Wikimedia fetch failed, proceeding with Overpass for region: {}", region.getId());
+
+            if (type == RegionTypes.COUNTRY) {
+                logger.info("Processing as country: {}", region.getIso());
+                String mapInfo = overpassService.runQueryCountry(region.getIso());
+                logger.debug("Retrieved Overpass data for country {}, saving geoJSON", region.getIso());
+                overpassService.saveRegionGeoJson(mapInfo, type, region.getId().getLocalName());
+                logger.info("Successfully saved country map for {}", region.getId());
+            } else {
+                logger.debug("Processing as sub-region, fetching parent region for {}", region.getId());
+                RegionDto parentRegion = regionDao.getById(region.getParentRegion());
+
+                if (parentRegion == null) {
+                    logger.warn("Parent region not found for {}", region.getId());
+                    continue;
+                }
+
+                logger.info("Fetching district map for {} (parent: {})",
+                        region.getIso(), parentRegion.getIso());
+                String mapInfo = overpassService.runQueryDistrict(parentRegion.getIso(), region.getIso());
+                logger.debug("Retrieved Overpass data for district {}, saving geoJSON", region.getIso());
+                overpassService.saveRegionGeoJson(mapInfo, type, region.getId().getLocalName());
+                logger.info("Successfully saved district map for {}", region.getId());
+            }
         }
+
+        logger.info("Completed fetching bottom maps for region type: {}", type);
     }
 
     private boolean fetchMapFromWikimedia(RegionTypes type, RegionDto region) {
-        if (regionGeoJsonExists(type, region.id.getLocalName())) {
+        if (overpassService.regionGeoJsonExists(type, region.id.getLocalName())) {
             return true;
         }
 
         if (region.getGeoShape() != null) {
             try {
                 String mapInfo = overpassService.runWikimediaQuery(region.getGeoShape().stringValue());
-                saveRegionGeoJson(mapInfo, type, region.getId().getLocalName());
+                overpassService.saveRegionGeoJson(mapInfo, type, region.getId().getLocalName());
                 return true;
             } catch (Exception exception) {
-                logger.warn("Cannot fetch using geoshape. Rolling to countries iso method");
+                logger.warn("Cannot fetch using geoshape. Rolling to countries iso method", exception);
             }
         }
         return false;

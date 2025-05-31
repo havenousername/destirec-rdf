@@ -20,6 +20,24 @@ configurations {
     }
 }
 
+configurations.all {
+    resolutionStrategy {
+        force("org.eclipse.jetty:jetty-client:9.4.41.v20210516")
+        force("org.eclipse.jetty:jetty-util:9.4.41.v20210516")
+        force("org.eclipse.jetty:jetty-http:9.4.41.v20210516")
+        force("org.eclipse.jetty.http2:http2-client:9.4.41.v20210516")
+    }
+}
+
+configurations.all {
+    exclude(group = "org.eclipse.jetty", module = "jetty-client")
+    exclude(group = "org.eclipse.jetty", module = "jetty-http")
+    exclude(group = "org.eclipse.jetty.http2", module = "http2-client")
+    exclude(group = "org.eclipse.jetty.http2", module = "http2-hpack")
+}
+
+
+
 repositories {
     mavenCentral()
 }
@@ -32,14 +50,25 @@ dependencies {
     implementation("org.apache.commons:commons-lang3")
 
 
-    implementation("org.eclipse.rdf4j:rdf4j-spring:+")
-    implementation(platform("org.eclipse.rdf4j:rdf4j-bom:+"))
-    implementation("org.eclipse.rdf4j:rdf4j-storage")
-    implementation("org.eclipse.rdf4j:rdf4j-tools-federation:+")
+    implementation(platform("org.eclipse.rdf4j:rdf4j-bom:5.1.3"))
+    implementation("org.eclipse.rdf4j:rdf4j-spring:5.1.3")
+    implementation("org.eclipse.rdf4j:rdf4j-storage:5.1.3")
+    implementation("org.eclipse.rdf4j:rdf4j-tools-federation:4.1.0")
+
 
     implementation("org.springframework.boot:spring-boot-devtools")
 
-    // OWL API core
+    val jettyVersion = "9.4.54.v20240208"
+    implementation("org.eclipse.jetty:jetty-client:${jettyVersion}")
+    implementation("org.eclipse.jetty:jetty-util:${jettyVersion}")
+    implementation("org.eclipse.jetty:jetty-http:${jettyVersion}")
+    implementation("org.eclipse.jetty.http2:http2-client:${jettyVersion}")
+    implementation("org.eclipse.jetty.http2:http2-hpack:${jettyVersion}")
+    implementation("org.eclipse.jetty:jetty-io:${jettyVersion}")
+
+
+
+// OWL API core
     implementation("net.sourceforge.owlapi:owlapi-distribution:5.5.0")
     implementation("net.sourceforge.owlapi:owlapi-rio:5.5.0")
     implementation("net.sourceforge.owlapi:org.semanticweb.hermit:1.4.5.519")
@@ -63,9 +92,9 @@ dependencies {
 
     testImplementation("org.springframework.boot:spring-boot-starter-test")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
-
-    implementation("org.eclipse.jetty:jetty-client:12.0.16")
-    implementation("org.eclipse.jetty:jetty-util:12.0.16")
+    // javascript runtime
+    implementation("org.graalvm.polyglot:polyglot:24.2.1")
+    implementation("org.graalvm.polyglot:js:24.2.1")
 }
 
 tasks.withType<Test> {

@@ -52,10 +52,8 @@ public class ApplicationConfig {
         return new ShortRepositoryInfo(isRemote, repository);
     }
 
-
     private void configSystem() {
         System.setProperty("org.eclipse.rdf4j.repository.debug", "false");
-
     }
 
     @PostConstruct
@@ -64,6 +62,7 @@ public class ApplicationConfig {
         if (isRemote) {
             var repo = new HTTPRepository(url, repositoryName);
             repo.setAdditionalHttpHeaders(Map.of("User-Agent", "Destirec/1.0 (+https://destination-finder-production.up.railway.app; contact:cristea.andrei997@gmail.com)"));
+            System.out.println(repo.getConnection().isActive());
             repository = repo;
         } else {
             createLocalRepository();
