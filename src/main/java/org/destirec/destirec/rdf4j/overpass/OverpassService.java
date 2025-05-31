@@ -1,5 +1,6 @@
 package org.destirec.destirec.rdf4j.overpass;
 
+import org.destirec.destirec.utils.JsonValidator;
 import org.destirec.destirec.utils.rdfDictionary.RegionNames;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Value;
@@ -8,6 +9,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClient;
+import org.springframework.web.util.UriComponentsBuilder;
 
 import java.io.File;
 import java.io.IOException;
@@ -19,6 +21,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.List;
 import java.util.Objects;
+import java.util.regex.Pattern;
 
 import static java.net.URI.create;
 
@@ -28,8 +31,7 @@ public class OverpassService {
     protected Logger logger = LoggerFactory.getLogger(getClass());
     public static final String MAP_JSON_DIR = "./maps";
 
-    public OverpassService() {
-    }
+    public OverpassService() {}
 
     public static String getSuperRegion(List<String> countriesIso) {
         return """
@@ -50,13 +52,13 @@ public class OverpassService {
     public static String getCountryDistrict(String country, String districtIso) {
         return """
             [out:json][timeout:180];
-                    area["ISO3166-1"="%s"][admin_level=2];   // Country area
-                    (
-                      relation["admin_level"~"^(3|4|5|7|8)$"]
-                      ["ISO3166-1"="%s"]
-                      (area);
-                    );
-                    out geom;
+            area["ISO3166-1"="%s"][admin_level=2];   // Country area
+            (
+              relation["admin_level"~"^(3|4|5|7|8)$"]
+              ["ISO3166-1"="%s"]
+              (area);
+            );
+            out geom;
         """.formatted(country, districtIso);
     }
 
@@ -85,20 +87,44 @@ public class OverpassService {
         return runQuery(getSuperRegion(country));
     }
 
+
+    // https://commons.wikimedia.org/wiki/Special:PageData/main/South+America.map?action=raw
     public String runWikimediaQuery(String uri) {
-        return client
+        Pattern uriPattern = Pattern.compile("^https?://[^/]+/data/[^/]+/Data:(.+).map");
+        String region = uriPattern.matcher(uri)
+                .results()
+                .map(mr -> mr.group(1))
+                .toList()
+                .getFirst();
+
+        String wikiUri = "https://commons.wikimedia.org/w/index.php?title=Data:" + region + ".map";
+        URI url = UriComponentsBuilder
+                        .fromUriString(wikiUri)
+                        .queryParam("action", "raw")
+                        .build(true)
+                        .toUri();
+        String result = client
                 .get()
-                .uri(create(uri))
+                .uri(url)
                 .retrieve()
-                .onStatus(HttpStatusCode::is4xxClientError, ((_, response) -> {
-                    logger.warn("wikimedia resource is not accessible from wikimedia: {}. Error{}", uri, response.getBody());
-                    throw new RuntimeException("Cannot get required query: " + uri + ". Error" + response.getBody());
-                }))
+                .onStatus(HttpStatusCode::is4xxClientError, (request, response) -> {
+                    String body = response.getBody().toString();
+                    logger.warn("Wikimedia resource is not accessible from wikimedia: {}. Error: {}", uri, body);
+                    throw new RuntimeException("Cannot get required query: " + uri + ". Error: " + body);
+                })
                 .body(String.class);
+
+        if (!JsonValidator.isValidJsonObject(result)) {
+            return null;
+        }
+        return result;
     }
 
-
     public void saveRegionGeoJson(String fileContent, RegionNames.Individuals.RegionTypes type, String regionId) {
+        saveRegionGeoJson(fileContent, type, regionId, false);
+    }
+
+    public void saveRegionGeoJson(String fileContent, RegionNames.Individuals.RegionTypes type, String regionId, boolean isMapJson) {
         try {
             Path dir = Paths.get(MAP_JSON_DIR);
             Files.createDirectories(dir);
@@ -107,7 +133,7 @@ public class OverpassService {
             Files.createDirectories(location);
 
             File jsonFile = location.resolve(regionId + ".json").toFile();
-            String mapJson = transformToGeoJson(fileContent);
+            String mapJson = isMapJson ? fileContent : transformToGeoJson(fileContent);
             if (mapJson != null && !mapJson.isBlank()) {
                 Files.writeString(jsonFile.toPath(), mapJson, StandardCharsets.UTF_8);
             }

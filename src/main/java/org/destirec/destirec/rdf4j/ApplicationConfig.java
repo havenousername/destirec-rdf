@@ -15,6 +15,7 @@ import org.springframework.cache.annotation.EnableCaching;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
+import org.springframework.web.reactive.function.client.WebClient;
 
 import java.io.File;
 import java.util.Map;
@@ -93,5 +94,10 @@ public class ApplicationConfig {
             repository.shutDown();
             System.out.println("RDF4J Repository shut down successfully.");
         }
+    }
+
+    @Bean
+    public WebClient webClient() {
+        return WebClient.builder().build();
     }
 }

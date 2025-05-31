@@ -311,9 +311,9 @@ public class KnowledgeGraphService {
                         PREFIX wd: <http://www.wikidata.org/entity/>
                         PREFIX wikibase: <http://wikiba.se/ontology#>
                         
-                        SELECT ?district ?districtLabel {
+                        SELECT ?district ?districtLabel ?iso {
                             SERVICE <https://query.wikidata.org/sparql> {
-                                SELECT ?district ?districtLabel WHERE {
+                                SELECT ?district ?districtLabel ?iso WHERE {
                                    <%s> wdt:P150 ?district .  # Germany contains these administrative territorial entities
                                    ?district wdt:P300 ?iso .
                                    OPTIONAL { ?district wdt:P3896 ?geoShape }
@@ -760,6 +760,7 @@ public class KnowledgeGraphService {
         logger.info("Completed fetching top maps for region type: {}", type);
     }
 
+
     private void fetchBottomMaps(RegionTypes type) {
         logger.info("Starting to fetch bottom maps for region type: {}", type);
 
@@ -810,7 +811,10 @@ public class KnowledgeGraphService {
         if (region.getGeoShape() != null) {
             try {
                 String mapInfo = overpassService.runWikimediaQuery(region.getGeoShape().stringValue());
-                overpassService.saveRegionGeoJson(mapInfo, type, region.getId().getLocalName());
+                if (mapInfo == null) {
+                    return false;
+                }
+                overpassService.saveRegionGeoJson(mapInfo, type, region.getId().getLocalName(), true);
                 return true;
             } catch (Exception exception) {
                 logger.warn("Cannot fetch using geoshape. Rolling to countries iso method", exception);

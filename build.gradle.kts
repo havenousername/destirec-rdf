@@ -95,6 +95,11 @@ dependencies {
     // javascript runtime
     implementation("org.graalvm.polyglot:polyglot:24.2.1")
     implementation("org.graalvm.polyglot:js:24.2.1")
+
+
+    implementation("org.springframework.boot:spring-boot-starter-webflux")
+    // https://mvnrepository.com/artifact/com.fasterxml.jackson.core/jackson-databind
+    implementation("com.fasterxml.jackson.core:jackson-databind:2.19.0")
 }
 
 tasks.withType<Test> {
