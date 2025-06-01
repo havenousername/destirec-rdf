@@ -12,6 +12,7 @@ import org.eclipse.rdf4j.model.base.CoreDatatype;
 import org.eclipse.rdf4j.model.vocabulary.DC;
 import org.eclipse.rdf4j.model.vocabulary.FOAF;
 import org.eclipse.rdf4j.model.vocabulary.GEO;
+import org.eclipse.rdf4j.model.vocabulary.SKOS;
 import org.eclipse.rdf4j.sparqlbuilder.core.SparqlBuilder;
 import org.eclipse.rdf4j.sparqlbuilder.core.Variable;
 import org.springframework.stereotype.Component;
@@ -41,6 +42,8 @@ public class RegionConfig extends GenericConfig<RegionConfig.Fields> {
             case PARENT_REGION -> GEO.sfWithin;
             case SOURCE ->  DC.SOURCE;
             case REGION_TYPE -> RegionNames.Properties.HAS_LEVEL.rdfIri();
+            case ISO -> SKOS.NOTATION;
+            case GEO_SHAPE -> GEO.Geometry;
             case null -> throw new IllegalArgumentException("Field is not defined");
         };
         return new ValueContainer<>(values);
@@ -62,7 +65,7 @@ public class RegionConfig extends GenericConfig<RegionConfig.Fields> {
                         .mapToObj(i -> SparqlBuilder.var(field.name() + i))
                         .collect(Collectors.toList()));
             }
-            case COST, NAME, PARENT_REGION, SOURCE, REGION_TYPE -> {
+            case COST, NAME, PARENT_REGION, SOURCE, REGION_TYPE, ISO, GEO_SHAPE -> {
                 return new ValueContainer<>(SparqlBuilder.var(field.name()));
             }
             case null -> throw new IllegalArgumentException("Field is not defined");
@@ -71,7 +74,7 @@ public class RegionConfig extends GenericConfig<RegionConfig.Fields> {
 
     @Override
     public ValueContainer<CoreDatatype> getType(Fields field) {
-        if (field == Fields.NAME) {
+        if (field == Fields.NAME || field == Fields.ISO) {
             return new ValueContainer<>(CoreDatatype.XSD.STRING);
         }
         return new ValueContainer<>(null);
@@ -81,7 +84,7 @@ public class RegionConfig extends GenericConfig<RegionConfig.Fields> {
     public Boolean getIsOptional(Fields field) {
         return switch (field) {
             case NAME -> false;
-            case PARENT_REGION, FEATURES, MONTHS, SOURCE, COST, REGION_TYPE -> true;
+            case PARENT_REGION, FEATURES, MONTHS, SOURCE, COST, REGION_TYPE, ISO, GEO_SHAPE -> true;
         };
     }
 
@@ -100,7 +103,11 @@ public class RegionConfig extends GenericConfig<RegionConfig.Fields> {
         SOURCE("sourceIRI", true),
         COST("costs", true),
 
-        REGION_TYPE("regionType", true);
+        REGION_TYPE("regionType", true),
+
+        // new types
+        ISO("isoName", true),
+        GEO_SHAPE("shape", true);
 
         private final String name;
         private final boolean isRead;

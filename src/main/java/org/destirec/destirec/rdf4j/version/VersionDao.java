@@ -2,14 +2,12 @@ package org.destirec.destirec.rdf4j.version;
 
 import org.destirec.destirec.rdf4j.interfaces.GenericDao;
 import org.destirec.destirec.rdf4j.ontology.DestiRecOntology;
-import org.destirec.destirec.utils.rdfDictionary.VersionNames;
+import org.destirec.destirec.utils.rdfDictionary.TopOntologyNames;
 import org.eclipse.rdf4j.model.IRI;
 import org.eclipse.rdf4j.model.Resource;
 import org.eclipse.rdf4j.model.Statement;
-import org.eclipse.rdf4j.model.Value;
 import org.eclipse.rdf4j.model.vocabulary.DC;
 import org.eclipse.rdf4j.model.vocabulary.RDF;
-import org.eclipse.rdf4j.model.vocabulary.RDFS;
 import org.eclipse.rdf4j.query.BindingSet;
 import org.eclipse.rdf4j.query.QueryEvaluationException;
 import org.eclipse.rdf4j.query.TupleQueryResult;
@@ -30,44 +28,26 @@ import java.util.List;
 
 @Repository
 public class VersionDao extends GenericDao<VersionConfig.Fields, VersionDto> {
-    private final RDF4JTemplate getRdf4JTemplate;
     protected Logger logger = LoggerFactory.getLogger(getClass());
     public VersionDao(
             RDF4JTemplate rdf4JTemplate,
             VersionConfig model,
             SchemaVersionMigration migration,
             VersionDtoCreator creator,
-            DestiRecOntology ontology,
-            RDF4JTemplate getRdf4JTemplate) {
+            DestiRecOntology ontology) {
         super(rdf4JTemplate, model, migration, creator, ontology);
-        this.getRdf4JTemplate = getRdf4JTemplate;
     }
 
-    public IRI saveRegionVersionId(IRI from) {
-        return getRdf4JTemplate().applyToConnection(connection -> {
-            IRI subject = valueFactory.createIRI(this.configFields.getResourceLocation() + "/region");
-            TriplePattern version = GraphPatterns.tp(subject, RDF.TYPE, VersionNames.Classes.VERSION.rdfIri());
-            TriplePattern fromSource = GraphPatterns.tp(subject, DC.SOURCE, from);
-
-
-            connection.begin();
-            ModifyQuery insertQuery = Queries.INSERT(version, fromSource);
-            connection.prepareUpdate(insertQuery.getQueryString()).execute();
-            connection.commit();
-
-            return getRegionVersion();
-        });
-    }
-
-    public void saveRegionVersion(IRI from) {
+    public void saveRegionVersion(IRI from, int versionNumber) {
         getRdf4JTemplate().applyToConnection(connection -> {
             IRI subject = valueFactory.createIRI(this.configFields.getResourceLocation() + "region");
-            TriplePattern version = GraphPatterns.tp(subject, RDF.TYPE, VersionNames.Classes.VERSION.rdfIri());
+            TriplePattern version = GraphPatterns.tp(subject, RDF.TYPE, TopOntologyNames.Classes.VERSION.rdfIri());
             TriplePattern fromSource = GraphPatterns.tp(subject, DC.SOURCE, from);
+            TriplePattern versionId = GraphPatterns.tp(subject, TopOntologyNames.Properties.HAS_VERSION.rdfIri(), valueFactory.createLiteral(versionNumber));
 
 
             connection.begin();
-            ModifyQuery insertQuery = Queries.INSERT(version, fromSource);
+            ModifyQuery insertQuery = Queries.INSERT(version, fromSource, versionId);
             connection.prepareUpdate(insertQuery.getQueryString()).execute();
             connection.commit();
 
@@ -76,19 +56,19 @@ public class VersionDao extends GenericDao<VersionConfig.Fields, VersionDto> {
     }
 
 
-    public void savePOIVersion(List<IRI> from, int amount) {
+    public void savePOIVersion(List<IRI> from, int versionNumber) {
         getRdf4JTemplate().applyToConnection(connection -> {
             IRI subject = valueFactory.createIRI(this.configFields.getResourceLocation() + "poi");
             List<TriplePattern> patterns = new ArrayList<>();
 
-            TriplePattern version = GraphPatterns.tp(subject, RDF.TYPE, VersionNames.Classes.VERSION.rdfIri());
+            TriplePattern version = GraphPatterns.tp(subject, RDF.TYPE, TopOntologyNames.Classes.VERSION.rdfIri());
             patterns.add(version);
 
             for (IRI fromSource : from) {
                 patterns.add(GraphPatterns.tp(subject, DC.SOURCE, fromSource));
             }
 
-            version.andHas(RDFS.LABEL, amount);
+            version.andHas(TopOntologyNames.Properties.HAS_VERSION.rdfIri(), versionNumber);
 
             connection.begin();
             ModifyQuery insertQuery = Queries.INSERT(patterns.toArray(TriplePattern[]::new));
@@ -99,30 +79,11 @@ public class VersionDao extends GenericDao<VersionConfig.Fields, VersionDto> {
         });
     }
 
-    public boolean hasPOIVersion() {
-        Resource subject = valueFactory.createIRI(this.configFields.getResourceLocation() + "poi");
-        Statement statement = new Statement() {
-            @Override
-            public Resource getSubject() {
-                return subject;
-            }
+    public boolean hasPOIVersion(int version) {
+        Resource subject = valueFactory.createIRI(configFields.getResourceLocation() + "poi");
 
-            @Override
-            public IRI getPredicate() {
-                return RDF.TYPE;
-            }
+        return checkVersionStatements(version, subject);
 
-            @Override
-            public Value getObject() {
-                return VersionNames.Classes.VERSION.rdfIri();
-            }
-
-            @Override
-            public Resource getContext() {
-                return null;
-            }
-        };
-        return getRdf4JTemplate().applyToConnection(connection -> connection.hasStatement(statement, true));
     }
 
     public IRI getRegionVersion() {
@@ -130,7 +91,7 @@ public class VersionDao extends GenericDao<VersionConfig.Fields, VersionDto> {
         Variable from = SparqlBuilder.var("from");
         SelectQuery query = Queries.SELECT(regionVersion);
         query.where(
-                regionVersion.isA(VersionNames.Classes.VERSION.rdfIri())
+                regionVersion.isA(TopOntologyNames.Classes.VERSION.rdfIri())
                         .andHas(DC.SOURCE, from)
         ).limit(1);
 
@@ -148,29 +109,23 @@ public class VersionDao extends GenericDao<VersionConfig.Fields, VersionDto> {
         });
     }
 
-    public boolean hasRegionVersion() {
+    public boolean hasRegionVersion(int version) {
         Resource subject = valueFactory.createIRI(this.configFields.getResourceLocation() + "region");
-        Statement statement = new Statement() {
-            @Override
-            public Resource getSubject() {
-                return subject;
-            }
+        return checkVersionStatements(version, subject);
+    }
 
-            @Override
-            public IRI getPredicate() {
-                return RDF.TYPE;
-            }
-
-            @Override
-            public Value getObject() {
-                return VersionNames.Classes.VERSION.rdfIri();
-            }
-
-            @Override
-            public Resource getContext() {
-                return null;
-            }
-        };
-        return getRdf4JTemplate().applyToConnection(connection -> connection.hasStatement(statement, true));
+    private boolean checkVersionStatements(int version, Resource subject) {
+        Statement typeStatement = valueFactory.createStatement(
+                subject,
+                RDF.TYPE,
+                TopOntologyNames.Classes.VERSION.rdfIri()
+        );
+        Statement versionStatement = valueFactory.createStatement(
+                subject,
+                TopOntologyNames.Properties.HAS_VERSION.rdfIri(),
+                valueFactory.createLiteral(version)
+        );
+        return getRdf4JTemplate().applyToConnection(connection -> connection.hasStatement(typeStatement, true)
+                && connection.hasStatement(versionStatement, true));
     }
 }

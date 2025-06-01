@@ -16,16 +16,20 @@ import org.eclipse.rdf4j.model.vocabulary.RDF;
 import org.eclipse.rdf4j.model.vocabulary.RDFS;
 import org.eclipse.rdf4j.query.BindingSet;
 import org.eclipse.rdf4j.query.TupleQueryResult;
+import org.eclipse.rdf4j.sparqlbuilder.constraint.Expressions;
+import org.eclipse.rdf4j.sparqlbuilder.core.Projectable;
 import org.eclipse.rdf4j.sparqlbuilder.core.SparqlBuilder;
 import org.eclipse.rdf4j.sparqlbuilder.core.Variable;
 import org.eclipse.rdf4j.sparqlbuilder.core.query.InsertDataQuery;
 import org.eclipse.rdf4j.sparqlbuilder.core.query.ModifyQuery;
 import org.eclipse.rdf4j.sparqlbuilder.core.query.Queries;
 import org.eclipse.rdf4j.sparqlbuilder.core.query.SelectQuery;
+import org.eclipse.rdf4j.sparqlbuilder.graphpattern.GraphPattern;
 import org.eclipse.rdf4j.sparqlbuilder.graphpattern.GraphPatternNotTriples;
 import org.eclipse.rdf4j.sparqlbuilder.graphpattern.GraphPatterns;
 import org.eclipse.rdf4j.sparqlbuilder.graphpattern.TriplePattern;
 import org.eclipse.rdf4j.sparqlbuilder.rdf.Rdf;
+import org.eclipse.rdf4j.sparqlbuilder.rdf.RdfResource;
 import org.eclipse.rdf4j.spring.dao.support.opbuilder.TupleQueryEvaluationBuilder;
 import org.eclipse.rdf4j.spring.support.RDF4JTemplate;
 import org.javatuples.Pair;
@@ -33,7 +37,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Repository;
 
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 @Getter
@@ -129,7 +135,7 @@ public class RegionDao extends GenericDao<RegionConfig.Fields, RegionDto> {
     }
 
     public Optional<IRI> getByType(RegionTypes regionType) {
-        return Optional.of(listByType(regionType).stream().findFirst().map(Pair::getValue0)).orElse(null);
+        return Optional.of(listByTypeId(regionType).stream().findFirst().map(Pair::getValue0)).orElse(null);
     }
 
 
@@ -177,13 +183,56 @@ public class RegionDao extends GenericDao<RegionConfig.Fields, RegionDto> {
                 () -> getReadQuery(Rdf.iri((RegionNames.Classes.LEAF_REGION.rdfIri()))));
     }
 
-    public List<Pair<IRI, IRI>> listByType(RegionTypes regionType) {
+    public List<Pair<IRI, IRI>> listByTypeId(RegionTypes regionType) {
         return this.getReadQueryListByType(regionType)
                 .evaluateAndConvert()
                 .toList(solution -> new Pair<>(
                         valueFactory.createIRI(solution.getValue("regionId").stringValue()),
                         valueFactory.createIRI(solution.getValue("sourceId").stringValue())))
                 ;
+    }
+
+    public List<RegionDto> listAllByType(RegionTypes regionType, int page, int pageSize) {
+        return this.getRdf4JTemplate()
+                .tupleQuery(getClass(), "KEY_LIST_ALL_BY_TYPE", () ->
+                        getListAllByType(migration.getResource(), regionType, page, pageSize))
+                .evaluateAndConvert()
+                .toList(this::mapSolution, this::postProcessMappedSolution);
+    }
+
+    public List<RegionDto> listAllByType(RegionTypes regionType) {
+        return this.getRdf4JTemplate()
+                .tupleQuery(getClass(), "KEY_LIST_ALL_BY_TYPE", () ->
+                        getListAllByType(migration.getResource(), regionType))
+                .evaluateAndConvert()
+                .toList(this::mapSolution, this::postProcessMappedSolution);
+    }
+
+    public List<IRI> listAllCountriesForRegion(IRI regionId) {
+        return this.getRdf4JTemplate()
+                .tupleQuery(getClass(), "LIST_ALL_COUNTRIES_FOR_ID", () ->
+                {
+                    return getAllCountriesOfParent(regionId);
+                })
+                .evaluateAndConvert()
+                .toList(solution -> valueFactory.createIRI(solution.getValue("children").stringValue()));
+    }
+
+    public String getAllCountriesOfParent(IRI regionId) {
+        Variable regionIdVar = SparqlBuilder.var("regionId");
+        Variable childrenVar = SparqlBuilder.var("children");
+        TriplePattern selectRegion = GraphPatterns.tp(regionIdVar, RDF.TYPE, Rdf.iri(RegionNames.Classes.REGION.rdfIri()));
+        TriplePattern selectChildren = GraphPatterns.tp(
+                regionId,
+                valueFactory.createIRI(RegionNames.Properties.SF_CONTAINS) ,
+                childrenVar);
+        TriplePattern childrenAreCountries = GraphPatterns.tp(childrenVar, RegionNames.Properties.HAS_LEVEL.rdfIri(), RegionTypes.COUNTRY.iri().rdfIri());
+
+        GraphPattern variableRegionBind = GraphPatterns.and().values((builder) -> {
+            builder.variables(regionIdVar);
+            builder.value(Rdf.iri(regionId));
+        });
+        return Queries.SELECT(childrenVar).where(variableRegionBind, selectRegion, selectChildren, childrenAreCountries).getQueryString();
     }
 
     @Override
@@ -193,10 +242,62 @@ public class RegionDao extends GenericDao<RegionConfig.Fields, RegionDto> {
 
     private TupleQueryEvaluationBuilder getReadQueryListByType(RegionTypes regionType) {
         return this.getRdf4JTemplate()
-                .tupleQuery(getClass(), "KEY_LIST_ALL_BY_TYPE", () -> getListAllByTypeQuery(regionType));
+                .tupleQuery(getClass(), "KEY_LIST_ALL_BY_TYPE", () -> getListAllByTypeQueryId(regionType));
     }
 
-    protected String getListAllByTypeQuery(RegionTypes regionType) {
+    protected String getListAllByType(RdfResource graph, RegionTypes regionType) {
+        var queryParams = getSelectParams(graph);
+        var whereParams = new ArrayList<>(List.of(queryParams.getValue1()));
+        whereParams.add(GraphPatterns.tp(configFields.getId(), RegionNames.Properties.HAS_LEVEL.rdfIri(), regionType.iri().rdfIri()));
+        return Queries.SELECT(queryParams.getValue0()
+                        .stream()
+                        .map(Map.Entry::getValue)
+                        .toArray(Projectable[]::new))
+                .distinct()
+                .where(whereParams.toArray(GraphPattern[]::new))
+                .groupBy(queryParams.getValue2())
+                .getQueryString();
+    }
+
+
+    protected String getListAllByType(RdfResource graph, RegionTypes regionType, int page, int pageSize) {
+        var queryParams = getSelectParams(graph);
+        var whereParams = new ArrayList<>(List.of(queryParams.getValue1()));
+        whereParams.add(GraphPatterns.tp(configFields.getId(), RegionNames.Properties.HAS_LEVEL.rdfIri(), regionType.iri().rdfIri()));
+        return Queries.SELECT(queryParams.getValue0()
+                        .stream()
+                        .map(Map.Entry::getValue)
+                        .toArray(Projectable[]::new))
+                .distinct()
+                .where(whereParams.toArray(GraphPattern[]::new))
+                .groupBy(queryParams.getValue2())
+                .limit(pageSize)
+                .offset(page * pageSize)
+                .getQueryString();
+    }
+
+    public long getTotalCountByType(RegionTypes type) {
+        String countQuery = getCountryByType(migration.getResource(), type);
+        var countResult = getRdf4JTemplate()
+                .tupleQuery(getClass(), "KEY_COUNT_BY_TYPE_QUERY", () -> countQuery)
+                .evaluateAndConvert()
+                .toStream()
+                .findFirst();
+
+        return countResult.map(bindings -> Long.parseLong(bindings.getBinding("count")
+                .getValue().stringValue())).orElse(0L);
+
+    }
+
+    protected String getCountryByType(RdfResource graph, RegionTypes regionType) {
+        return Queries.SELECT(Expressions.countAll().as(SparqlBuilder.var("count")))
+                .where(configFields.getId().isA(graph),
+                        GraphPatterns.tp(configFields.getId(), RegionNames.Properties.HAS_LEVEL.rdfIri(), regionType.iri().rdfIri()))
+                .getQueryString();
+    }
+
+
+    protected String getListAllByTypeQueryId(RegionTypes regionType) {
         Variable regionId = SparqlBuilder.var("regionId");
         Variable sourceId = SparqlBuilder.var("sourceId");
         TriplePattern selectRegion = GraphPatterns.tp(regionId, RDF.TYPE, Rdf.iri(RegionNames.Classes.REGION.rdfIri()));

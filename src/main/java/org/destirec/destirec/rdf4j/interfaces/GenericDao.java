@@ -23,11 +23,12 @@ import org.eclipse.rdf4j.spring.dao.support.sparql.NamedSparqlSupplier;
 import org.eclipse.rdf4j.spring.support.RDF4JTemplate;
 import org.eclipse.rdf4j.spring.util.QueryResultUtils;
 import org.javatuples.Triplet;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -37,6 +38,7 @@ import static org.destirec.destirec.utils.Constants.MAX_RDF_RECURSION;
 
 @Getter
 public abstract class GenericDao<FieldEnum extends Enum<FieldEnum> & ConfigFields.Field, DTO extends Dto> extends SimpleRDF4JCRUDDao<DTO, IRI> {
+    protected Logger logger = LoggerFactory.getLogger(getClass());
     protected final ConfigFields<FieldEnum> configFields;
     protected final Predicate migration;
     protected final DtoCreator<DTO, FieldEnum> dtoCreator;
@@ -192,14 +194,10 @@ public abstract class GenericDao<FieldEnum extends Enum<FieldEnum> & ConfigField
                 .stream()
                 .map((key) -> {
                     var variableContainer = configFields.getVariable(key);
-                    if (configFields.getIsOptional(key)) {
-                        return null;
-                    }
                     QueryStringVisitor visitor = new QueryStringVisitor(querySolution);
                     variableContainer.accept(visitor);
                     return Map.entry(key, visitor.getQueryString().toString());
                 })
-                .filter(Objects::nonNull)
                 .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
         return dtoCreator.create(id, map);
     }
@@ -253,7 +251,12 @@ public abstract class GenericDao<FieldEnum extends Enum<FieldEnum> & ConfigField
 
     @Override
     public IRI saveAndReturnId(DTO dto, IRI iri) {
-        return super.saveAndReturnId(dto, iri);
+        try {
+            return super.saveAndReturnId(dto, iri);
+        } catch (Exception exception) {
+            logger.error("Cannot save the dto: {} with iri: {}", dto.toString(), iri.toString(), exception);
+            throw exception;
+        }
     }
 
     @Override

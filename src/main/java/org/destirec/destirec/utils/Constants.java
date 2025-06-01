@@ -7,5 +7,5 @@ public class Constants {
     public static int RDF_VERSION = 1;
     public static String DEFAULT_GRAPH = DESTIREC.NAMESPACE + ":defaultGraph";
 
-    public static int MAX_RDF_RECURSION = 999;
+    public static int MAX_RDF_RECURSION = 2500;
 }

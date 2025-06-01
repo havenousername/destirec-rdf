@@ -1,11 +1,13 @@
 package org.destirec.destirec.utils;
 
 import lombok.Getter;
+import lombok.ToString;
 import org.destirec.destirec.rdf4j.interfaces.ContainerVisitor;
 
 import java.util.Iterator;
 import java.util.List;
 
+@ToString
 public class ValueContainer<T> implements Iterator<T> {
     @Getter
     private final T item;

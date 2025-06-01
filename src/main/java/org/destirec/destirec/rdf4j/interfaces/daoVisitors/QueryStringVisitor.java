@@ -22,7 +22,9 @@ public class QueryStringVisitor implements ContainerVisitor<Variable> {
 
     @Override
     public void visit(Variable visitor) {
-        queryString.set(QueryResultUtils.getString(querySolution, visitor));
+        if (querySolution.getValue(visitor.getVarName()) != null) {
+            queryString.set(QueryResultUtils.getString(querySolution, visitor));
+        }
     }
 
     @Override
