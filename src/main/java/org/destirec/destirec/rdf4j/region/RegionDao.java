@@ -192,6 +192,15 @@ public class RegionDao extends GenericDao<RegionConfig.Fields, RegionDto> {
                 ;
     }
 
+    public List<Pair<IRI, IRI>> listByTypeIdWithChild(RegionTypes regionType) {
+        return this.getReadQueryListByTypeNoChild(regionType)
+                .evaluateAndConvert()
+                .toList(solution -> new Pair<>(
+                        valueFactory.createIRI(solution.getValue("regionId").stringValue()),
+                        valueFactory.createIRI(solution.getValue("sourceId").stringValue())))
+                ;
+    }
+
     public List<RegionDto> listAllByType(RegionTypes regionType, int page, int pageSize) {
         return this.getRdf4JTemplate()
                 .tupleQuery(getClass(), "KEY_LIST_ALL_BY_TYPE", () ->
@@ -245,6 +254,11 @@ public class RegionDao extends GenericDao<RegionConfig.Fields, RegionDto> {
                 .tupleQuery(getClass(), "KEY_LIST_ALL_BY_TYPE", () -> getListAllByTypeQueryId(regionType));
     }
 
+    private TupleQueryEvaluationBuilder getReadQueryListByTypeNoChild(RegionTypes regionType) {
+        return this.getRdf4JTemplate()
+                .tupleQuery(getClass(), "KEY_LIST_ALL_BY_TYPE_NO_CHILD", () -> getListAllByTypeQueryIdWithNoChild(regionType));
+    }
+
     protected String getListAllByType(RdfResource graph, RegionTypes regionType) {
         var queryParams = getSelectParams(graph);
         var whereParams = new ArrayList<>(List.of(queryParams.getValue1()));
@@ -296,6 +310,21 @@ public class RegionDao extends GenericDao<RegionConfig.Fields, RegionDto> {
                 .getQueryString();
     }
 
+    protected String getListAllByTypeQueryIdWithNoChild(RegionTypes regionType) {
+        Variable regionId = SparqlBuilder.var("regionId");
+        Variable sourceId = SparqlBuilder.var("sourceId");
+        TriplePattern selectRegion = GraphPatterns.tp(regionId, RDF.TYPE, Rdf.iri(RegionNames.Classes.REGION.rdfIri()));
+        TriplePattern selectLeaf = GraphPatterns.tp(
+                regionId,
+                RegionNames.Properties.HAS_LEVEL.rdfIri(),
+                regionType.iri().rdfIri());
+
+        TriplePattern source = GraphPatterns.tp(regionId, DC.SOURCE, sourceId);
+        Variable childId = SparqlBuilder.var("childId");
+        TriplePattern hasAChild = GraphPatterns.tp(regionId, valueFactory.createIRI(RegionNames.Properties.SF_D_CONTAINS), childId);
+        GraphPattern filter = GraphPatterns.filterNotExists(hasAChild);
+        return Queries.SELECT(regionId, sourceId).distinct().where(selectRegion, selectLeaf, source, filter).getQueryString();
+    }
 
     protected String getListAllByTypeQueryId(RegionTypes regionType) {
         Variable regionId = SparqlBuilder.var("regionId");
@@ -307,6 +336,6 @@ public class RegionDao extends GenericDao<RegionConfig.Fields, RegionDto> {
                 regionType.iri().rdfIri());
 
         TriplePattern source = GraphPatterns.tp(regionId, DC.SOURCE, sourceId);
-        return Queries.SELECT(regionId, sourceId).where(selectRegion, selectLeaf, source).getQueryString();
+        return Queries.SELECT(regionId, sourceId).distinct().where(selectRegion, selectLeaf, source).getQueryString();
     }
 }

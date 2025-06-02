@@ -129,7 +129,7 @@ public class OverpassService {
             Path dir = Paths.get(MAP_JSON_DIR);
             Files.createDirectories(dir);
 
-            Path location = dir.resolve(type.name().toLowerCase());
+            Path location = dir.resolve(type.getName().toLowerCase());
             Files.createDirectories(location);
 
             File jsonFile = location.resolve(regionId + ".json").toFile();
@@ -144,7 +144,7 @@ public class OverpassService {
 
     public boolean regionGeoJsonExists(RegionNames.Individuals.RegionTypes type, String regionId) {
         Path dir = Paths.get(MAP_JSON_DIR);
-        Path location = dir.resolve(type.name().toLowerCase());
+        Path location = dir.resolve(type.getName().toLowerCase());
         Path jsonFilePath = location.resolve(regionId + ".json");
 
         return Files.exists(jsonFilePath) && Files.isRegularFile(jsonFilePath);
