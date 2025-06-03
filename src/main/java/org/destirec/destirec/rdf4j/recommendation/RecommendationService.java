@@ -6,6 +6,7 @@ import org.destirec.destirec.rdf4j.preferences.PreferenceDao;
 import org.destirec.destirec.rdf4j.preferences.PreferenceDto;
 import org.destirec.destirec.rdf4j.region.RegionDao;
 import org.destirec.destirec.rdf4j.region.RegionDto;
+import org.destirec.destirec.rdf4j.region.apiDto.RegionDtoWithChildren;
 import org.destirec.destirec.rdf4j.user.UserDao;
 import org.destirec.destirec.rdf4j.user.UserDto;
 import org.destirec.destirec.utils.ShortRepositoryInfo;
@@ -76,7 +77,7 @@ public class RecommendationService {
         });
 
         List<RecommendationEntity> recommendations = new ArrayList<>();
-        RegionDto tmpRegion = null;
+        RegionDtoWithChildren tmpRegion = null;
         UserDto tmpUser = null;
         float confidenceLevel = 1f;
         int iteration = 0;
@@ -85,7 +86,8 @@ public class RecommendationService {
             ValueFactory factory = SimpleValueFactory.getInstance();
             if (statement.getPredicate().equals(RDF.TYPE) && statement.getObject().equals(strategy.iri().rdfIri())) {
                 IRI regionIRI = factory.createIRI(statement.getSubject().stringValue());
-                tmpRegion = regionDao.getById(regionIRI);
+                // TODO: test properly
+                tmpRegion = regionDao.getByIdWithChildren(regionIRI);
             } else if (statement.getPredicate().equals(RecommendationNames.Properties.RECOMMENDED_FOR.rdfIri())) {
                 IRI userIRI = factory.createIRI(statement.getObject().stringValue());
                 tmpUser = userDao.getById(userIRI);
@@ -156,12 +158,12 @@ public class RecommendationService {
         return uriBuilder.build();
     }
 
-    public Recommendation getSimpleRecommendation(RecommendationParameters parameters) {
-        String query = recommendationQueries.simpleRecommendationQuery();
+    public Recommendation getSimpleRecommendation(RecommendationParameters parameters, UserDto user) {
+        String query = recommendationQueries.simpleRecommendationQuery(user.id());
         return handleRecommendationQuery(query, RecommendationStrategies.SIMPLE_RECOMMENDATION, parameters);
     }
 
-    public Recommendation getBiggerThanRecommendation(RecommendationParameters parameters) {
+    public Recommendation getBiggerThanRecommendation(RecommendationParameters parameters, UserDto user) {
         if (parameters.getFromRegion() == null) {
             Optional<IRI> parentByType = regionDao.getByType(RegionNames.Individuals.RegionTypes.WORLD);
             if (parentByType.isPresent()) {
@@ -171,17 +173,21 @@ public class RecommendationService {
                 throw new RuntimeException("World individual should be presented in the database");
             }
         } else {
-            RegionDto parentRegion = regionDao.getById(parameters.getFromRegion());
-            parameters.setFromRegionType(parentRegion.getType());
+            try {
+                RegionDto parentRegion = regionDao.getById(parameters.getFromRegion());
+                parameters.setFromRegionType(parentRegion.getType());
+            } catch (Exception e) {
+                parameters.setFromRegionType(RegionNames.Individuals.RegionTypes.WORLD);
+            }
         }
 
-        String query = recommendationQueries.biggerThanRecommendationQuery(parameters);
+        String query = recommendationQueries.biggerThanRecommendationQuery(parameters, user.id());
         return handleRecommendationQuery(query, RecommendationStrategies.BIGGER_THAN_RECOMMENDATION, parameters);
     }
 
 
-    public Void getLARecommendation(RecommendationParameters parameters) {
-        Recommendation recommendation = getBiggerThanRecommendation(parameters);
+    public Void getLARecommendation(RecommendationParameters parameters, UserDto user) {
+        Recommendation recommendation = getBiggerThanRecommendation(parameters, user);
         linearAlgebraRecommendation = new LinearAlgebraRecommendation(recommendation.entities(), regionDao, poiDao);
 
         IRI author = userDao.list().getFirst().id();

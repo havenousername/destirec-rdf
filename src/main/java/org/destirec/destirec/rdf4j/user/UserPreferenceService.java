@@ -3,25 +3,32 @@ package org.destirec.destirec.rdf4j.user;
 import org.destirec.destirec.rdf4j.attribute.QualityOntology;
 import org.destirec.destirec.rdf4j.months.MonthDto;
 import org.destirec.destirec.rdf4j.ontology.DestiRecOntology;
+import org.destirec.destirec.rdf4j.preferences.PreferenceDao;
 import org.destirec.destirec.rdf4j.preferences.PreferenceDto;
 import org.destirec.destirec.rdf4j.region.cost.CostDto;
 import org.destirec.destirec.rdf4j.region.feature.FeatureDto;
+import org.destirec.destirec.rdf4j.user.apiDto.ExternalPreference;
 import org.destirec.destirec.rdf4j.user.apiDto.ExternalUserDto;
 import org.eclipse.rdf4j.model.IRI;
 import org.javatuples.Pair;
 import org.javatuples.Triplet;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
 
 // TODO Separation of concerns between user and preference services
 @Service
 public class UserPreferenceService {
     private final UserDao userDao;
+    private final PreferenceDao preferenceDao;
 
     protected Logger logger = LoggerFactory.getLogger(getClass());
 
@@ -31,13 +38,15 @@ public class UserPreferenceService {
 
     private final DestiRecOntology ontology;
 
+    private final ScheduledExecutorService scheduledService;
+
 
     public UserPreferenceService(
             UserDao userDao,
-            DestiRecOntology ontology
-    ) {
+            DestiRecOntology ontology,
+            UserConfig userConfig, PreferenceDao preferenceDao) {
         this.userDao = userDao;
-        creator =  (UserDtoCreator)userDao
+        creator = userDao
                 .getDtoCreator();
         this.ontology = ontology;
 
@@ -46,6 +55,9 @@ public class UserPreferenceService {
                 ontology.getFactory(),
                 userDao.getRdf4JTemplate()
         );
+        this.preferenceDao = preferenceDao;
+
+        scheduledService = Executors.newSingleThreadScheduledExecutor();
     }
 
     @Transactional
@@ -59,9 +71,9 @@ public class UserPreferenceService {
         }
 
 
-        logger.info("Create user with DTO" + userDto);
+        logger.info("Create user with DTO{}", userDto);
         IRI userId = userDao.saveAndReturnId(userDto);
-        logger.info("User with ID " + userId + " was created");
+        logger.info("User with ID {} was created", userId);
 
 
         IRI preferenceId = null;
@@ -70,6 +82,51 @@ public class UserPreferenceService {
         }
 
         return new Pair<>(userId, preferenceId);
+    }
+
+    @Transactional
+    public PreferenceDto updatePreference(ExternalPreference preference) {
+        List<FeatureDto> features = preference
+                .getFeatures().entrySet().stream()
+                .map((feature) ->
+                        userDao.getPreferenceDao().getFeatureDao()
+                                .getDtoCreator()
+                                .createFromTuple(feature.getKey(), feature.getValue()))
+                .map(featureDto -> userDao.getPreferenceDao().getFeatureDao().save(featureDto))
+                .toList();
+
+        IRI userId = userDao.getDtoCreator().createId(preference.getUserId());
+        if (userDao.getByIdOptional(userId).isEmpty()) {
+            throw new IllegalArgumentException("Cannot find user for updating it");
+        }
+
+        IRI preferenceId = preferenceDao.getByAuthorId(userId);
+
+        if (preferenceId == null) {
+            throw new IllegalArgumentException("Cannot find preference for updating it");
+        }
+        // remove all features
+        preferenceDao.getFeatureDao().removeByHasFeatureConnection(preferenceId);
+
+        PreferenceDto preferenceDto = userDao.getPreferenceDao().getDtoCreator()
+        .create(preferenceId, userId, features, new ArrayList<>(), null);
+        preferenceDto = userDao.getPreferenceDao().save(preferenceDto);
+
+        scheduledUpdateOfOntologies(preferenceDto);
+
+        logger.info("Preference with id {} was updated", preferenceId);
+        return preferenceDto;
+    }
+
+    private void updateOntologies(PreferenceDto preferenceDto) {
+        qualityOntology.definePreferenceQualities(preferenceDto, preferenceDto.getId().stringValue());
+        ontology.migrate(preferenceDto.getId().stringValue());
+        ontology.triggerInference();
+    }
+
+    @Async
+    public void scheduledUpdateOfOntologies(PreferenceDto preferenceDto) {
+        updateOntologies(preferenceDto);
     }
 
     @Transactional
@@ -104,9 +161,9 @@ public class UserPreferenceService {
         PreferenceDto preferenceDto = userDao.getPreferenceDao().getDtoCreator()
                 .create(userId, features, months, costDto);
         preferenceDto = userDao.getPreferenceDao().save(preferenceDto);
-        qualityOntology.definePreferenceQualities(preferenceDto, preferenceDto.getId().stringValue());
-        ontology.migrate(preferenceDto.getId().stringValue());
-        ontology.triggerInference();
+
+        // update ontologies
+        scheduledUpdateOfOntologies(preferenceDto);
 
         return preferenceDto.getId();
     }
@@ -119,9 +176,9 @@ public class UserPreferenceService {
         if (userDtoOptional.isEmpty()) {
             throw new IllegalArgumentException("Cannot find user for updating it");
         }
-        logger.info("Update user with DTO " + userDto);
+        logger.info("Update user with DTO {}", userDto);
         IRI userId = userDao.saveAndReturnId(userDto, userDtoOptional.get().id());
-        logger.info("User with id " + userId + " was updated");
+        logger.info("User with id {} was updated", userId);
         return userId;
     }
 
@@ -140,5 +197,18 @@ public class UserPreferenceService {
         return userDao.getPreferenceDao().getById(
                 userDao.getPreferenceDao().getDtoCreator().createId(id)
         );
+    }
+
+    @Transactional
+    public PreferenceDto getPreferenceForUser(String userId) {
+        return preferenceDao
+                .getByAuthor(userDao.getDtoCreator().createId(userId))
+                .orElse(null);
+    }
+
+
+    @Transactional
+    public List<UserDto> getUsers(UserController.UserPaginationRequest paginationRequest) {
+        return userDao.listPaginated(paginationRequest.page(), paginationRequest.size());
     }
  }

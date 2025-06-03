@@ -159,15 +159,21 @@ public class KnowledgeGraphService {
                                 wd:Q41176   # CATHEDRAL
                                 wd:Q124714  # CASTLE
                                 wd:Q209939  # HIKING_TRAIL
+                                wd:Q4970    # CLIMBING AREA
                                 wd:Q1779811 # CLIMBING_ROUTE
                                 wd:Q207326  # LOOKOUT_POINT
                                 wd:Q210327  # SNOWBOARDING
                                 wd:Q54202   # SKIING
                                 wd:Q180809  # SKI_JUMPING
                                 wd:Q1506654 # SLEDDING
-                                wd:Q875538  # SKI_RESORT
+                                wd:Q130003  # SKI_RESORT
                                 wd:Q173211  # ICE_CLIMBING
                                 wd:Q2202162 # SNOW_PARK
+                                wd:Q1337009 # DIVING_SPOT
+                                wd:Q133740  # SCUBA_DIVING
+                                wd:Q652733  # SURF_SPOT
+                                wd:Q1372364 # MARINA
+                                wd:Q37038   # WATER_PARK
                                 wd:Q1493709 # AMUSEMENT_PARK
                                 wd:Q1824207 # THEME_PARK
                                 wd:Q1735272 # KART_RACING_TRACK
@@ -185,6 +191,9 @@ public class KnowledgeGraphService {
                                 wd:Q55488   # SHOPPING_MALL
                                 wd:Q18534524# SOUVENIR_SHOP
                                 wd:Q3305213 # MARKET
+                                wd:Q40080   # BEACH
+                                wd:Q33506   # MUSEUM
+                                wd:Q871905  # ART GALLERY
                               }
                 
                               ?poi wdt:P31 ?type ;

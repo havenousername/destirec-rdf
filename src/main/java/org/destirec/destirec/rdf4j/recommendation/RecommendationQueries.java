@@ -4,6 +4,7 @@ import org.destirec.destirec.utils.rdfDictionary.AttributeNames;
 import org.destirec.destirec.utils.rdfDictionary.RecommendationNames;
 import org.destirec.destirec.utils.rdfDictionary.RegionNames;
 import org.destirec.destirec.utils.rdfDictionary.UserNames;
+import org.eclipse.rdf4j.model.IRI;
 import org.eclipse.rdf4j.model.impl.SimpleValueFactory;
 import org.eclipse.rdf4j.model.vocabulary.DC;
 import org.eclipse.rdf4j.model.vocabulary.RDF;
@@ -44,11 +45,16 @@ public class RecommendationQueries {
 
 
 
-    private SubSelect getUserQualitiesQuery() {
+    private SubSelect getUserQualitiesQuery(IRI userId) {
         Variable quality = SparqlBuilder.var("quality");
 
+        var bindUserIri = GraphPatterns.and().values(builder -> {
+           builder.variables(user);
+           builder.value(Rdf.iri(userId));
+        });
         return GraphPatterns.select(user, Expressions.countAll().as(totalPreferences))
                 .where(
+                        bindUserIri,
                         GraphPatterns.tp(preference, RDF.TYPE, UserNames.Classes.USER_WITH_PREFERENCE.rdfIri()),
                         GraphPatterns.tp(preference, DC.CREATOR, user),
                         GraphPatterns.tp(preference, hasFQuality, quality),
@@ -71,7 +77,7 @@ public class RecommendationQueries {
     }
 
 
-    private SubSelect getBiggerThanUserQualitiesQuery(RecommendationParameters parameters) {
+    private SubSelect getBiggerThanUserQualitiesQuery(RecommendationParameters parameters, IRI userId) {
         Variable qualityRegion = SparqlBuilder.var("qualityRegion");
         // region which contains the origin of the feature
         Variable someRegion = SparqlBuilder.var("someRegion");
@@ -106,10 +112,16 @@ public class RecommendationQueries {
         Bind deltaScoreBind = Expressions.bind(Expressions.subtract(scoreRegion, scorePreference), deltaScore);
         GraphPatternNotTriples bindScoreTriple = GraphPatterns.and(deltaScoreBind);
 
+        var bindUserIri = GraphPatterns.and().values(builder -> {
+            builder.variables(user);
+            builder.value(Rdf.iri(userId));
+        });
+
         return GraphPatterns.select(user, region, Expressions.count(hasFQuality).distinct().as(matchingPreferences),
                         Expressions.group_concat("\"%s\"".formatted(WORDS_SEPARATOR), replaceExpr).distinct().as(aggregateOfFeatures),
                         Expressions.divide(Expressions.sum(deltaScore), Expressions.avg(deltaScore)).as(avgDeltaScore))
                 .where(
+                        bindUserIri,
                         // Class bindings
                         GraphPatterns.and().values(builder -> {
                            builder.variables(fromRegionType);
@@ -151,7 +163,7 @@ public class RecommendationQueries {
                 .groupBy(user, region);
     }
 
-    public String simpleRecommendationQuery() {
+    public String simpleRecommendationQuery(IRI userId) {
         //   ?region a :SimpleRecommendation
         TriplePattern regionIsRecommendation = GraphPatterns
                 .tp(region, RDF.TYPE, RecommendationNames.Classes.SIMPLE_RECOMMENDATION.rdfIri());
@@ -161,7 +173,7 @@ public class RecommendationQueries {
                 .tp(region, RecommendationNames.Properties.RECOMMENDED_FOR.rdfIri(), user);
 
         //    SELECT ?user (COUNT(*) AS ?totalPrefs)
-        SubSelect userQualitiesQuery = getUserQualitiesQuery();
+        SubSelect userQualitiesQuery = getUserQualitiesQuery(userId);
         SubSelect regionQualitiesQuery = getExactRegionUserQualitiesQuery();
 
         GraphPatternNotTriples filter = GraphPatterns.and()
@@ -174,15 +186,16 @@ public class RecommendationQueries {
         return constructQuery.getQueryString();
     }
 
-    public String biggerThanRecommendationQuery(RecommendationParameters parameters) {
+    public String biggerThanRecommendationQuery(RecommendationParameters parameters, IRI userId) {
+
         TriplePattern regionIsRecommendation = GraphPatterns
                 .tp(region, RDF.TYPE, RecommendationNames.Classes.BIGGER_THAN_RECOMMENDATION.rdfIri());
 
         TriplePattern recommendedFor = GraphPatterns
                 .tp(region, RecommendationNames.Properties.RECOMMENDED_FOR.rdfIri(), user);
 
-        SubSelect userQualitiesQuery = getUserQualitiesQuery();
-        SubSelect regionQualitiesQuery = getBiggerThanUserQualitiesQuery(parameters);
+        SubSelect userQualitiesQuery = getUserQualitiesQuery(userId);
+        SubSelect regionQualitiesQuery = getBiggerThanUserQualitiesQuery(parameters, userId);
 
         Variable minMatchRatio = SparqlBuilder.var("minMatchRatio");
         GraphPattern addMatchRatioToGraph = GraphPatterns.and().values(builder -> {
@@ -207,7 +220,7 @@ public class RecommendationQueries {
             GraphPattern addBNodeExplanation = GraphPatterns.and(Expressions.bind(Expressions.bnode(), explanation));
 
             TriplePattern hasExplanation = GraphPatterns.tp(region,  RecommendationNames.Properties.HAS_EXPLANATION.rdfIri(), explanation);
-            TriplePattern explanationType = GraphPatterns.tp(explanation,  RDF.TYPE, RecommendationNames.Classes.EXPLANATION.rdfIri());
+            TriplePattern explanationType = GraphPatterns.tp(explanation, RDF.TYPE, RecommendationNames.Classes.EXPLANATION.rdfIri());
             TriplePattern explanationFeature = GraphPatterns.tp(
                     explanation,
                     RecommendationNames.Properties.EXPLAINS_FEATURE.rdfIri(),

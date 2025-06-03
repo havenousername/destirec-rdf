@@ -78,6 +78,15 @@ public class PreferenceConfig extends GenericConfig<PreferenceConfig.Fields> {
         return new ValueContainer<>(SparqlBuilder.var(field.name()));
     }
 
+
+    @Override
+    public Boolean getIsOptional(Fields field) {
+        if (field == Fields.HAS_MONTH || field == Fields.HAS_COST) {
+            return true;
+        }
+        return super.getIsOptional(field);
+    }
+
     @Override
     public ValueContainer<CoreDatatype> getType(Fields field) {
         CoreDatatype type = switch (field) {

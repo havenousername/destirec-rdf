@@ -10,6 +10,8 @@ import org.eclipse.rdf4j.model.ValueFactory;
 import org.eclipse.rdf4j.model.impl.SimpleValueFactory;
 import org.javatuples.Pair;
 import org.javatuples.Quartet;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
 import java.util.Map;
@@ -20,6 +22,7 @@ public class POIDtoCreator implements DtoCreator<POIDto, POIConfig.Fields> {
     private final ValueFactory valueFactory = SimpleValueFactory.getInstance();
     private final FeatureDao featureDao;
     private final POIConfig poiConfig ;
+    protected Logger logger = LoggerFactory.getLogger(getClass());
 
     public POIDtoCreator(FeatureDao featureDao, POIConfig poiConfig) {
         this.featureDao = featureDao;
@@ -41,38 +44,43 @@ public class POIDtoCreator implements DtoCreator<POIDto, POIConfig.Fields> {
                 .orElse(null);
 
         String concreteFeature = map.get(POIConfig.Fields.FEATURE_SPECIFIC_TYPE);
-        WIKIDATA.RegionOntology.QTypes type = concreteFeature != null ? WIKIDATA.RegionOntology.QTypes.getQTypeFromIRI(concreteFeature.toUpperCase()) : null;
+        try {
+            WIKIDATA.RegionOntology.QTypes type = concreteFeature != null ? WIKIDATA.RegionOntology.QTypes.getQTypeFromIRI(concreteFeature.toUpperCase()) : null;
 
-        String image = map.get(POIConfig.Fields.IMAGE);
-        String thumb = map.get(POIConfig.Fields.THUMBNAIL);
+            String image = map.get(POIConfig.Fields.IMAGE);
+            String thumb = map.get(POIConfig.Fields.THUMBNAIL);
 
-        return new POIDto(
-                id,
-                map.get(POIConfig.Fields.NAME),
-                source,
-                parent,
-                featureDto,
-                type,
-                map.get(POIConfig.Fields.OSM),
-                Integer.parseInt(Optional.ofNullable(map.get(POIConfig.Fields.SITE_LINKS_NUMBER)).orElse("0")),
-                image != null || thumb != null,
-                map.get(POIConfig.Fields.OFFICIAL_WEBSITE),
-                new Pair<>(image, thumb),
-                Integer.parseInt(Optional.ofNullable(map.get(POIConfig.Fields.OUTGOING_LINKS_NUMBER)).orElse("0")),
-                Integer.parseInt(Optional.ofNullable(map.get(POIConfig.Fields.WIKI_STATEMENTS)).orElse("0")),
-                map.get(POIConfig.Fields.QUORA_TOPIC_ID) != null,
-                map.get(POIConfig.Fields.TWITTER_ID) != null,
-                map.get(POIConfig.Fields.IMDB_ID) != null,
-                map.get(POIConfig.Fields.TRIPADVISOR_ID) != null,
-                new Quartet<>(
-                        map.get(POIConfig.Fields.QUORA_TOPIC_ID),
-                        map.get(POIConfig.Fields.TRIPADVISOR_ID),
-                        map.get(POIConfig.Fields.TWITTER_ID),
-                        map.get(POIConfig.Fields.IMDB_ID)
-                ),
-                map.get(POIConfig.Fields.COORDINATES),
-                featureDto != null ? featureDto.getHasScore() : 0
-        );
+            return new POIDto(
+                    id,
+                    map.get(POIConfig.Fields.NAME),
+                    source,
+                    parent,
+                    featureDto,
+                    type,
+                    map.get(POIConfig.Fields.OSM),
+                    Integer.parseInt(Optional.ofNullable(map.get(POIConfig.Fields.SITE_LINKS_NUMBER)).orElse("0")),
+                    image != null || thumb != null,
+                    map.get(POIConfig.Fields.OFFICIAL_WEBSITE),
+                    new Pair<>(image, thumb),
+                    Integer.parseInt(Optional.ofNullable(map.get(POIConfig.Fields.OUTGOING_LINKS_NUMBER)).orElse("0")),
+                    Integer.parseInt(Optional.ofNullable(map.get(POIConfig.Fields.WIKI_STATEMENTS)).orElse("0")),
+                    map.get(POIConfig.Fields.QUORA_TOPIC_ID) != null,
+                    map.get(POIConfig.Fields.TWITTER_ID) != null,
+                    map.get(POIConfig.Fields.IMDB_ID) != null,
+                    map.get(POIConfig.Fields.TRIPADVISOR_ID) != null,
+                    new Quartet<>(
+                            map.get(POIConfig.Fields.QUORA_TOPIC_ID),
+                            map.get(POIConfig.Fields.TRIPADVISOR_ID),
+                            map.get(POIConfig.Fields.TWITTER_ID),
+                            map.get(POIConfig.Fields.IMDB_ID)
+                    ),
+                    map.get(POIConfig.Fields.COORDINATES),
+                    featureDto != null ? featureDto.getHasScore() : 0
+            );
+        } catch (Exception e) {
+            logger.warn("Cannot create POI from map: " + map, e);
+            return null;
+        }
     }
 
     @Override

@@ -2,11 +2,18 @@ package org.destirec.destirec.rdf4j.region;
 
 import lombok.Getter;
 import org.destirec.destirec.rdf4j.interfaces.GenericDao;
+import org.destirec.destirec.rdf4j.interfaces.daoVisitors.QueryStringVisitor;
 import org.destirec.destirec.rdf4j.months.MonthDao;
 import org.destirec.destirec.rdf4j.ontology.DestiRecOntology;
+import org.destirec.destirec.rdf4j.poi.POIDao;
+import org.destirec.destirec.rdf4j.poi.POIDto;
+import org.destirec.destirec.rdf4j.region.apiDto.RegionDtoWithChildren;
 import org.destirec.destirec.rdf4j.region.cost.CostDao;
 import org.destirec.destirec.rdf4j.region.feature.FeatureDao;
+import org.destirec.destirec.rdf4j.region.feature.FeatureDto;
+import org.destirec.destirec.utils.SimpleDtoTransformations;
 import org.destirec.destirec.utils.rdfDictionary.AttributeNames;
+import org.destirec.destirec.utils.rdfDictionary.POINames;
 import org.destirec.destirec.utils.rdfDictionary.RegionNames;
 import org.destirec.destirec.utils.rdfDictionary.RegionNames.Individuals.RegionTypes;
 import org.destirec.destirec.utils.rdfDictionary.TopOntologyNames;
@@ -32,16 +39,17 @@ import org.eclipse.rdf4j.sparqlbuilder.rdf.Rdf;
 import org.eclipse.rdf4j.sparqlbuilder.rdf.RdfResource;
 import org.eclipse.rdf4j.spring.dao.support.opbuilder.TupleQueryEvaluationBuilder;
 import org.eclipse.rdf4j.spring.support.RDF4JTemplate;
+import org.eclipse.rdf4j.spring.util.QueryResultUtils;
 import org.javatuples.Pair;
 import org.javatuples.Triplet;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Repository;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
+import java.util.stream.Collectors;
+
+import static org.destirec.destirec.utils.Constants.MAX_RDF_RECURSION;
 
 @Getter
 @Repository
@@ -49,6 +57,7 @@ public class RegionDao extends GenericDao<RegionConfig.Fields, RegionDto> {
     private final CostDao costDao;
     private final FeatureDao featureDao;
     private final MonthDao monthDao;
+    private final POIDao pOIDao;
     protected Logger logger = LoggerFactory.getLogger(getClass());
 
     public RegionDao(
@@ -59,12 +68,13 @@ public class RegionDao extends GenericDao<RegionConfig.Fields, RegionDto> {
             CostDao costDao,
             FeatureDao featureDao,
             MonthDao monthDao,
-            DestiRecOntology ontology
-    ) {
+            DestiRecOntology ontology,
+            POIDao pOIDao) {
         super(rdf4JTemplate, configFields, migration, dtoCreator, ontology);
         this.costDao = costDao;
         this.featureDao = featureDao;
         this.monthDao = monthDao;
+        this.pOIDao = pOIDao;
     }
 
 
@@ -200,6 +210,151 @@ public class RegionDao extends GenericDao<RegionConfig.Fields, RegionDto> {
                         valueFactory.createIRI(solution.getValue("regionId").stringValue()),
                         valueFactory.createIRI(solution.getValue("sourceId").stringValue())))
                 ;
+    }
+
+    private TupleQueryEvaluationBuilder getAllWithChildren(IRI regionId) {
+        return this.getRdf4JTemplate()
+                .tupleQuery(getClass(), "KEY_BY_ID_WITH_CHILDREN", () -> getByIdAllChildrenQuery(migration.getResource(), regionId));
+    }
+
+    public RegionDtoWithChildren getByIdWithChildren(IRI regionId) {
+        return this.getAllWithChildren(regionId)
+                .evaluateAndConvert()
+                .toSingleton(this::mapSolutionWithChildren, r -> r);
+    }
+
+    public RegionDtoWithChildren mapSolutionWithChildren(BindingSet querySolution) {
+        if (mapEnteredTimes.getAndIncrement() >= MAX_RDF_RECURSION) {
+            throw new IllegalCallerException("Reached maximum depth of " + MAX_RDF_RECURSION + ", exiting application.");
+        }
+
+        var poisVar = SparqlBuilder.var("pois");
+        var childrenVar = SparqlBuilder.var("children");
+        var featuresVar = SparqlBuilder.var("features");
+
+        IRI id = QueryResultUtils.getIRI(querySolution, configFields.getId());
+        var map = configFields.getVariableNames()
+                .keySet()
+                .stream()
+                .map((key) -> {
+                    var variableContainer = configFields.getVariable(key);
+                    QueryStringVisitor visitor = new QueryStringVisitor(querySolution);
+                    variableContainer.accept(visitor);
+                    return Map.entry(key, visitor.getQueryString().toString());
+                })
+                .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+
+        String regionsConcat = querySolution.getValue(childrenVar.getVarName()).stringValue();
+        String poisConcat = querySolution.getValue(poisVar.getVarName()).stringValue();
+        String featuresConcat = querySolution.getValue(featuresVar.getVarName()).stringValue();
+
+        List<String> regionsString = Optional.ofNullable(regionsConcat)
+                .map(SimpleDtoTransformations::toListString)
+                .orElse(Collections.emptyList());
+
+        List<String> poisString = Optional.ofNullable(poisConcat)
+                .map(SimpleDtoTransformations::toListString)
+                .orElse(Collections.emptyList());
+
+        List<String> featuresString = Optional.ofNullable(featuresConcat)
+                .map(SimpleDtoTransformations::toListString)
+                .orElse(Collections.emptyList());
+
+        List<RegionDto> regions =regionsString
+                .stream()
+                .filter(region -> !region.isBlank())
+                .map(poi -> getById(valueFactory.createIRI(poi)))
+                .toList();
+
+        List<POIDto> pois = poisString
+                .stream()
+                .filter(region -> !region.isBlank())
+                .map(poi -> pOIDao.getById(valueFactory.createIRI(poi)))
+                .toList();
+
+        List<FeatureDto> features = featuresString
+                .stream()
+                .filter(region -> !region.isBlank())
+                .map(feature -> featureDao.getById(valueFactory.createIRI(feature)))
+                .toList();
+
+        RegionDto dto = getDtoCreator().create(id, map);
+
+        return new RegionDtoWithChildren(dto, regions, pois, features);
+    }
+
+    protected String getByIdAllChildrenQuery(RdfResource graph, IRI regionId) {
+        var queryParams = getSelectParams(graph);
+        var whereParams = new ArrayList<>(List.of(queryParams.getValue1()));
+
+        var targetRegionVar = configFields.getId();
+        var childRegionVar = SparqlBuilder.var("childRegion");
+        var regionsPoiVar = SparqlBuilder.var("regionsPoi");
+        var featuresFromPoiVar = SparqlBuilder.var("featuresFromPoi");
+
+        // AGGREGATED Variables
+        var pois = SparqlBuilder.var("pois");
+        var childrenVar = SparqlBuilder.var("children");
+        var features = SparqlBuilder.var("features");
+
+        GraphPattern assignRegion = GraphPatterns.and().values(builder-> {
+            builder.variables(targetRegionVar);
+            builder.value(Rdf.iri(regionId));
+        });
+
+        TriplePattern getChildren = GraphPatterns.tp(targetRegionVar,
+                valueFactory.createIRI(RegionNames.Properties.SF_D_CONTAINS), childRegionVar);
+        TriplePattern getChildrenRegions = GraphPatterns.tp(childRegionVar,
+                RDF.TYPE, RegionNames.Classes.REGION.rdfIri());
+        TriplePattern isPoi = GraphPatterns.tp(regionsPoiVar, RDF.TYPE, POINames.Classes.POI.rdfIri());
+        TriplePattern getRegionsPoi = GraphPatterns.tp(targetRegionVar,
+                valueFactory.createIRI(RegionNames.Properties.SF_CONTAINS), regionsPoiVar);
+        TriplePattern getChildContainsPoi = GraphPatterns.tp(childRegionVar,
+                valueFactory.createIRI(RegionNames.Properties.SF_CONTAINS), regionsPoiVar);
+        TriplePattern getFeaturesFromPoi = GraphPatterns.tp(regionsPoiVar,
+                AttributeNames.Properties.HAS_FEATURE.rdfIri(), featuresFromPoiVar);
+
+        List<Projectable> selectParams = new ArrayList<>(
+                queryParams.getValue0()
+                        .stream()
+                        .map(Map.Entry::getValue)
+                        .toList()
+        );
+
+        selectParams.add(Expressions.group_concat("\",\"", childRegionVar).as(childrenVar));
+        selectParams.add(Expressions.group_concat("\",\"", regionsPoiVar).as(pois));
+        selectParams.add(Expressions.group_concat("\",\"", featuresFromPoiVar).as(features));
+//        selectParams = selectParams.stream().filter(proj -> !proj.getQueryString().contains("_FEATURES")).toList();
+
+        whereParams.addFirst(assignRegion);
+
+        GraphPatternNotTriples subQueryForRegion = GraphPatterns.and(
+                getChildren,
+                getChildrenRegions,
+                getChildContainsPoi,
+                isPoi,
+                getRegionsPoi,
+                getFeaturesFromPoi
+        );
+
+        GraphPatternNotTriples subQueryForDistricts = GraphPatterns.and(
+                GraphPatterns.filterNotExists(
+                        getChildren,
+                        getChildrenRegions
+                ),
+                GraphPatterns.tp(targetRegionVar,  valueFactory.createIRI(RegionNames.Properties.SF_CONTAINS), regionsPoiVar),
+                isPoi,
+                getFeaturesFromPoi
+        );
+
+        whereParams
+                .add(GraphPatterns.union(subQueryForRegion, subQueryForDistricts));
+        String query = Queries.SELECT(selectParams
+                        .toArray(Projectable[]::new))
+                .where(whereParams.toArray(GraphPattern[]::new))
+                .groupBy(queryParams.getValue2())
+                .getQueryString();
+        return query;
     }
 
     public List<RegionDto> listAllByType(RegionTypes regionType, int page, int pageSize) {

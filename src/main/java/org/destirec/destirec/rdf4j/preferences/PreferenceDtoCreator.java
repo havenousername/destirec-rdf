@@ -43,16 +43,19 @@ public class PreferenceDtoCreator implements DtoCreator<PreferenceDto, Preferenc
         List<String> monthsString = SimpleDtoTransformations.toListString(map.get(PreferenceConfig.Fields.HAS_MONTH));
         List<MonthDto> months = monthsString
                 .stream()
+                .filter(month -> !month.isEmpty())
                 .map(month -> monthDao.getById(monthDao.getValueFactory().createIRI(month)))
                 .toList();
 
         List<String> featuresList = SimpleDtoTransformations.toListString(map.get(PreferenceConfig.Fields.HAS_FEATURE));
         List<FeatureDto> featureDtos = featuresList
                 .stream()
+                .filter(pref -> !pref.isEmpty())
                 .map(pref -> featureDao.getById(featureDao.getValueFactory().createIRI(pref)))
                 .toList();
 
-        CostDto costDto = costDao.getById(valueFactory.createIRI(map.get(PreferenceConfig.Fields.HAS_COST)));
+        String costString = map.get(PreferenceConfig.Fields.HAS_COST);
+        CostDto costDto = !costString.isBlank() ? costDao.getById(valueFactory.createIRI(map.get(PreferenceConfig.Fields.HAS_COST))) : null;
         return new PreferenceDto(
                 id,
                 valueFactory.createIRI(map.get(PreferenceConfig.Fields.PREFERENCE_AUTHOR)),
@@ -94,6 +97,22 @@ public class PreferenceDtoCreator implements DtoCreator<PreferenceDto, Preferenc
     ) {
         return new PreferenceDto(
                 null,
+                userId,
+                features,
+                cost,
+                months
+        );
+    }
+
+    public PreferenceDto create(
+            IRI preferenceId,
+            IRI userId,
+            List<FeatureDto> features,
+            List<MonthDto> months,
+            CostDto cost
+    ) {
+        return new PreferenceDto(
+                preferenceId,
                 userId,
                 features,
                 cost,

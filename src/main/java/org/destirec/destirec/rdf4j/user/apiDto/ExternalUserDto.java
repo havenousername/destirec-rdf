@@ -60,6 +60,9 @@ public record ExternalUserDto(
     public Map<Month, Pair<Integer, Boolean>> getMonths() {
         Map<Month, Pair<Integer, Boolean>> monthsMap = new HashMap<>();
 
+        if (months == null) {
+            return monthsMap;
+        }
         months.forEach((month, value) -> {
             try {
                 var monthCls = Month.of(Integer.parseInt(month));
@@ -89,6 +92,9 @@ public record ExternalUserDto(
 
     public Triplet<Integer, Integer, Boolean> getCost() {
         try {
+            if (cost == null) {
+                return Triplet.with(0, 0, false);
+            }
             if (cost.size() != 3) {
                 throw new RuntimeException("Tuple have size that doesnt equal to 2");
             }
@@ -111,6 +117,6 @@ public record ExternalUserDto(
 
 
     public boolean hasPreferences() {
-        return features() != null && months() != null && cost != null;
+        return features() != null || months() != null || cost != null;
     }
 }
