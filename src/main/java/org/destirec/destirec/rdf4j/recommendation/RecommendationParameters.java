@@ -1,7 +1,10 @@
 package org.destirec.destirec.rdf4j.recommendation;
 
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import lombok.Getter;
 import lombok.Setter;
+import org.destirec.destirec.rdf4j.vocabulary.DESTIREC;
+import org.destirec.destirec.utils.IriSerializer;
 import org.destirec.destirec.utils.rdfDictionary.RegionNames.Individuals.RegionTypes;
 import org.eclipse.rdf4j.model.IRI;
 import org.eclipse.rdf4j.model.impl.SimpleValueFactory;
@@ -29,11 +32,13 @@ public class RecommendationParameters {
      * explanations can help with the understanding why recommendation was made
      */
     private final boolean addExplanations;
-    @Setter
+
+    @JsonSerialize(using = IriSerializer.class)
     private IRI fromRegion;
 
     @Setter
     private RegionTypes fromRegionType;
+
     private final RegionTypes toRegionType;
 
     public RecommendationParameters(Short tolerance, Float matchRatio, Integer maxResults, Boolean addExplanations, String fromRegion, String toRegionType) {
@@ -42,7 +47,7 @@ public class RecommendationParameters {
         this.maxResults = maxResults == null ? 255 : maxResults;
         this.addExplanations = addExplanations != null && addExplanations;
         SimpleValueFactory vf = SimpleValueFactory.getInstance();
-        this.fromRegion = fromRegion != null ? vf.createIRI(fromRegion) : null;
+        this.fromRegion = vf.createIRI(DESTIREC.wrapNamespace( "region/", DESTIREC.UriType.RESOURCE) + fromRegion) ;
         RegionTypes toRegionTypeInput;
         try {
             toRegionTypeInput = RegionTypes.fromString(toRegionType);
@@ -61,5 +66,9 @@ public class RecommendationParameters {
                 null,
                 null
         );
+    }
+
+    public void setFromRegionParameter(IRI fromRegion) {
+        this.fromRegion = fromRegion;
     }
 }

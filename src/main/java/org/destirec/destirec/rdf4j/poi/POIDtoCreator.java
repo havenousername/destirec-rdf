@@ -87,6 +87,17 @@ public class POIDtoCreator implements DtoCreator<POIDto, POIConfig.Fields> {
         return valueFactory.createIRI(poiConfig.getResourceLocation() + id);
     }
 
+    public POIDtoWithHops create(POIDto dto, String ancestor, String hopCount) {
+        IRI ancestorIri = Optional.ofNullable(ancestor)
+                .map(valueFactory::createIRI)
+                .orElse(null);
+        if (ancestorIri == null) {
+            throw new IllegalArgumentException("Ancestor cannot not be null");
+        }
+        int hopCountInt = Integer.parseInt(Optional.ofNullable(hopCount).orElse("0"));
+        return new POIDtoWithHops(dto, ancestorIri, hopCountInt);
+    }
+
     public POIDto create(POIClass poiClass, FeatureDto featureDto, IRI parent) {
         return new POIDto(
                 createId(poiClass.getId()),

@@ -561,13 +561,6 @@ public class KnowledgeGraphService {
                 }
             });
         }
-
-        try {
-            regionService.updateAllOntologiesPOIs();
-            logger.info("Finished updating ontology POIs");
-        } catch (Exception exception) {
-            logger.error("An error occurred while updating ontology POIs", exception);
-        }
     }
 
     public void updateKGOntologies() {

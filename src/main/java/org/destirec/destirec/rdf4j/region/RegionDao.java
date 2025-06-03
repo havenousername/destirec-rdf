@@ -33,6 +33,7 @@ import org.eclipse.rdf4j.sparqlbuilder.rdf.RdfResource;
 import org.eclipse.rdf4j.spring.dao.support.opbuilder.TupleQueryEvaluationBuilder;
 import org.eclipse.rdf4j.spring.support.RDF4JTemplate;
 import org.javatuples.Pair;
+import org.javatuples.Triplet;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Repository;
@@ -220,9 +221,7 @@ public class RegionDao extends GenericDao<RegionConfig.Fields, RegionDto> {
     public List<IRI> listAllCountriesForRegion(IRI regionId) {
         return this.getRdf4JTemplate()
                 .tupleQuery(getClass(), "LIST_ALL_COUNTRIES_FOR_ID", () ->
-                {
-                    return getAllCountriesOfParent(regionId);
-                })
+                        getAllCountriesOfParent(regionId))
                 .evaluateAndConvert()
                 .toList(solution -> valueFactory.createIRI(solution.getValue("children").stringValue()));
     }
@@ -338,4 +337,57 @@ public class RegionDao extends GenericDao<RegionConfig.Fields, RegionDto> {
         TriplePattern source = GraphPatterns.tp(regionId, DC.SOURCE, sourceId);
         return Queries.SELECT(regionId, sourceId).distinct().where(selectRegion, selectLeaf, source).getQueryString();
     }
+
+    public List<Triplet<IRI, String, String>> getCountryScores(IRI regionId) {
+        return this.getRdf4JTemplate()
+                .tupleQuery(getClass(), "GET_COUNTRY_FEATURE_SCORES", () ->
+                        getCountryScoresQuery(regionId))
+                .evaluateAndConvert()
+                .toList(solution -> {
+                    IRI region = valueFactory.createIRI(solution.getValue("regionId").stringValue());
+                    String scores = solution.getValue("scores").stringValue();
+                    return Triplet.with(region, scores, solution.getValue("featureName").stringValue());
+                });
+    }
+
+    protected String getCountryScoresQuery(IRI regionId) {
+        Variable regionIdVar = SparqlBuilder.var("regionId");
+        Variable scoreVar = SparqlBuilder.var("score");
+        Variable qualityVar = SparqlBuilder.var("quality");
+        Variable hasFeatureQualityVar = SparqlBuilder.var("hasFeatureQuality");
+        Variable featureVar = SparqlBuilder.var("feature");
+        Variable scoresVar = SparqlBuilder.var("scores");
+        Variable featureNameVar = SparqlBuilder.var("featureName");
+        Variable poiVar = SparqlBuilder.var("poi");
+
+        GraphPattern valueOfRegion = GraphPatterns.and().values((builder) -> {
+            builder.variables(regionIdVar);
+            builder.value(Rdf.iri(regionId));
+        });
+        TriplePattern selectRegion = GraphPatterns.tp(regionIdVar, RDF.TYPE, RegionNames.Classes.REGION.rdfIri());
+        TriplePattern selectFeatureQuality = GraphPatterns.tp(regionIdVar, hasFeatureQualityVar, qualityVar);
+        TriplePattern selectHasQuality = GraphPatterns.tp(hasFeatureQualityVar, RDFS.SUBPROPERTYOF, AttributeNames.Properties.HAS_QUALITY.rdfIri());
+        TriplePattern selectFeature = GraphPatterns.tp(hasFeatureQualityVar, RegionNames.Properties.FOR_FEATURE.rdfIri(), featureVar);
+        TriplePattern selectScore = GraphPatterns.tp(featureVar, AttributeNames.Properties.HAS_SCORE.rdfIri(), scoreVar);
+        TriplePattern featureName = GraphPatterns.tp(featureVar, AttributeNames.Properties.HAS_REGION_FEATURE.rdfIri(), featureNameVar);
+        TriplePattern poiHasFeature = GraphPatterns.tp(poiVar, AttributeNames.Properties.HAS_FEATURE.rdfIri(), featureVar);
+
+        String query = Queries.SELECT(regionIdVar, featureNameVar, Expressions.group_concat("\",\"", scoreVar).as(scoresVar))
+                .where(
+                        valueOfRegion,
+                        selectRegion,
+                        selectFeatureQuality,
+                        selectHasQuality,
+                        selectFeature,
+                        selectScore,
+                        featureName,
+                        poiHasFeature
+                )
+                .groupBy(regionIdVar, featureNameVar)
+                .getQueryString();
+        return query;
+    }
+
 }
+
+

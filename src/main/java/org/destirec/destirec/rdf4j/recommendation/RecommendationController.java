@@ -1,5 +1,6 @@
 package org.destirec.destirec.rdf4j.recommendation;
 
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
@@ -22,8 +23,14 @@ public class RecommendationController {
                 RecommendationParameters.getDefault()));
     }
 
-    @GetMapping("/greater-than")
+    @GetMapping(value="/greater-than", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<Recommendation> getGreaterThanRecommendation(@ModelAttribute RecommendationParameters parameters) {
         return ResponseEntity.ok(service.getBiggerThanRecommendation(parameters));
+    }
+
+
+    @GetMapping("/la")
+    public ResponseEntity<Void> getLARecommendation(@ModelAttribute RecommendationParameters parameters) {
+        return ResponseEntity.ok(service.getLARecommendation(parameters));
     }
 }

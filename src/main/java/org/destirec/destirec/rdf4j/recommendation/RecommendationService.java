@@ -1,6 +1,9 @@
 package org.destirec.destirec.rdf4j.recommendation;
 
 import org.apache.http.client.utils.URIBuilder;
+import org.destirec.destirec.rdf4j.poi.POIDao;
+import org.destirec.destirec.rdf4j.preferences.PreferenceDao;
+import org.destirec.destirec.rdf4j.preferences.PreferenceDto;
 import org.destirec.destirec.rdf4j.region.RegionDao;
 import org.destirec.destirec.rdf4j.region.RegionDto;
 import org.destirec.destirec.rdf4j.user.UserDao;
@@ -35,22 +38,30 @@ public class RecommendationService {
 
     private final RegionDao regionDao;
 
+    private final POIDao poiDao;
+
     protected Logger logger = LoggerFactory.getLogger(getClass());
 
     private final ShortRepositoryInfo repositoryInfo;
 
     private final RecommendationQueries recommendationQueries;
 
+    private LinearAlgebraRecommendation linearAlgebraRecommendation;
+
+    private final PreferenceDao preferenceDao;
+
     public RecommendationService(
             UserDao userDao,
-            RegionDao regionDao,
+            RegionDao regionDao, POIDao poiDao,
             RecommendationQueries recommendationQueries,
-            ShortRepositoryInfo repositoryInfo
+            ShortRepositoryInfo repositoryInfo, PreferenceDao preferenceDao
     ) {
         this.userDao = userDao;
         this.regionDao = regionDao;
+        this.poiDao = poiDao;
         this.recommendationQueries = recommendationQueries;
         this.repositoryInfo = repositoryInfo;
+        this.preferenceDao = preferenceDao;
     }
 
 
@@ -154,7 +165,7 @@ public class RecommendationService {
         if (parameters.getFromRegion() == null) {
             Optional<IRI> parentByType = regionDao.getByType(RegionNames.Individuals.RegionTypes.WORLD);
             if (parentByType.isPresent()) {
-                parameters.setFromRegion(parentByType.get());
+                parameters.setFromRegionParameter(parentByType.get());
                 parameters.setFromRegionType(RegionNames.Individuals.RegionTypes.WORLD);
             } else {
                 throw new RuntimeException("World individual should be presented in the database");
@@ -166,5 +177,21 @@ public class RecommendationService {
 
         String query = recommendationQueries.biggerThanRecommendationQuery(parameters);
         return handleRecommendationQuery(query, RecommendationStrategies.BIGGER_THAN_RECOMMENDATION, parameters);
+    }
+
+
+    public Void getLARecommendation(RecommendationParameters parameters) {
+        Recommendation recommendation = getBiggerThanRecommendation(parameters);
+        linearAlgebraRecommendation = new LinearAlgebraRecommendation(recommendation.entities(), regionDao, poiDao);
+
+        IRI author = userDao.list().getFirst().id();
+        Optional<PreferenceDto> preferenceDto = preferenceDao.getByAuthor(author);
+        if (preferenceDto.isEmpty()) {
+            throw new RuntimeException("Should have at least one user preference in the database for this operation");
+        }
+        linearAlgebraRecommendation.createRPOIMatrix();
+        linearAlgebraRecommendation.createRFQMatrix();
+        linearAlgebraRecommendation.calculateLatentSpace(preferenceDto.get());
+        return null;
     }
 }
