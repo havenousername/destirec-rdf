@@ -245,6 +245,9 @@ public class RegionService {
 
     @Transactional
     public IRI createPOI(POIClass poiClass) {
+        if (poiClass.getSourceParent() == null) {
+            throw new IllegalArgumentException("POI must have a parent. POI class " + poiClass);
+        }
         IRI parentRegion = regionDao.getBySource(poiClass.getSourceParent());
 
         if (parentRegion == null) {

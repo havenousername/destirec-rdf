@@ -18,6 +18,7 @@ import org.destirec.destirec.utils.rdfDictionary.RegionNames;
 import org.destirec.destirec.utils.rdfDictionary.RegionNames.Individuals.RegionTypes;
 import org.destirec.destirec.utils.rdfDictionary.TopOntologyNames;
 import org.eclipse.rdf4j.model.IRI;
+import org.eclipse.rdf4j.model.Statement;
 import org.eclipse.rdf4j.model.vocabulary.DC;
 import org.eclipse.rdf4j.model.vocabulary.RDF;
 import org.eclipse.rdf4j.model.vocabulary.RDFS;
@@ -50,6 +51,7 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 import static org.destirec.destirec.utils.Constants.MAX_RDF_RECURSION;
+import static org.destirec.destirec.utils.rdfDictionary.RegionNames.Properties.IS_COMPLETE;
 
 @Getter
 @Repository
@@ -147,6 +149,26 @@ public class RegionDao extends GenericDao<RegionConfig.Fields, RegionDto> {
 
     public Optional<IRI> getByType(RegionTypes regionType) {
         return Optional.of(listByTypeId(regionType).stream().findFirst().map(Pair::getValue0)).orElse(null);
+    }
+
+    public void signalChildrenCompletion(IRI id) {
+        getRdf4JTemplate().consumeConnection(connection -> {
+            TriplePattern isComplete = GraphPatterns.tp(id, IS_COMPLETE.rdfIri(), Rdf.literalOf(true));
+
+            connection.begin();
+            ModifyQuery insertQuery = Queries.INSERT(isComplete);
+            connection.prepareUpdate(insertQuery.getQueryString()).execute();
+            connection.commit();
+        });
+    }
+
+    public boolean isRegionComplete(IRI id) {
+        Statement regionCompletenessStatement = valueFactory.createStatement(
+                id,
+                IS_COMPLETE.rdfIri(),
+                valueFactory.createLiteral(true)
+        );
+        return getRdf4JTemplate().applyToConnection(connection -> connection.hasStatement(regionCompletenessStatement, true));
     }
 
 

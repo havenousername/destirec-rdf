@@ -1,6 +1,6 @@
 package org.destirec.destirec.rdf4j.knowledgeGraph;
 
-import org.destirec.destirec.utils.rdfDictionary.RegionFeatureNames;
+import org.destirec.destirec.utils.rdfDictionary.RegionFeatureNames.Individuals.RegionFeature;
 import org.javatuples.Pair;
 
 import java.util.*;
@@ -11,6 +11,7 @@ public class AntColonyOptimizer {
     private final double[] pheromones;
     private final double[] heuristicScores;
     private final int targetSize;
+    private final boolean isSingleFeatureDataset;
 
     public AntColonyOptimizer(List<POIClass> poiClasses, ACOHyperparameters hyperparameters) {
         this.poiClasses = poiClasses;
@@ -22,7 +23,13 @@ public class AntColonyOptimizer {
             heuristicScores[i] = poiClasses.get(i).getHeuristicScore();
         }
 
-       targetSize = (int)Math.min(hyperparameters.getTrueSelectionSize(), poiClasses.size());
+        isSingleFeatureDataset = poiClasses.stream()
+                .map(POIClass::getFeature)
+                .distinct()
+                .count() == 1;
+
+
+        targetSize = (int)Math.min(hyperparameters.getTrueSelectionSize(), poiClasses.size());
     }
 
     public POIClass[] optimize() {
@@ -43,7 +50,8 @@ public class AntColonyOptimizer {
 
             for (int ant = 0; ant < hyperparameters.getNumberOfAnts(); ant++) {
                 Pair<POIClass[], boolean[]> solution = constructSolution();
-                double currentScore = evaluateSolution(solution.getValue0(), solution.getValue1());
+                Pair<Map<RegionFeature, Integer>, Integer> featureCounts = calculateFeatureCounts(solution.getValue0());
+                double currentScore = evaluateSolution(solution.getValue0(), solution.getValue1(), featureCounts);
 
                 if (currentScore > bestScoreThisIter) {
                     bestScoreThisIter = currentScore;
@@ -68,6 +76,31 @@ public class AntColonyOptimizer {
         }
 
         return bestSolution;
+    }
+
+    private double calculateFeatureEntropy(Pair<Map<RegionFeature, Integer>, Integer> featureCounts) {
+        if (featureCounts.getValue1() == 0) return 0.0;
+
+        double entropy = 0.0;
+        double logBase = Math.log(featureCounts.getValue0().size());
+        for (int count : featureCounts.getValue0().values()) {
+            double proportion = (double) count / featureCounts.getValue1();
+            entropy -= proportion * Math.log(proportion);
+        }
+
+        return entropy / logBase;
+    }
+
+    private static Pair<Map<RegionFeature, Integer>, Integer> calculateFeatureCounts(POIClass[] poiClasses) {
+        Map<RegionFeature, Integer> featureCounts = new HashMap<>();
+        int totalCount = 0;
+        for (POIClass poiClass : poiClasses) {
+            if (poiClass.getFeature() == null) continue;
+            featureCounts.merge(poiClass.getFeature(), 1, Integer::sum);
+            totalCount++;
+        }
+
+        return new Pair<>(featureCounts, totalCount);
     }
 
     private Pair<POIClass[], boolean[]> constructSolution() {
@@ -161,7 +194,7 @@ public class AntColonyOptimizer {
         }
     }
 
-    private double evaluateSolution(POIClass[] solution, boolean[] available) {
+    private double evaluateSolution(POIClass[] solution, boolean[] available, Pair<Map<RegionFeature, Integer>, Integer> featureCounts) {
         if (solution == null || solution.length == 0) {
             return 0.0;
         }
@@ -173,16 +206,17 @@ public class AntColonyOptimizer {
             scoreSum += this.heuristicScores[i];
         }
 
-        Set<RegionFeatureNames.Individuals.RegionFeature> diversitySet = new HashSet<>();
-        int diversity = 0;
-        for (POIClass poiClass : solution) {
-            if (diversitySet.contains(poiClass.getFeature())) {
-                continue;
-            }
+        double distributionScore = 0.0;
+        if (isSingleFeatureDataset) {
+            distributionScore = 1;
+        } else {
+            double entropyScore = calculateFeatureEntropy(featureCounts);
+            double coverageScore = ((double) featureCounts.getValue0().size()) / RegionFeature.values().length;
 
-            diversitySet.add(poiClass.getFeature());
-            diversity++;
+            distributionScore = (0.5 * entropyScore + 0.5 * coverageScore);
         }
-        return scoreSum + diversity * hyperparameters.getPheromoneBoost();
+
+
+        return scoreSum + distributionScore * hyperparameters.getPheromoneBoost();
     }
 }

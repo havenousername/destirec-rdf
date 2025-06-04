@@ -21,6 +21,8 @@ import org.eclipse.rdf4j.model.Value;
 import org.eclipse.rdf4j.model.impl.SimpleValueFactory;
 import org.eclipse.rdf4j.query.*;
 import org.eclipse.rdf4j.query.impl.MutableTupleQueryResult;
+import org.eclipse.rdf4j.repository.Repository;
+import org.eclipse.rdf4j.repository.RepositoryConnection;
 import org.eclipse.rdf4j.spring.support.RDF4JTemplate;
 import org.javatuples.Pair;
 import org.slf4j.Logger;
@@ -59,6 +61,7 @@ public class KnowledgeGraphService {
                     .failureRateThreshold(50)
                     .waitDurationInOpenState(Duration.ofMinutes(1))
                     .build());
+    private final Repository repository;
 
     private final OverpassService overpassService;
 
@@ -81,11 +84,12 @@ public class KnowledgeGraphService {
     private int poiVersion;
 
 
-    public KnowledgeGraphService(RDF4JTemplate rdf4JTemplate, Rdf4jTemplate threadSafeRdf4JTemplate, RegionService regionService, VersionDao versionDao, OverpassService overpassService) {
+    public KnowledgeGraphService(RDF4JTemplate rdf4JTemplate, Rdf4jTemplate threadSafeRdf4JTemplate, RegionService regionService, VersionDao versionDao, Repository repository, OverpassService overpassService) {
         this.rdf4JTemplate = rdf4JTemplate;
         this.threadSafeRdf4JTemplate = threadSafeRdf4JTemplate;
         this.regionService = regionService;
         this.versionDao = versionDao;
+        this.repository = repository;
         this.overpassService = overpassService;
         queries = new LinkedHashMap<>();
 
@@ -470,19 +474,20 @@ public class KnowledgeGraphService {
     }
 
     private void createPOIsInRdf(List<POIClass> pois) {
-        List<IRI> iris = pois.stream().map(regionService::createPOI).toList();
+        List<IRI> iris = pois.stream().filter(Objects::nonNull).map(regionService::createPOI).toList();
         logger.info("Created {} POIs in RDF", iris.size());
     }
 
     private void makeQueryForPOIs() {
-        List<Pair<IRI, IRI>> allDistricts = regionDao.listByTypeIdWithChild(RegionTypes.DISTRICT);
+        List<Pair<IRI, IRI>> allDistricts = regionDao.listByTypeIdWithChild(RegionTypes.DISTRICT)
+                .stream().filter(i -> !regionDao.isRegionComplete(i.getValue0())).toList();
         for (int i = 0; i < allDistricts.size(); i += WIKIDATA_BATCH_SIZE) {
             List<Pair<IRI, IRI>> currentBatch = allDistricts.subList(i, Math.min(i + WIKIDATA_BATCH_SIZE, allDistricts.size()));
             if (currentBatch.isEmpty()) {
                 continue;
             }
 
-            threadSafeRdf4JTemplate.consumeConnection((connection) -> {
+            try (RepositoryConnection connection = repository.getConnection()) {
                 List<String> districtUrisForQuery = currentBatch
                         .stream()
                         .map(pair -> pair.getValue1().stringValue())
@@ -492,19 +497,8 @@ public class KnowledgeGraphService {
 
                 // wikidata access step
                 TupleQuery tupleQuery = connection.prepareTupleQuery(wikidataQueryString);
-                TupleQueryResult result = null;
-                try {
-                    result = tupleQuery.evaluate();
+                try (TupleQueryResult result = tupleQuery.evaluate()) {
                     transformQueryResultsToPOIs(result, poisFromWikidata);
-                } finally {
-                    if (result != null) {
-                        result.close();
-                    }
-                }
-                try {
-                    Thread.sleep(100);
-                } catch (InterruptedException e) {
-                    throw new RuntimeException(e);
                 }
 
                 List<String> wikidataPois = new ArrayList<>();
@@ -522,27 +516,14 @@ public class KnowledgeGraphService {
 
                         String dbpediaQueryString = buildPOIDBPediaQueryString(wikidataPoisForQuery);
                         TupleQuery tupleQueryDbpedia = connection.prepareTupleQuery(dbpediaQueryString);
-                        TupleQueryResult resultPedia = null;
 
-                        try {
-                            resultPedia = tupleQueryDbpedia.evaluate();
+                        try (TupleQueryResult resultPedia = tupleQueryDbpedia.evaluate()) {
                             transformDBPediaResults(resultPedia, poisFromWikidata);
                         } catch (QueryEvaluationException exception) {
                             logger.error("Failed to transform DBPedia results for a POI sub-batch (size: {}) in batch starting with district: {}",
                                     wikidataPoisForQuery.size(), districtUrisForQuery.getFirst(), exception);
-                        } finally {
-                            if (resultPedia != null) {
-                                resultPedia.close();
-                            }
                         }
                     }
-                }
-
-
-                try {
-                    Thread.sleep(100);
-                } catch (InterruptedException e) {
-                    throw new RuntimeException(e);
                 }
 
                 // ACO optimization step
@@ -561,14 +542,14 @@ public class KnowledgeGraphService {
                     List<POIClass> optimized = Arrays.stream(optimizer.optimize()).toList();
                     logger.info("Finished optimization for district {}. Optimized: {}, Original in batch for district: {}",
                             currentDistrictUri, optimized.size(), pois.size());
-
                     try {
                         createPOIsInRdf(optimized);
+                        regionDao.signalChildrenCompletion(district.getValue0());
                     } catch (Exception exception) {
                         logger.error("Failed to create POIs in RDF", exception);
                     }
                 }
-            });
+            }
         }
     }
 
