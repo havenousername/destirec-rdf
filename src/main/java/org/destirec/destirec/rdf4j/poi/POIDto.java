@@ -44,7 +44,7 @@ public class POIDto implements Dto {
     private final Quartet<String, String, String, String> internetMentions;
     private final String coords;
     private final int percentageScore;
-    private final ValueFactory valueFactory = SimpleValueFactory.getInstance();
+    private static final ValueFactory valueFactory = SimpleValueFactory.getInstance();
 
     @Override
     public Map<POIConfig.Field, String> getMap() {

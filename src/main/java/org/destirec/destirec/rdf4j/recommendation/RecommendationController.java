@@ -41,7 +41,8 @@ public class RecommendationController {
             throw new RuntimeException("X-Anonymous-Token did not provide correct anonymous user for the recommendations" +
                     ". Please try again ");
         }
-        return ResponseEntity.ok(service.getBiggerThanRecommendation(parameters, user));
+        var recommendations = service.getBiggerThanRecommendation(parameters, user);
+        return ResponseEntity.ok(recommendations);
     }
 
 

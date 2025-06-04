@@ -343,9 +343,9 @@ public class RegionDao extends GenericDao<RegionConfig.Fields, RegionDto> {
                         .toList()
         );
 
-        selectParams.add(Expressions.group_concat("\",\"", childRegionVar).as(childrenVar));
-        selectParams.add(Expressions.group_concat("\",\"", regionsPoiVar).as(pois));
-        selectParams.add(Expressions.group_concat("\",\"", featuresFromPoiVar).as(features));
+        selectParams.add(Expressions.group_concat("\",\"", childRegionVar).distinct().as(childrenVar));
+        selectParams.add(Expressions.group_concat("\",\"", regionsPoiVar).distinct().as(pois));
+        selectParams.add(Expressions.group_concat("\",\"", featuresFromPoiVar).distinct().as(features));
 //        selectParams = selectParams.stream().filter(proj -> !proj.getQueryString().contains("_FEATURES")).toList();
 
         whereParams.addFirst(assignRegion);
