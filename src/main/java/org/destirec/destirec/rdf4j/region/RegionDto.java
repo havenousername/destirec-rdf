@@ -41,6 +41,9 @@ public class RegionDto implements Dto {
     private String iso;
 
     @Nullable
+    private String osmId;
+
+    @Nullable
     private IRI geoShape;
 
     @Override
@@ -80,6 +83,10 @@ public class RegionDto implements Dto {
 
         if (iso != null) {
             requiredFields.put(RegionConfig.Fields.ISO, iso);
+        }
+
+        if (osmId != null) {
+            requiredFields.put(RegionConfig.Fields.OSM, osmId);
         }
         return requiredFields;
     }
