@@ -86,8 +86,9 @@ public class UserPreferenceService {
 
     @Transactional
     public PreferenceDto updatePreference(ExternalPreference preference) {
-        List<FeatureDto> features = preference
-                .getFeatures().entrySet().stream()
+        var featureMaps = preference
+                .getFeatures();
+        List<FeatureDto> features = featureMaps.entrySet().stream()
                 .map((feature) ->
                         userDao.getPreferenceDao().getFeatureDao()
                                 .getDtoCreator()
@@ -107,6 +108,7 @@ public class UserPreferenceService {
         }
         // remove all features
         preferenceDao.getFeatureDao().removeByHasFeatureConnection(preferenceId);
+        preferenceDao.removeFeatureQualities(preferenceId);
 
         PreferenceDto preferenceDto = userDao.getPreferenceDao().getDtoCreator()
         .create(preferenceId, userId, features, new ArrayList<>(), null);
@@ -119,6 +121,7 @@ public class UserPreferenceService {
     }
 
     private void updateOntologies(PreferenceDto preferenceDto) {
+        ontology.removeAxiomSet(preferenceDto.getId().stringValue());
         qualityOntology.definePreferenceQualities(preferenceDto, preferenceDto.getId().stringValue());
         ontology.migrate(preferenceDto.getId().stringValue());
         ontology.triggerInference();

@@ -80,6 +80,7 @@ public class UserController {
             return ResponseEntity.ok(userService.updatePreference(preferenceDto));
         } catch (Exception exception) {
             logger.error(exception.toString());
+            exception.printStackTrace();
             return ResponseEntity
                     .badRequest()
                     .body(null);
