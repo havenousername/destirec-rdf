@@ -12,11 +12,8 @@ import org.destirec.destirec.rdf4j.region.cost.CostDao;
 import org.destirec.destirec.rdf4j.region.feature.FeatureDao;
 import org.destirec.destirec.rdf4j.region.feature.FeatureDto;
 import org.destirec.destirec.utils.SimpleDtoTransformations;
-import org.destirec.destirec.utils.rdfDictionary.AttributeNames;
-import org.destirec.destirec.utils.rdfDictionary.POINames;
-import org.destirec.destirec.utils.rdfDictionary.RegionNames;
+import org.destirec.destirec.utils.rdfDictionary.*;
 import org.destirec.destirec.utils.rdfDictionary.RegionNames.Individuals.RegionTypes;
-import org.destirec.destirec.utils.rdfDictionary.TopOntologyNames;
 import org.eclipse.rdf4j.model.IRI;
 import org.eclipse.rdf4j.model.Statement;
 import org.eclipse.rdf4j.model.vocabulary.DC;
@@ -565,6 +562,40 @@ public class RegionDao extends GenericDao<RegionConfig.Fields, RegionDto> {
         return query;
     }
 
+    public double getRegionAvgScore(IRI regionId) {
+        String avgScoreQuery = getRegionAvgScoreQuery(regionId);
+        var countResult = getRdf4JTemplate()
+                .tupleQuery(getClass(), "KEY_AVG_SCORES", () -> avgScoreQuery)
+                .evaluateAndConvert()
+                .toSingleton(bindings ->
+                        Double.parseDouble(bindings.getBinding("avgScore").getValue().stringValue()));
+
+        return countResult;
+    }
+
+
+    protected String getRegionAvgScoreQuery(IRI regionId) {
+        Variable regionIdVar = SparqlBuilder.var("regionId");
+        Variable hasScoreVar = SparqlBuilder.var("hasScore");
+        Variable scoreVar = SparqlBuilder.var("score");
+        TriplePattern selectRegion = GraphPatterns.tp(regionId, RDF.TYPE, RegionNames.Classes.REGION.rdfIri());
+        GraphPattern valuesRegion = GraphPatterns.and().values(builder -> {
+           builder.value(Rdf.iri(regionId));
+           builder.variables(regionIdVar);
+        });
+        TriplePattern selectScores = GraphPatterns.tp(regionId, hasScoreVar, scoreVar);
+        TriplePattern selectHasScore = GraphPatterns.tp(hasScoreVar, RDFS.SUBPROPERTYOF, AttributeNames.Properties.HAS_SCORE.rdfIri());
+
+        return Queries.SELECT(Expressions.avg(scoreVar).as(SparqlBuilder.var("avgScore")))
+                .where(
+                        selectRegion,
+                        valuesRegion,
+                        selectScores,
+                        selectHasScore
+                )
+                .groupBy(regionIdVar)
+                .getQueryString();
+    }
 }
 
 

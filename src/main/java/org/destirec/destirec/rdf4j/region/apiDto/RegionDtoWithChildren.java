@@ -19,14 +19,14 @@ public class RegionDtoWithChildren extends RegionDto {
     private final List<RegionDto> children;
     private final List<POIDto> pois;
 
-    public RegionDtoWithChildren(IRI id, String name, RegionNames.Individuals.RegionTypes type, @Nullable IRI parentRegion, @Nullable IRI sourceIRI, @Nullable CostDto cost, List<MonthDto> months, List<FeatureDto> features, @Nullable String iso, @Nullable IRI geoShape, List<RegionDto> children, List<POIDto> pois) {
-        super(id, name, type, parentRegion, sourceIRI, cost, months, features, iso, geoShape);
+    public RegionDtoWithChildren(IRI id, String name, RegionNames.Individuals.RegionTypes type, @Nullable IRI parentRegion, @Nullable IRI sourceIRI, @Nullable CostDto cost, List<MonthDto> months, List<FeatureDto> features, @Nullable String iso, String osmId, @Nullable IRI geoShape, List<RegionDto> children, List<POIDto> pois) {
+        super(id, name, type, parentRegion, sourceIRI, cost, months, features, iso, osmId, geoShape);
         this.children = children;
         this.pois = pois;
     }
 
     public RegionDtoWithChildren(RegionDto dto, List<RegionDto> children, List<POIDto> pois, List<FeatureDto> features) {
-        super(dto.getId(), dto.getName(), dto.getType(), dto.getParentRegion(), dto.getSourceIRI(), dto.getCost(), dto.getMonths(), features, dto.getIso(), dto.getGeoShape());
+        super(dto.getId(), dto.getName(), dto.getType(), dto.getParentRegion(), dto.getSourceIRI(), dto.getCost(), dto.getMonths(), features, dto.getIso(), dto.getOsmId(), dto.getGeoShape());
         this.children = children;
         this.pois = pois;
     }
