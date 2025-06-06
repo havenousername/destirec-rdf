@@ -32,17 +32,17 @@ public class FeatureDao extends GenericDao<FeatureConfig.Fields, FeatureDto> {
         return (FeatureDtoCreator) super.getDtoCreator();
     }
 
-    public void removeByHasFeatureConnection(IRI author) {
-        var features = getByHasFeatureConnection(author);
+    public void removeByHasFeatureConnection(IRI parent) {
+        var features = getByHasFeatureConnection(parent);
         for (IRI feature : features) {
             this.delete(feature);
         }
     }
 
-    public List<IRI> getByHasFeatureConnection(IRI author) {
-        String query = getByHasFeatureConnectionQuery(author);
+    public List<IRI> getByHasFeatureConnection(IRI parent) {
+        String query = getByHasFeatureConnectionQuery(parent);
         var result = getRdf4JTemplate()
-                .tupleQuery(getClass(), "KEY_BY_FEATURE_AUTHOR", () -> query)
+                .tupleQuery(getClass(), "KEY_BY_FEATURE_PARENT", () -> query)
                 .evaluateAndConvert()
                 .toStream()
                 .toList();
@@ -53,12 +53,12 @@ public class FeatureDao extends GenericDao<FeatureConfig.Fields, FeatureDto> {
     }
 
 
-    protected String getByHasFeatureConnectionQuery(IRI author) {
+    protected String getByHasFeatureConnectionQuery(IRI parent) {
         Variable featureId = SparqlBuilder.var("featureId");
         TriplePattern featureType = GraphPatterns.tp(featureId, RDF.TYPE, AttributeNames.Classes.FEATURE.rdfIri());
-        TriplePattern featureAuthor = GraphPatterns.tp(featureId, AttributeNames.Properties.HAS_FEATURE.rdfIri(), author);
+        TriplePattern featureParent = GraphPatterns.tp(parent, AttributeNames.Properties.HAS_FEATURE.rdfIri(), featureId);
         return Queries.SELECT(featureId)
-                .where(featureType, featureAuthor)
+                .where(featureType, featureParent)
                 .getQueryString();
     }
 }
