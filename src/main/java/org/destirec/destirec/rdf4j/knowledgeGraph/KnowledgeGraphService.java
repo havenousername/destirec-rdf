@@ -323,12 +323,13 @@ public class KnowledgeGraphService {
                         PREFIX wd: <http://www.wikidata.org/entity/>
                         PREFIX wikibase: <http://wikiba.se/ontology#>
                         
-                        SELECT ?district ?districtLabel ?iso {
+                        SELECT ?district ?districtLabel ?iso ?osmId {
                             SERVICE <https://query.wikidata.org/sparql> {
-                                SELECT ?district ?districtLabel ?iso WHERE {
+                                SELECT ?district ?districtLabel ?iso ?osmId WHERE {
                                    <%s> wdt:P150 ?district .  # Germany contains these administrative territorial entities
                                    ?district wdt:P300 ?iso .
-                                   OPTIONAL { ?district wdt:P3896 ?geoShape }
+                                   ?district wdt:P402 ?osmId .
+                                   OPTIONAL { ?district wdt:P3896 ?geoShape . }
                                   SERVICE wikibase:label { bd:serviceParam wikibase:language "[AUTO_LANGUAGE],en". }
                                 }
                             }
@@ -360,19 +361,21 @@ public class KnowledgeGraphService {
                         .build()
         );
 
-        Runnable runnable = Retry.decorateRunnable(
-                retry,
-                () -> {
-                    rateLimiter.acquire(); // assuming rateLimiter is defined elsewhere
-                    getQueryHandler(regionsHierarchy, regionType, parent);
-                }
-        );
+        try (RepositoryConnection connection = repository.getConnection()) {
+            Runnable runnable = Retry.decorateRunnable(
+                    retry,
+                    () -> {
+                        rateLimiter.acquire(); // assuming rateLimiter is defined elsewhere
+                        getQueryHandler(connection, regionsHierarchy, regionType, parent);
+                    }
+            );
 
-        try {
-            runnable.run();
-        } catch (Exception e) {
-            logger.error("Failed to get query handler for region type {}", regionType, e);
-            throw new RuntimeException(e);
+            try {
+                runnable.run();
+            } catch (Exception e) {
+                logger.error("Failed to get query handler for region type {}", regionType, e);
+                throw new RuntimeException(e);
+            }
         }
     }
 
@@ -389,28 +392,29 @@ public class KnowledgeGraphService {
 
 
     private void getQueryHandler(
+            RepositoryConnection connection,
             List<Map.Entry<RegionTypes, Function<String, String>>> regionsHierarchy,
             RegionTypes regionType,
             Optional<Value> parent
     ) {
-        rdf4JTemplate.consumeConnection(connection -> {
-            var parentValue = parent.map(Value::stringValue).orElse(null);
-            String query = queries.get(regionType).apply(parentValue);
-            TupleQuery tupleQuery = connection.prepareTupleQuery(query);
-            try (TupleQueryResult result = tupleQuery.evaluate()) {
-                if (RegionTypes.POI != regionType) {
-                    createRegionFromQueryResults(
-                            isTestRun ? reduceTurtleQueryCapacity(result, regionType) : result,
-                            regionsHierarchy,
-                            parentValue,
-                            regionType
-                    );
-                }
+        var parentValue = parent.map(Value::stringValue).orElse(null);
+        String query = queries.get(regionType).apply(parentValue);
+        TupleQuery tupleQuery = connection.prepareTupleQuery(query);
+        try (TupleQueryResult result = tupleQuery.evaluate()) {
+            if (RegionTypes.POI != regionType) {
+                createRegionFromQueryResults(
+                        connection,
+                        isTestRun ? reduceTurtleQueryCapacity(result, regionType) : result,
+                        regionsHierarchy,
+                        parentValue,
+                        regionType
+                );
             }
-        });
+        }
     }
 
     private void createRegionFromQueryResults(
+            RepositoryConnection connection,
             TupleQueryResult results,
             List<Map.Entry<RegionTypes, Function<String, String>>> regionsHierarchy,
             String parent,
@@ -434,7 +438,9 @@ public class KnowledgeGraphService {
                     region.setId(binding.getValue().stringValue().replaceAll(" ", ""));
                 } else if (binding.getName().toLowerCase().contains("geoshape")) {
                     region.setGeoShape(factory.createIRI(binding.getValue().stringValue()));
-                } else if (binding.getName().toLowerCase().contains("iso")) {
+                }  else if (binding.getName().toLowerCase().contains("osmid")) {
+                    region.setOsmId(binding.getValue().stringValue());
+                }else if (binding.getName().toLowerCase().contains("iso")) {
                     region.setIso(binding.getValue().stringValue());
                 }
             }
@@ -448,6 +454,7 @@ public class KnowledgeGraphService {
                     RegionTypes nextRegionType = remainingRegions.getFirst().getKey();
                     if (entity != null) {
                         getQueryHandler(
+                                connection,
                                 remainingRegions,
                                 nextRegionType,
                                 Optional.of(entity)
@@ -704,7 +711,10 @@ public class KnowledgeGraphService {
             }
 
             logger.info("Fetching map data from Overpass for {} countries in region {}", countries.size(), region.id());
-            String mapInfo = overpassService.runQuerySuperRegion(countries.stream().map(RegionDto::getIso).toList());
+            String mapInfo = overpassService.runQuerySuperRegion(
+                    countries.stream().map(RegionDto::getIso).toList(),
+                    countries.stream().map(RegionDto::getName).toList()
+            );
 
             logger.debug("Saving geoJSON for region {}", region.id());
             overpassService.saveRegionGeoJson(mapInfo, type, region.getId().getLocalName());
@@ -732,7 +742,7 @@ public class KnowledgeGraphService {
 
             if (type == RegionTypes.COUNTRY) {
                 logger.info("Processing as country: {}", region.getIso());
-                String mapInfo = overpassService.runQueryCountry(region.getIso());
+                String mapInfo = overpassService.runQueryCountry(region.getIso(), region.getName());
                 logger.debug("Retrieved Overpass data for country {}, saving geoJSON", region.getIso());
                 overpassService.saveRegionGeoJson(mapInfo, type, region.getId().getLocalName());
                 logger.info("Successfully saved country map for {}", region.getId());
@@ -747,7 +757,7 @@ public class KnowledgeGraphService {
 
                 logger.info("Fetching district map for {} (parent: {})",
                         region.getIso(), parentRegion.getIso());
-                String mapInfo = overpassService.runQueryDistrict(parentRegion.getIso(), region.getIso());
+                String mapInfo = overpassService.runQueryDistrict(region.getOsmId(), parentRegion.getIso(), region.getName());
                 logger.debug("Retrieved Overpass data for district {}, saving geoJSON", region.getIso());
                 overpassService.saveRegionGeoJson(mapInfo, type, region.getId().getLocalName());
                 logger.info("Successfully saved district map for {}", region.getId());
