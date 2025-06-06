@@ -12,8 +12,8 @@ import org.jetbrains.annotations.Nullable;
 import java.util.List;
 
 public class ResponseRegionDto extends RegionDto {
-    public ResponseRegionDto(IRI id, String name, RegionNames.Individuals.RegionTypes type, @Nullable IRI parentRegion, @Nullable IRI sourceIRI, @Nullable CostDto cost, List<MonthDto> months, List<FeatureDto> features, @Nullable String iso, @Nullable IRI geoShape) {
-        super(id, name, type, parentRegion, sourceIRI, cost, months, features, iso, geoShape);
+    public ResponseRegionDto(IRI id, String name, RegionNames.Individuals.RegionTypes type, @Nullable IRI parentRegion, @Nullable IRI sourceIRI, @Nullable CostDto cost, List<MonthDto> months, List<FeatureDto> features, @Nullable String iso, String osmId, @Nullable IRI geoShape) {
+        super(id, name, type, parentRegion, sourceIRI, cost, months, features, iso, osmId, geoShape);
         mapUrl = null;
     }
 
@@ -28,7 +28,9 @@ public class ResponseRegionDto extends RegionDto {
                 dto.getMonths(),
                 dto.getFeatures(),
                 dto.getIso(),
-                dto.getGeoShape());
+                dto.getOsmId(),
+                dto.getGeoShape()
+        );
         this.mapUrl = mapUrl;
     }
 

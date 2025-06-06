@@ -203,6 +203,11 @@ public class RegionService {
     }
 
     @Transactional
+    public Optional<POIDto> getPOI(String id) {
+        return poiDao.getByIdOptional(poiDao.getDtoCreator().createId(id));
+    }
+
+    @Transactional
     public List<RegionDto> getRegions(int page, int size, String sortField, String sortOrder) {
         return regionDao.listPaginated(page, size);
     }

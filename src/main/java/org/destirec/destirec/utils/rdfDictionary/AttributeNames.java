@@ -40,7 +40,6 @@ public final class AttributeNames {
 
         public final static DESTIREC.NamespaceWrapper HAS_SCORE_PER_WEEK = DESTIREC.wrap("hasCostPerWeek");
         public final static DESTIREC.NamespaceWrapper HAS_BUDGET_LEVEL = DESTIREC.wrap("hasBudgetLevel");
-
         public final static DESTIREC.NamespaceWrapper HAS_REGION_FEATURE = DESTIREC.wrap("hasRegionFeature");
     }
 }
