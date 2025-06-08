@@ -7,3 +7,4 @@ public interface ContainerVisitor<T> {
     void visit(T visitor);
     void visit(List<T> visitor);
 }
+

@@ -3,6 +3,8 @@ package org.destirec.destirec.utils;
 import lombok.Getter;
 import lombok.ToString;
 import org.destirec.destirec.rdf4j.interfaces.ContainerVisitor;
+import org.destirec.destirec.rdf4j.interfaces.functionalVisitors.ListVisitor;
+import org.destirec.destirec.rdf4j.interfaces.functionalVisitors.SingleVisitor;
 
 import java.util.Iterator;
 import java.util.List;
@@ -42,6 +44,21 @@ public class ValueContainer<T> implements Iterator<T> {
             throw new IllegalStateException("Cannot enter this state. Items or item fields cannot be both null");
         }
     }
+
+    public void accept(SingleVisitor<T> visitor) {
+        if (item == null) {
+            return;
+        }
+        visitor.visit(item);
+    }
+
+    public void acceptList(ListVisitor<T> visitor) {
+        if (items == null) {
+            return;
+        }
+        visitor.visit(items);
+    }
+
 
     private int size() {
         if (item != null) {
