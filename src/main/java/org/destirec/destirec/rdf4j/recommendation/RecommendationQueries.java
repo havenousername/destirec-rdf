@@ -5,6 +5,7 @@ import org.destirec.destirec.utils.rdfDictionary.RecommendationNames;
 import org.destirec.destirec.utils.rdfDictionary.RegionNames;
 import org.destirec.destirec.utils.rdfDictionary.UserNames;
 import org.eclipse.rdf4j.model.IRI;
+import org.eclipse.rdf4j.model.base.CoreDatatype;
 import org.eclipse.rdf4j.model.impl.SimpleValueFactory;
 import org.eclipse.rdf4j.model.vocabulary.DC;
 import org.eclipse.rdf4j.model.vocabulary.RDF;
@@ -108,9 +109,19 @@ public class RecommendationQueries {
                 Rdf.literalOf("")
         );
 
+
+        Variable intScoreRegionVar = SparqlBuilder.var("intScoreRegion");
+        Bind bindRegionScore = Expressions.bind(() ->
+                "<" +  CoreDatatype.XSD.INTEGER.getIri().stringValue() + ">" + "(" + scoreRegion.getQueryString() + ")", intScoreRegionVar);
+
+        Variable intScorePreferenceVar = SparqlBuilder.var("intScorePreference");
+        Bind bindPreferenceScore = Expressions.bind(() ->
+               "<" + CoreDatatype.XSD.INTEGER.getIri().stringValue() + ">" + "(" + scorePreference.getQueryString() + ")", intScorePreferenceVar);
+
         Variable deltaScore = SparqlBuilder.var("deltaScore");
-        Bind deltaScoreBind = Expressions.bind(Expressions.subtract(scoreRegion, scorePreference), deltaScore);
+        Bind deltaScoreBind = Expressions.bind(Expressions.subtract(intScoreRegionVar, intScorePreferenceVar), deltaScore);
         GraphPatternNotTriples bindScoreTriple = GraphPatterns.and(deltaScoreBind);
+        GraphPatternNotTriples bindScores = GraphPatterns.and(bindRegionScore, bindPreferenceScore);
 
         var bindUserIri = GraphPatterns.and().values(builder -> {
             builder.variables(user);
@@ -157,8 +168,9 @@ public class RecommendationQueries {
                             builder.variables(tolerance);
                             builder.value(toleranceLiteral);
                         }),
+                        bindScores,
                         bindScoreTriple,
-                        GraphPatterns.and().filter(Expressions.gt(scoreRegion, Expressions.add(scorePreference, tolerance)))
+                        GraphPatterns.and().filter(Expressions.gt(intScoreRegionVar, Expressions.add(intScorePreferenceVar, tolerance)))
                 )
                 .groupBy(user, region);
     }
@@ -187,7 +199,6 @@ public class RecommendationQueries {
     }
 
     public String biggerThanRecommendationQuery(RecommendationParameters parameters, IRI userId) {
-
         TriplePattern regionIsRecommendation = GraphPatterns
                 .tp(region, RDF.TYPE, RecommendationNames.Classes.BIGGER_THAN_RECOMMENDATION.rdfIri());
 
