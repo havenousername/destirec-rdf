@@ -28,7 +28,7 @@ import static java.net.URI.create;
 @Service
 public class OverpassService {
     private final RestClient client = RestClient.create();
-    protected Logger logger = LoggerFactory.getLogger(getClass());
+    protected static Logger logger = LoggerFactory.getLogger("OverpassService");
     public static final String MAP_JSON_DIR = "./maps";
 
     public OverpassService() {}
@@ -60,6 +60,11 @@ public class OverpassService {
     }
 
     public static String getCountryDistrict(String districtId, String countryName, String name) {
+        if (countryName == null || countryName.isBlank() || name == null || name.isBlank()) {
+            logger.warn("Country name or district name is null or blank. Country name: {}, district id: {}, district name: {}", countryName, districtId, name);
+            throw new RuntimeException("Cannot access countries map");
+        }
+
         if (districtId == null || districtId.isBlank()) {
             return """
                     [out:json][timeout:180];
