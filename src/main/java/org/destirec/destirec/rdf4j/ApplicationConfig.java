@@ -1,5 +1,7 @@
 package org.destirec.destirec.rdf4j;
 
+import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
 import org.destirec.destirec.utils.ShortRepositoryInfo;
@@ -56,6 +58,12 @@ public class ApplicationConfig {
     private void configSystem() {
         System.setProperty("org.eclipse.rdf4j.repository.debug", "false");
     }
+
+    @Bean
+    public MeterRegistry meterRegistry() {
+        return new SimpleMeterRegistry();
+    }
+
 
     @PostConstruct
     public void init() {
