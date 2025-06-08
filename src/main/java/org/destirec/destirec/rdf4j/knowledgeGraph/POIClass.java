@@ -18,12 +18,19 @@ public class POIClass extends SimpleRegionDto implements POIRegion {
     private RegionFeature feature;
     private QTypes featureSpecificType;
 
+    @Setter
     private static volatile int SITE_LINKS_MAX = 0;
+    @Setter
     private static volatile int SITE_LINKS_MIN = 0;
+    @Setter
     private static volatile int OUTGOING_LINKS_MAX = 0;
+    @Setter
     private static volatile int OUTGOING_LINKS_MIN = 0;
+    @Setter
     private static volatile int STATEMENTS_MAX = 0;
+    @Setter
     private static volatile int STATEMENTS_MIN = 0;
+
     private static final short INTERNET_POPULARITY_MAX = 4;
     private static final short INTERNET_POPULARITY_MIN = 0;
 

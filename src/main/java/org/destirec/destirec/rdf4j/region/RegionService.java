@@ -15,6 +15,7 @@ import org.destirec.destirec.rdf4j.region.apiDto.SimpleRegionDto;
 import org.destirec.destirec.rdf4j.region.cost.CostDao;
 import org.destirec.destirec.rdf4j.region.cost.CostDto;
 import org.destirec.destirec.rdf4j.region.feature.FeatureDto;
+import org.destirec.destirec.utils.rdfDictionary.RegionFeatureNames.Individuals.RegionFeature;
 import org.destirec.destirec.utils.rdfDictionary.RegionNames.Individuals.RegionTypes;
 import org.eclipse.rdf4j.model.IRI;
 import org.javatuples.Pair;
@@ -24,15 +25,14 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Duration;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 
 @Service
@@ -183,7 +183,8 @@ public class RegionService {
 
         updateMonths(regionDto, existingRegion.get().getMonths());
         updateFeatures(regionDto, existingRegion.get().getFeatures());
-        updateCost(existingRegion.get().getCost(), regionDto.getCost());
+        updateCost(Optional.of(existingRegion.get().getCost()).orElse(
+                regionDao.getCostDao().getDtoCreator().create(0, 0)), regionDto.getCost());
 
         RegionDto regionDtoForCreate = regionDao.getDtoCreator()
                 .create(
@@ -249,6 +250,30 @@ public class RegionService {
     }
 
     @Transactional
+    public List<IRI> createPOIs(List<POIClass> poiClasses) {
+        List<IRI> parents = poiClasses.stream().map(i -> regionDao.getBySource(i.getSourceParent())).toList();
+        if (parents.size() != poiClasses.size()) {
+            throw new IllegalArgumentException("It is a requirement that the parent exists for POI");
+        }
+
+        List<FeatureDto> featuresDtoRuntime = poiClasses.stream()
+                .map(i -> poiDao
+                        .getFeatureDao()
+                        .getDtoCreator()
+                        .createFromEnum(Map.entry(i.getFeature(), i.getPercentageScore())))
+                .toList();
+
+        List<FeatureDto> savedFeatures = poiDao.getFeatureDao().bulkSaveListGet(featuresDtoRuntime);
+        assert savedFeatures.size() == featuresDtoRuntime.size() && featuresDtoRuntime.size() == poiClasses.size();
+        List<POIDto> poiRuntime = IntStream.range(0, savedFeatures.size())
+                .mapToObj(i -> poiDao.getDtoCreator().create(poiClasses.get(i), savedFeatures.get(i), parents.get(i)))
+                .toList();
+        List<IRI> savedPois = poiDao.bulkSaveList(poiRuntime);
+        assert savedPois.size() == poiRuntime.size() && poiRuntime.size() == poiClasses.size();
+        return savedPois;
+    }
+
+    @Transactional
     public IRI createPOI(POIClass poiClass) {
         if (poiClass.getSourceParent() == null) {
             throw new IllegalArgumentException("POI must have a parent. POI class " + poiClass);
@@ -310,6 +335,30 @@ public class RegionService {
         }
     }
 
+    public void normalizeFeatureScores() {
+        Map<RegionFeature, Long> maxScoresPerFeature = Arrays.stream(RegionFeature.values())
+                .collect(Collectors.toMap(
+                        feature -> feature,
+                        poiDao::getMaxScoreForFeature
+                ));
+
+        long featureCount = poiDao.getFeatureDao().getTotalCount();
+        int pageSize = 5000;
+        for (int i = 0; i < Math.ceil((double) featureCount / pageSize) ; i++) {
+            List<FeatureDto> features = poiDao.getFeatureDao().listPaginated(i, pageSize);
+            for (var feature : features) {
+                var maxScore = maxScoresPerFeature.get(feature.getRegionFeature());
+                if (maxScore == null || maxScore == 0) {
+                    continue;
+                }
+                feature.setHasScore((int) ((feature.getHasScore() * 100) / maxScore));
+
+            }
+            poiDao.getFeatureDao().bulkSaveList(features);
+            logger.info("Normalized scores for features");
+        }
+    }
+
     public void updateAllOntologiesPOIs() {
         long totalNumberOfPois = poiDao.getTotalCount();
         int perPage = 250;
@@ -323,7 +372,6 @@ public class RegionService {
             destiRecOntology.triggerInference();
             currentPage++;
         }
-
     }
 
     private void updateParentChildOntologies(RegionDto child) {

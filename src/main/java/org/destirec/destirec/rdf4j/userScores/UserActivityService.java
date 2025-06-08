@@ -81,7 +81,7 @@ public class UserActivityService {
             }
             // update user influence according to the formula
             // P_updated = min(1, \beta x P_user + (1 - \beta) \times P_score
-            double newInfluenceScore = Math.min(1, UserInfluenceMigration.BETA * historyDto.getScore() + (1 - UserInfluenceMigration.BETA) * userInfluenceDto.get().getScore());
+            double newInfluenceScore = Math.min(1, UserInfluenceMigration.BETA * historyDto.getScore() + (1 - UserInfluenceMigration.BETA) * userInfluenceDto.get().getInitialScore());
 
             /**
              * update user confidence according to formula
@@ -91,7 +91,7 @@ public class UserActivityService {
                     regionId,
                     historyDto.getFromDate(),
                     historyDto.getToDate(),
-                    historyDto.getScore()) * UserInfluenceMigration.BETA + (1 - UserInfluenceMigration.BETA) * userInfluenceDto.get().getConfidence();
+                    historyDto.getScore()) * UserInfluenceMigration.BETA + (1 - UserInfluenceMigration.BETA) * userInfluenceDto.get().getInitialConfidence();
 
             userInfluenceId = userHistoryDao.updateInfluence(userInfluenceDto.get().getId(), regionId, user.id(), newInfluenceScore, newConfidence);
         } else {

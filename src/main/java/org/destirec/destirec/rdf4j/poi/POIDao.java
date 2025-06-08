@@ -5,7 +5,9 @@ import org.destirec.destirec.rdf4j.interfaces.GenericDao;
 import org.destirec.destirec.rdf4j.interfaces.daoVisitors.QueryStringVisitor;
 import org.destirec.destirec.rdf4j.ontology.DestiRecOntology;
 import org.destirec.destirec.rdf4j.region.feature.FeatureDao;
+import org.destirec.destirec.utils.rdfDictionary.AttributeNames;
 import org.destirec.destirec.utils.rdfDictionary.POINames;
+import org.destirec.destirec.utils.rdfDictionary.RegionFeatureNames;
 import org.destirec.destirec.utils.rdfDictionary.RegionNames;
 import org.eclipse.rdf4j.model.IRI;
 import org.eclipse.rdf4j.model.vocabulary.RDF;
@@ -194,10 +196,36 @@ public class POIDao extends GenericDao<POIConfig.Fields, POIDto> {
         return str;
     }
 
+    public long getMaxScoreForFeature(RegionFeatureNames.Individuals.RegionFeature featureName) {
+        IRI featureIri = featureName.iri().rdfIri();
+        String query = getMaxScoreFeatureQuery(featureIri);
+        var maxFeature = getRdf4JTemplate()
+                .tupleQuery(getClass(), "KEY_MAX_SCORE_FOR_FEATURE", () -> query)
+                .evaluateAndConvert()
+                .toSingletonOptional(bindings -> bindings.getValue("maxScore").stringValue());
 
-//    SELECT ?poi ?region
-//    {
-//  ?poi a :POI .
-//            ?poi geo:sfWithin ?region .
-//    }
+        return Long.parseLong(maxFeature.orElse("0"));
+    }
+
+
+    private String getMaxScoreFeatureQuery(IRI featureName) {
+        var featureVar = SparqlBuilder.var("feature");
+        var scoreVar = SparqlBuilder.var("score");
+        var poiVar = SparqlBuilder.var("poi");
+        var featureNameVar = SparqlBuilder.var("featureName");
+
+
+        GraphPattern featureNameBind = GraphPatterns.and().values(builder-> {
+            builder.value(Rdf.iri(featureName.toString()));
+            builder.variables(featureNameVar);
+        });
+        TriplePattern selectPOI = GraphPatterns.tp(poiVar, RDF.TYPE, POINames.Classes.POI.rdfIri());
+        TriplePattern hasFeature = GraphPatterns.tp(poiVar, AttributeNames.Properties.HAS_FEATURE.rdfIri(), featureVar);
+        TriplePattern hasRegionFeature = GraphPatterns.tp(featureVar, AttributeNames.Properties.HAS_REGION_FEATURE.rdfIri(), featureNameVar);
+        TriplePattern hasScore = GraphPatterns.tp(featureVar, AttributeNames.Properties.HAS_SCORE.rdfIri(), scoreVar);
+
+        return Queries.SELECT(Expressions.max(scoreVar).as(SparqlBuilder.var("maxScore")))
+                .where(featureNameBind, selectPOI, hasFeature, hasRegionFeature, hasScore)
+                .getQueryString();
+    }
 }

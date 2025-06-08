@@ -294,7 +294,9 @@ public class RegionDao extends GenericDao<RegionConfig.Fields, RegionDto> {
         List<FeatureDto> features = featuresString
                 .stream()
                 .filter(region -> !region.isBlank())
-                .map(feature -> featureDao.getById(valueFactory.createIRI(feature)))
+                .map(feature -> featureDao.getByIdOptional(valueFactory.createIRI(feature)))
+                .filter(Optional::isPresent)
+                .map(Optional::get)
                 .toList();
 
         RegionDto dto = getDtoCreator().create(id, map);
@@ -572,7 +574,6 @@ public class RegionDao extends GenericDao<RegionConfig.Fields, RegionDto> {
 
         return countResult;
     }
-
 
     protected String getRegionAvgScoreQuery(IRI regionId) {
         Variable regionIdVar = SparqlBuilder.var("regionId");

@@ -32,8 +32,7 @@ public class POIDtoCreator implements DtoCreator<POIDto, POIConfig.Fields> {
     @Override
     public POIDto create(IRI id, Map<POIConfig.Fields, String> map) {
         FeatureDto featureDto = Optional.ofNullable(map.get(POIConfig.Fields.FEATURE))
-                .map(valueFactory::createIRI)
-                .map(featureDao::getById)
+                .map(valueFactory::createIRI).flatMap(featureDao::getByIdOptional)
                 .orElse(null);
         IRI parent = Optional.ofNullable(map.get(POIConfig.Fields.PARENT_REGION))
                 .map(valueFactory::createIRI)
