@@ -6,6 +6,7 @@ import org.destirec.destirec.rdf4j.interfaces.GenericDao;
 import org.destirec.destirec.rdf4j.interfaces.Rdf4jTemplate;
 import org.destirec.destirec.rdf4j.ontology.AppOntology;
 import org.destirec.destirec.rdf4j.vocabulary.DESTIREC;
+import org.destirec.destirec.utils.SimpleDtoTransformations;
 import org.destirec.destirec.utils.rdfDictionary.TopOntologyNames;
 import org.destirec.destirec.utils.rdfDictionary.UserNames;
 import org.eclipse.rdf4j.model.IRI;
@@ -25,6 +26,7 @@ import org.eclipse.rdf4j.spring.dao.support.sparql.NamedSparqlSupplier;
 import org.eclipse.rdf4j.spring.support.RDF4JTemplate;
 import org.springframework.stereotype.Repository;
 
+import java.util.List;
 import java.util.Optional;
 
 @Getter
@@ -58,7 +60,16 @@ public class UserHistoryDao extends GenericDao<UserHistoryConfig.Fields, UserHis
                     double score = Double.parseDouble(solution.getValue("score").stringValue());
                     double confidence = Double.parseDouble(solution.getValue("confidence").stringValue());
 
-                    return new UserInfluenceDto(id, regionSolution, userSolution, score, confidence);
+                    List<String> rawScores = SimpleDtoTransformations.
+                            toListString(solution.getValue("scores").stringValue());
+
+                    List<String> rawConfidences = SimpleDtoTransformations.
+                            toListString(solution.getValue("confidences").stringValue());
+
+                    List<Double> scores = rawScores.stream().map(Double::parseDouble).toList();
+                    List<Double> confidences = rawConfidences.stream().map(Double::parseDouble).toList();
+
+                    return new UserInfluenceDto(id, regionSolution, userSolution, score, confidence, scores, confidences);
                 });
     }
 
@@ -120,6 +131,9 @@ public class UserHistoryDao extends GenericDao<UserHistoryConfig.Fields, UserHis
         Variable confidence = SparqlBuilder.var("confidence");
         Variable score = SparqlBuilder.var("score");
 
+        Variable scores = SparqlBuilder.var("scores");
+        Variable confidences = SparqlBuilder.var("confidences");
+
         TriplePattern isHistoryInfluence = GraphPatterns
                 .tp(historyInfluenceVar, RDF.TYPE, UserNames.Classes.USER_HISTORY_INFLUENCE.rdfIri());
         GraphPattern valuesRegion = GraphPatterns
@@ -146,6 +160,11 @@ public class UserHistoryDao extends GenericDao<UserHistoryConfig.Fields, UserHis
         TriplePattern hasCConfidence = GraphPatterns
                 .tp(historyInfluenceVar, UserNames.Properties.HAS_INFLUENCE_C_CONFIDENCE.rdfIri(), confidence);
 
+        TriplePattern hasCConfidences = GraphPatterns
+                .tp(historyInfluenceVar, UserNames.Properties.HAS_C_CONFIDENCES.rdfIri(), confidences);
+
+        TriplePattern hasPScores = GraphPatterns
+                .tp(historyInfluenceVar, UserNames.Properties.HAS_P_SCORES.rdfIri(), scores);
 
         String selectQuery = Queries.SELECT(historyInfluenceVar, confidence, score)
                 .where(
@@ -155,7 +174,9 @@ public class UserHistoryDao extends GenericDao<UserHistoryConfig.Fields, UserHis
                         hasUser,
                         hasRegion,
                         hasPScore,
-                        hasCConfidence
+                        hasCConfidence,
+                        hasCConfidences,
+                        hasPScores
                 )
                 .toString();
 

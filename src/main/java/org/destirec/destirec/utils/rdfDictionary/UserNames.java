@@ -25,6 +25,9 @@ public class UserNames {
         public final static DESTIREC.NamespaceWrapper HAS_INFLUENCE_P_SCORE = DESTIREC.wrap("hasInfluencePScore");
         public final static DESTIREC.NamespaceWrapper HAS_INFLUENCE_C_CONFIDENCE = DESTIREC.wrap("hasActivityCConfidence");
 
+        public final static DESTIREC.NamespaceWrapper HAS_P_SCORES = DESTIREC.wrap("nextPScores");
+        public final static DESTIREC.NamespaceWrapper HAS_C_CONFIDENCES = DESTIREC.wrap("nextCConfidences");
+
         public final static DESTIREC.NamespaceWrapper HAS_VISITED_ENTITY = DESTIREC.wrap("hasVisitedEntity");
         public final static DESTIREC.NamespaceWrapper HAS_VISITED_P_SCORE = DESTIREC.wrap("hasVisitedPScore");
 

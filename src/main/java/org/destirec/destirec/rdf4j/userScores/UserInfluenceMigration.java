@@ -43,6 +43,20 @@ public class UserInfluenceMigration extends IriMigration {
                 .add(get(), OWL.HASKEY, UserNames.Properties.HAS_INFLUENCE_C_CONFIDENCE.rdfIri());
 
         builder
+                .add(UserNames.Properties.HAS_P_SCORES.rdfIri(), RDF.TYPE, OWL.DATATYPEPROPERTY)
+                .add(UserNames.Properties.HAS_P_SCORES.rdfIri(), RDFS.DOMAIN, get())
+                .add(UserNames.Properties.HAS_P_SCORES.rdfIri(), RDFS.RANGE, XSD.STRING) // POI or Region
+                .add(UserNames.Properties.HAS_P_SCORES.rdfIri(), RDFS.LABEL, "has confidence score")
+                .add(get(), OWL.HASKEY, UserNames.Properties.HAS_P_SCORES.rdfIri());
+
+        builder
+                .add(UserNames.Properties.HAS_C_CONFIDENCES.rdfIri(), RDF.TYPE, OWL.DATATYPEPROPERTY)
+                .add(UserNames.Properties.HAS_C_CONFIDENCES.rdfIri(), RDFS.DOMAIN, get())
+                .add(UserNames.Properties.HAS_C_CONFIDENCES.rdfIri(), RDFS.RANGE, XSD.STRING) // POI or Region
+                .add(UserNames.Properties.HAS_C_CONFIDENCES.rdfIri(), RDFS.LABEL, "has confidence score")
+                .add(get(), OWL.HASKEY, UserNames.Properties.HAS_C_CONFIDENCES.rdfIri());
+
+        builder
                 .add(UserNames.Properties.INFLUENCE_FOR_REGION.rdfIri(), RDF.TYPE, OWL.DATATYPEPROPERTY)
                 .add(UserNames.Properties.INFLUENCE_FOR_REGION.rdfIri(), RDFS.DOMAIN, get())
                 .add(UserNames.Properties.INFLUENCE_FOR_REGION.rdfIri(), RDFS.RANGE, RegionNames.Classes.REGION_LIKE) // POI or Region
