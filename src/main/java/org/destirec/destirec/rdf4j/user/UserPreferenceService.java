@@ -6,6 +6,7 @@ import org.destirec.destirec.rdf4j.ontology.DestiRecOntology;
 import org.destirec.destirec.rdf4j.preferences.PreferenceDao;
 import org.destirec.destirec.rdf4j.preferences.PreferenceDto;
 import org.destirec.destirec.rdf4j.region.cost.CostDto;
+import org.destirec.destirec.rdf4j.region.feature.FeatureDao;
 import org.destirec.destirec.rdf4j.region.feature.FeatureDto;
 import org.destirec.destirec.rdf4j.user.apiDto.ExternalPreference;
 import org.destirec.destirec.rdf4j.user.apiDto.ExternalUserDto;
@@ -29,6 +30,7 @@ import java.util.concurrent.ScheduledExecutorService;
 public class UserPreferenceService {
     private final UserDao userDao;
     private final PreferenceDao preferenceDao;
+    private final FeatureDao featureDao;
 
     protected Logger logger = LoggerFactory.getLogger(getClass());
 
@@ -44,7 +46,7 @@ public class UserPreferenceService {
     public UserPreferenceService(
             UserDao userDao,
             DestiRecOntology ontology,
-            UserConfig userConfig, PreferenceDao preferenceDao) {
+            UserConfig userConfig, PreferenceDao preferenceDao, FeatureDao featureDao) {
         this.userDao = userDao;
         creator = userDao
                 .getDtoCreator();
@@ -58,6 +60,7 @@ public class UserPreferenceService {
         this.preferenceDao = preferenceDao;
 
         scheduledService = Executors.newSingleThreadScheduledExecutor();
+        this.featureDao = featureDao;
     }
 
     @Transactional
@@ -93,8 +96,10 @@ public class UserPreferenceService {
                         userDao.getPreferenceDao().getFeatureDao()
                                 .getDtoCreator()
                                 .createFromTuple(feature.getKey(), feature.getValue()))
-                .map(featureDto -> userDao.getPreferenceDao().getFeatureDao().save(featureDto))
                 .toList();
+
+        List<FeatureDto> savedFeatures = featureDao.bulkSaveListGet(features);
+
 
         IRI userId = userDao.getDtoCreator().createId(preference.getUserId());
         if (userDao.getByIdOptional(userId).isEmpty()) {
@@ -111,7 +116,7 @@ public class UserPreferenceService {
         preferenceDao.removeFeatureQualities(preferenceId);
 
         PreferenceDto preferenceDto = userDao.getPreferenceDao().getDtoCreator()
-        .create(preferenceId, userId, features, new ArrayList<>(), null);
+        .create(preferenceId, userId, savedFeatures, new ArrayList<>(), null);
         preferenceDto = userDao.getPreferenceDao().save(preferenceDto);
 
         scheduledUpdateOfOntologies(preferenceDto);

@@ -212,7 +212,7 @@ public abstract class GenericDao<FieldEnum extends Enum<FieldEnum> & ConfigField
                 .toList(this::mapSolution, this::postProcessMappedSolution);
     }
 
-    private Collection<Statement> createTriples(DTO input, IRI id) {
+    protected Collection<Statement> createTriples(DTO input, IRI id) {
         List<Statement> statements = new ArrayList<>();
 
         statements.add(valueFactory.createStatement(id, RDF.TYPE, migration.get()));

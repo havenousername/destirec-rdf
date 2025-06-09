@@ -10,6 +10,7 @@ import org.destirec.destirec.rdf4j.region.feature.FeatureDao;
 import org.destirec.destirec.utils.rdfDictionary.AttributeNames;
 import org.destirec.destirec.utils.rdfDictionary.PreferenceNames;
 import org.eclipse.rdf4j.model.IRI;
+import org.eclipse.rdf4j.model.Statement;
 import org.eclipse.rdf4j.model.vocabulary.RDFS;
 import org.eclipse.rdf4j.sparqlbuilder.core.SparqlBuilder;
 import org.eclipse.rdf4j.sparqlbuilder.core.Variable;
@@ -89,15 +90,12 @@ public class PreferenceDao extends GenericDao<PreferenceConfig.Fields, Preferenc
 
     public void removeFeatureQualities(IRI preferenceId) {
         var featureQualities = getAllFeatureQualities(preferenceId);
-        for (var featureQuality : featureQualities) {
-            getRdf4jTemplate().consumeConnection(
-                    con -> {
-                        con.remove(
-                                featureQuality.getValue0(),
-                                featureQuality.getValue1(),
-                                featureQuality.getValue2());
-                    });
-        }
+        List<Statement> statements = featureQualities
+                .stream()
+                .map(f -> valueFactory.createStatement(f.getValue0(), f.getValue1(), f.getValue2()))
+                .toList();
+
+        getRdf4jTemplate().consumeConnection(con -> con.remove(statements));
     }
 
     public List<Triplet<IRI, IRI, IRI>> getAllFeatureQualities(IRI preferenceId) {

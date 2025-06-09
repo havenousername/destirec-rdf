@@ -4,6 +4,7 @@ import org.destirec.destirec.rdf4j.interfaces.GenericDao;
 import org.destirec.destirec.rdf4j.ontology.DestiRecOntology;
 import org.destirec.destirec.utils.rdfDictionary.AttributeNames;
 import org.eclipse.rdf4j.model.IRI;
+import org.eclipse.rdf4j.model.Statement;
 import org.eclipse.rdf4j.model.vocabulary.RDF;
 import org.eclipse.rdf4j.sparqlbuilder.core.SparqlBuilder;
 import org.eclipse.rdf4j.sparqlbuilder.core.Variable;
@@ -34,9 +35,8 @@ public class FeatureDao extends GenericDao<FeatureConfig.Fields, FeatureDto> {
 
     public void removeByHasFeatureConnection(IRI parent) {
         var features = getByHasFeatureConnection(parent);
-        for (IRI feature : features) {
-            this.delete(feature);
-        }
+        List<Statement> statements = features.stream().flatMap(i -> createTriples(getById(i), i).stream()).toList();
+        getRdf4JTemplate().consumeConnection(connection -> connection.remove(statements));
     }
 
     public List<IRI> getByHasFeatureConnection(IRI parent) {

@@ -41,13 +41,19 @@ public class RecommendationParameters {
 
     private final RegionTypes toRegionType;
 
+    private static boolean isEmpty(String entity) {
+        return entity != null && !entity.isEmpty() && !entity.equalsIgnoreCase("null") &&
+                !entity.equalsIgnoreCase("undefined") && !entity.equalsIgnoreCase("none") && !entity.equalsIgnoreCase("empty") && !entity.equalsIgnoreCase("blank");
+    }
+
     public RecommendationParameters(Short tolerance, Float matchRatio, Integer maxResults, Boolean addExplanations, String fromRegion, String toRegionType) {
         this.tolerance = tolerance == null ? 0 : tolerance;
         this.matchRatio = matchRatio == null ? 1 : matchRatio;
         this.maxResults = maxResults == null ? 255 : maxResults;
         this.addExplanations = addExplanations != null && addExplanations;
         SimpleValueFactory vf = SimpleValueFactory.getInstance();
-        this.fromRegion = vf.createIRI(DESTIREC.wrapNamespace( "region/", DESTIREC.UriType.RESOURCE) + fromRegion) ;
+        this.fromRegion = isEmpty(fromRegion) ?
+                vf.createIRI(DESTIREC.wrapNamespace( "region/", DESTIREC.UriType.RESOURCE) + fromRegion) : null;
         RegionTypes toRegionTypeInput;
         try {
             toRegionTypeInput = RegionTypes.fromString(toRegionType);

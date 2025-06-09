@@ -1,5 +1,7 @@
 package org.destirec.destirec.rdf4j.recommendation;
 
+import lombok.AllArgsConstructor;
+import lombok.Getter;
 import org.destirec.destirec.utils.rdfDictionary.AttributeNames;
 import org.destirec.destirec.utils.rdfDictionary.RecommendationNames;
 import org.destirec.destirec.utils.rdfDictionary.RegionNames;
@@ -24,6 +26,10 @@ import org.eclipse.rdf4j.sparqlbuilder.rdf.Rdf;
 import org.eclipse.rdf4j.sparqlbuilder.rdf.RdfLiteral;
 import org.eclipse.rdf4j.sparqlbuilder.rdf.RdfPredicate;
 import org.springframework.stereotype.Repository;
+
+import java.util.Arrays;
+import java.util.Comparator;
+import java.util.List;
 
 @Repository
 public class RecommendationQueries {
@@ -63,6 +69,27 @@ public class RecommendationQueries {
                 .groupBy(user);
     }
 
+    private SubSelect getUserQualitiesQueryUpdated(IRI userId) {
+        Variable quality = SparqlBuilder.var("quality");
+        Variable featureName = SparqlBuilder.var("featureName");
+
+        var bindUserIri = GraphPatterns.and().values(builder -> {
+            builder.variables(user);
+            builder.value(Rdf.iri(userId));
+        });
+        return GraphPatterns.select(user, Expressions.count(featureName).distinct().as(totalPreferences))
+                .where(
+                        bindUserIri,
+                        GraphPatterns.tp(preference, RDF.TYPE, UserNames.Classes.USER_WITH_PREFERENCE.rdfIri()),
+                        GraphPatterns.tp(preference, DC.CREATOR, user),
+                        GraphPatterns.tp(preference, hasFQuality, quality),
+                        GraphPatterns.tp(hasFQuality, RDFS.SUBPROPERTYOF, AttributeNames.Properties.HAS_QUALITY.rdfIri()),
+                        GraphPatterns.tp(hasFQuality, RegionNames.Properties.FOR_FEATURE.rdfIri(), featureRegion),
+                        GraphPatterns.tp(featureRegion, AttributeNames.Properties.HAS_REGION_FEATURE.rdfIri(), featureName)
+                )
+                .groupBy(user);
+    }
+
     private SubSelect getExactRegionUserQualitiesQuery() {
         Variable quality = SparqlBuilder.var("quality");
         return GraphPatterns.select(user, region, Expressions.count(hasFQuality).distinct().as(totalPreferences))
@@ -76,6 +103,59 @@ public class RecommendationQueries {
                 )
                 .groupBy(user, region);
     }
+
+    @Getter
+    @AllArgsConstructor
+    private enum PreferenceWeight {
+        VERY_VERY_IMPORTANT(90, 1000),
+        VERY_IMPORTANT(80, 500),
+        IMPORTANT(70, 250),
+        MORE_IMPORTANT(60, 125),
+        AVERAGE_IMPORTANT(50, 75),
+        LESS_IMPORTANT(40, 75),
+        LESS_LESS_IMPORTANT(30, 15),
+        SMALL_IMPORTANT(20, 7),
+        ALMOST_NOT_IMPORTANT(10, 3),
+        NOT_IMPORTANT(0, 1);
+
+        private final int value;
+        private final int scaleFactor;
+
+        public RdfLiteral.NumericLiteral getValueLiteral() {
+            return Rdf.literalOf(value);
+        }
+
+        public RdfLiteral.NumericLiteral getScaleFactorLiteral() {
+            return Rdf.literalOf(scaleFactor);
+        }
+    }
+
+    private Expression<?> buildPreferenceWeightExpression(Variable intScorePreferenceVar) {
+        Expression<?> expression = null; // base case
+
+        List<PreferenceWeight> preferenceWeights = Arrays.stream(PreferenceWeight.values()).sorted(Comparator.comparingInt(PreferenceWeight::getValue))
+                .toList();
+        for (PreferenceWeight weight : preferenceWeights) {
+            if (weight == PreferenceWeight.NOT_IMPORTANT) {
+                expression = Expressions.iff(
+                        Expressions.gt(intScorePreferenceVar, weight.getValueLiteral()),
+                        weight.getScaleFactorLiteral(),
+                        Rdf.literalOf(1)
+                );
+            } else {
+                expression = Expressions.iff(
+                        Expressions.gt(intScorePreferenceVar, weight.getValueLiteral()),
+                        weight.getScaleFactorLiteral(),
+                        expression
+                );
+            }
+        }
+
+        return expression;
+    }
+
+    Variable totalWeightedDeltaScore = SparqlBuilder.var("totalWeightedDeltaScore");
+    Variable weightedDeltaScore = SparqlBuilder.var("weightedDeltaScore");
 
 
     private SubSelect getBiggerThanUserQualitiesQuery(RecommendationParameters parameters, IRI userId) {
@@ -99,6 +179,8 @@ public class RecommendationQueries {
         Variable tolerance = SparqlBuilder.var("tolerance");
         RdfLiteral<?> toleranceLiteral = Rdf.literalOf(parameters.getTolerance());
 
+        Variable featureName = SparqlBuilder.var("featureName");
+
         // ^hasFeature
         RdfPredicate reverseHasFeatureIRI = () -> "^<" + AttributeNames.Properties.HAS_FEATURE.pseudoUri() + ">";
 
@@ -118,8 +200,11 @@ public class RecommendationQueries {
         Bind bindPreferenceScore = Expressions.bind(() ->
                "<" + CoreDatatype.XSD.INTEGER.getIri().stringValue() + ">" + "(" + scorePreference.getQueryString() + ")", intScorePreferenceVar);
 
+        Variable preferenceWeight = SparqlBuilder.var("preferenceWeight");
+        Bind preferenceWeightBind = Expressions.bind(buildPreferenceWeightExpression(intScorePreferenceVar), preferenceWeight);
+
         Variable deltaScore = SparqlBuilder.var("deltaScore");
-        Bind deltaScoreBind = Expressions.bind(Expressions.subtract(intScoreRegionVar, intScorePreferenceVar), deltaScore);
+        Bind deltaScoreBind = Expressions.bind(Expressions.multiply(Expressions.subtract(intScoreRegionVar, intScorePreferenceVar), preferenceWeight), deltaScore);
         GraphPatternNotTriples bindScoreTriple = GraphPatterns.and(deltaScoreBind);
         GraphPatternNotTriples bindScores = GraphPatterns.and(bindRegionScore, bindPreferenceScore);
 
@@ -130,7 +215,9 @@ public class RecommendationQueries {
 
         return GraphPatterns.select(user, region, Expressions.count(hasFQuality).distinct().as(matchingPreferences),
                         Expressions.group_concat("\"%s\"".formatted(WORDS_SEPARATOR), replaceExpr).distinct().as(aggregateOfFeatures),
-                        Expressions.divide(Expressions.sum(deltaScore), Expressions.avg(deltaScore)).as(avgDeltaScore))
+                        Expressions.divide(Expressions.sum(deltaScore), Expressions.avg(deltaScore)).as(avgDeltaScore),
+                        Expressions.sum(preferenceWeight).as(totalWeightedDeltaScore)
+                )
                 .where(
                         bindUserIri,
                         // Class bindings
@@ -156,6 +243,7 @@ public class RecommendationQueries {
                         GraphPatterns.tp(hasFQuality, RegionNames.Properties.FOR_FEATURE.rdfIri(), featureRegion),
                         GraphPatterns.tp(featureRegion, AttributeNames.Properties.HAS_SCORE.rdfIri() ,scoreRegion),
                         GraphPatterns.tp(featureRegion, reverseHasFeatureIRI, someRegion),
+                        GraphPatterns.tp(featureRegion, AttributeNames.Properties.HAS_REGION_FEATURE.rdfIri(), featureName),
                         GraphPatterns.tp(someRegion, vf.createIRI(RegionNames.Properties.SF_WITHIN), region),
                         // USER_PREFERENCE triples
                         GraphPatterns.tp(preference, RDF.TYPE, UserNames.Classes.USER_WITH_PREFERENCE.rdfIri()),
@@ -164,11 +252,14 @@ public class RecommendationQueries {
                         GraphPatterns.tp(hasFQuality, RegionNames.Properties.FOR_FEATURE.rdfIri(), featurePreference),
                         GraphPatterns.tp(featurePreference, AttributeNames.Properties.HAS_SCORE.rdfIri(), scorePreference),
                         GraphPatterns.tp(featurePreference, reverseHasFeatureIRI, preference),
+                        GraphPatterns.tp(featurePreference, AttributeNames.Properties.HAS_REGION_FEATURE.rdfIri(), featureName),
+                        // bindings for the parameters into recommendation
                         GraphPatterns.and().values(builder -> {
                             builder.variables(tolerance);
                             builder.value(toleranceLiteral);
                         }),
                         bindScores,
+                        preferenceWeightBind,
                         bindScoreTriple,
                         GraphPatterns.and().filter(Expressions.gt(intScoreRegionVar, Expressions.add(intScorePreferenceVar, tolerance)))
                 )
@@ -205,7 +296,7 @@ public class RecommendationQueries {
         TriplePattern recommendedFor = GraphPatterns
                 .tp(region, RecommendationNames.Properties.RECOMMENDED_FOR.rdfIri(), user);
 
-        SubSelect userQualitiesQuery = getUserQualitiesQuery(userId);
+        SubSelect userQualitiesQuery = getUserQualitiesQueryUpdated(userId);
         SubSelect regionQualitiesQuery = getBiggerThanUserQualitiesQuery(parameters, userId);
 
         Variable minMatchRatio = SparqlBuilder.var("minMatchRatio");
@@ -214,9 +305,12 @@ public class RecommendationQueries {
             builder.value(Rdf.literalOf(parameters.getMatchRatio()));
         });
 
+        Bind weightedDeltaScoreBind = Expressions.bind(Expressions.divide(totalWeightedDeltaScore, totalPreferences), weightedDeltaScore);
+
         Variable matchRatio = SparqlBuilder.var("matchRatio");
         Bind matchRatioBind = Expressions.bind(Expressions.divide(matchingPreferences, totalPreferences), matchRatio);
         GraphPatternNotTriples filter = GraphPatterns
+                .and(weightedDeltaScoreBind)
                 .and(matchRatioBind)
                 .filter(Expressions.gt(matchRatio, minMatchRatio));
 
@@ -257,7 +351,7 @@ public class RecommendationQueries {
                             addBNodeExplanation,
                             addMatchRatioToGraph,
                             filter)
-                    .orderBy(SparqlBuilder.desc(matchRatio))
+                    .orderBy(SparqlBuilder.desc(weightedDeltaScore), SparqlBuilder.desc(matchRatio))
                     .limit(parameters.getMaxResults());
             queryString = constructQuery.getQueryString();
         } else {
@@ -267,7 +361,7 @@ public class RecommendationQueries {
                             confidenceLevel
                     )
                     .where(userQualitiesQuery, regionQualitiesQuery, addMatchRatioToGraph, filter)
-                    .orderBy(SparqlBuilder.desc(matchRatio))
+                    .orderBy(SparqlBuilder.desc(weightedDeltaScore), SparqlBuilder.desc(matchRatio))
                     .limit(parameters.getMaxResults());
             queryString = constructQuery.getQueryString();
         }
