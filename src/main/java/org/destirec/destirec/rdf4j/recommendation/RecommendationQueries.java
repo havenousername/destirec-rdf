@@ -2,10 +2,7 @@ package org.destirec.destirec.rdf4j.recommendation;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
-import org.destirec.destirec.utils.rdfDictionary.AttributeNames;
-import org.destirec.destirec.utils.rdfDictionary.RecommendationNames;
-import org.destirec.destirec.utils.rdfDictionary.RegionNames;
-import org.destirec.destirec.utils.rdfDictionary.UserNames;
+import org.destirec.destirec.utils.rdfDictionary.*;
 import org.eclipse.rdf4j.model.IRI;
 import org.eclipse.rdf4j.model.base.CoreDatatype;
 import org.eclipse.rdf4j.model.impl.SimpleValueFactory;
@@ -16,6 +13,7 @@ import org.eclipse.rdf4j.sparqlbuilder.constraint.Bind;
 import org.eclipse.rdf4j.sparqlbuilder.constraint.Expression;
 import org.eclipse.rdf4j.sparqlbuilder.constraint.Expressions;
 import org.eclipse.rdf4j.sparqlbuilder.constraint.SparqlFunction;
+import org.eclipse.rdf4j.sparqlbuilder.core.Orderable;
 import org.eclipse.rdf4j.sparqlbuilder.core.SparqlBuilder;
 import org.eclipse.rdf4j.sparqlbuilder.core.Variable;
 import org.eclipse.rdf4j.sparqlbuilder.core.query.ConstructQuery;
@@ -54,18 +52,32 @@ public class RecommendationQueries {
 
     private SubSelect getUserQualitiesQuery(IRI userId) {
         Variable quality = SparqlBuilder.var("quality");
+        Variable feature = SparqlBuilder.var("feature");
+        Variable isActive = SparqlBuilder.var("isActive");
 
         var bindUserIri = GraphPatterns.and().values(builder -> {
            builder.variables(user);
            builder.value(Rdf.iri(userId));
         });
+
+        Variable booleanIsActive = SparqlBuilder.var("booleanIsActive");
+        Bind bindIsActive = Expressions.bind(() ->
+                "<" +  CoreDatatype.XSD.BOOLEAN.getIri().stringValue() + ">" + "(" + isActive.getQueryString() + ")", booleanIsActive);
+
+        RdfPredicate reverseHasFeatureIRI = () -> "^<" + AttributeNames.Properties.HAS_FEATURE.pseudoUri() + ">";
         return GraphPatterns.select(user, Expressions.countAll().as(totalPreferences))
                 .where(
                         bindUserIri,
                         GraphPatterns.tp(preference, RDF.TYPE, UserNames.Classes.USER_WITH_PREFERENCE.rdfIri()),
                         GraphPatterns.tp(preference, DC.CREATOR, user),
                         GraphPatterns.tp(preference, hasFQuality, quality),
-                        GraphPatterns.tp(hasFQuality, RDFS.SUBPROPERTYOF, AttributeNames.Properties.HAS_QUALITY.rdfIri()))
+                        GraphPatterns.tp(hasFQuality, RDFS.SUBPROPERTYOF, AttributeNames.Properties.HAS_QUALITY.rdfIri()),
+                        GraphPatterns.tp(hasFQuality, RegionNames.Properties.FOR_FEATURE.rdfIri(), feature),
+                        GraphPatterns.tp(feature, reverseHasFeatureIRI, preference),
+                        GraphPatterns.tp(feature, AttributeNames.Properties.IS_ACTIVE.rdfIri(), isActive),
+                        bindIsActive,
+                        GraphPatterns.and().filter(Expressions.equals(booleanIsActive, Rdf.literalOf(true)))
+                )
                 .groupBy(user);
     }
 
@@ -92,13 +104,13 @@ public class RecommendationQueries {
 
     private SubSelect getExactRegionUserQualitiesQuery() {
         Variable quality = SparqlBuilder.var("quality");
-        return GraphPatterns.select(user, region, Expressions.count(hasFQuality).distinct().as(totalPreferences))
+        return GraphPatterns.select(user, region, Expressions.count(hasFQuality).distinct().as(matchingPreferences))
                 .where(
                         GraphPatterns.tp(preference, RDF.TYPE, UserNames.Classes.USER_WITH_PREFERENCE.rdfIri()),
                         GraphPatterns.tp(preference, DC.CREATOR, user),
                         GraphPatterns.tp(preference, hasFQuality, quality),
                         GraphPatterns.tp(hasFQuality, RDFS.SUBPROPERTYOF, AttributeNames.Properties.HAS_QUALITY.rdfIri()),
-                        GraphPatterns.tp(region, RDF.TYPE, RegionNames.Classes.LEAF_REGION.rdfIri()),
+                        GraphPatterns.tp(region, RDF.TYPE, RegionNames.Classes.REGION.rdfIri()),
                         GraphPatterns.tp(region, hasFQuality, quality)
                 )
                 .groupBy(user, region);
@@ -266,6 +278,13 @@ public class RecommendationQueries {
                 .groupBy(user, region);
     }
 
+    private class OrderRand implements Orderable {
+        @Override
+        public String getQueryString() {
+            return "RAND()";
+        }
+    }
+
     public String simpleRecommendationQuery(IRI userId) {
         //   ?region a :SimpleRecommendation
         TriplePattern regionIsRecommendation = GraphPatterns
@@ -284,7 +303,9 @@ public class RecommendationQueries {
 
 
         ConstructQuery constructQuery = Queries.CONSTRUCT(regionIsRecommendation, recommendedFor)
-                .where(userQualitiesQuery, regionQualitiesQuery, filter);
+                .where(userQualitiesQuery, regionQualitiesQuery, filter)
+                .orderBy(new OrderRand())
+                .limit(10);
 
         return constructQuery.getQueryString();
     }

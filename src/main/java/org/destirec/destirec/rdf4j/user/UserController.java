@@ -62,6 +62,12 @@ public class UserController {
         }
     }
 
+    @GetMapping("/preference")
+    public ResponseEntity<List<PreferenceDto>> getPreferences(@ModelAttribute UserPaginationRequest paginationRequest) {
+        return ResponseEntity.ok(userService.getPreferences(paginationRequest));
+    }
+
+
     @GetMapping("/preference/{preferenceId}")
     public ResponseEntity<PreferenceDto> getPreference(@PathVariable String preferenceId) {
         return ResponseEntity.ok(userService.getPreference(preferenceId));

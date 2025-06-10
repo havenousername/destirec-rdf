@@ -19,7 +19,6 @@ import org.eclipse.rdf4j.model.vocabulary.RDF;
 import org.eclipse.rdf4j.model.vocabulary.RDFS;
 import org.eclipse.rdf4j.model.vocabulary.XSD;
 import org.eclipse.rdf4j.query.algebra.evaluation.function.FunctionRegistry;
-import org.eclipse.rdf4j.spring.support.RDF4JTemplate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -47,8 +46,6 @@ public class MigrationsService {
     private final List<Migration> migrations = new ArrayList<>();
     private final List<OntologyDefiner> ontologies = new ArrayList<>();
 
-    private final RDF4JTemplate template;
-
 
     @Value("${app.env.graphdb.pie_dir}")
     private String pieDir;
@@ -64,11 +61,8 @@ public class MigrationsService {
             TopOntologyMigration topOntologyMigration,
             AttributeMigration attributeMigration,
             AttributesCollectionMigration attributesCollectionMigration,
-            QualityMigration qualityMigration,
-            RDF4JTemplate template
-
+            QualityMigration qualityMigration
     ) {
-        this.template = template;
         migrations.add(topOntologyMigration);
         migrations.add(userMigration);
         migrations.add(versionMigration);

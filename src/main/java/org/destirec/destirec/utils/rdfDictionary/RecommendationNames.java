@@ -12,6 +12,10 @@ public final class RecommendationNames {
 
         public static final DESTIREC.NamespaceWrapper BIGGER_THAN_RECOMMENDATION = DESTIREC.wrap("BiggerThanRecommendation");
 
+        public static final DESTIREC.NamespaceWrapper EXISTS_RECOMMENDATION = DESTIREC.wrap("ExistRecommendation");
+        public static final DESTIREC.NamespaceWrapper ALL_RECOMMENDATION = DESTIREC.wrap("AllRecommendation");
+
+
         public static final DESTIREC.NamespaceWrapper EXPLANATION = DESTIREC.wrap("Explanation");
     }
 

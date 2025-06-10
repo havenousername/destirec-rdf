@@ -219,4 +219,9 @@ public class UserPreferenceService {
     public List<UserDto> getUsers(UserController.UserPaginationRequest paginationRequest) {
         return userDao.listPaginated(paginationRequest.page(), paginationRequest.size());
     }
+
+    @Transactional
+    public List<PreferenceDto> getPreferences(UserController.UserPaginationRequest paginationRequest) {
+        return preferenceDao.listPaginated(paginationRequest.page(), paginationRequest.size());
+    }
  }
