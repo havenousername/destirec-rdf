@@ -43,13 +43,9 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.Duration;
 import java.util.*;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
-import java.util.stream.IntStream;
 
 @Service
 public class KnowledgeGraphService {
@@ -593,14 +589,54 @@ public class KnowledgeGraphService {
         List<Pair<IRI, IRI>> allDistricts = regionDao.listByTypeIdWithChild(RegionTypes.DISTRICT)
                 .stream().filter(i -> !regionDao.isRegionComplete(i.getValue0())).toList();
 
-        IntStream.range(0, (allDistricts.size() + WIKIDATA_BATCH_SIZE - 1) / WIKIDATA_BATCH_SIZE)
-                .parallel()
-                .forEach(batchIndex -> {
-                   int start = batchIndex * WIKIDATA_BATCH_SIZE;
-                   int end = Math.min(start + WIKIDATA_BATCH_SIZE, allDistricts.size());
-                   List<Pair<IRI, IRI>> currentBatch = allDistricts.subList(start, end);
-                   processBatch(currentBatch);
-                });
+        int processors = Runtime.getRuntime().availableProcessors();
+        ThreadPoolExecutor executor = new ThreadPoolExecutor(
+                processors,
+                processors * 2,
+                60L, TimeUnit.SECONDS,
+                new ArrayBlockingQueue<>(1000),
+                new ThreadPoolExecutor.CallerRunsPolicy()
+        );
+
+        try {
+            int totalBatches = (allDistricts.size() + WIKIDATA_BATCH_SIZE - 1) / WIKIDATA_BATCH_SIZE;
+            List<CompletableFuture<Void>> futures = new ArrayList<>();
+
+            for (int batchIndex = 0; batchIndex < totalBatches; batchIndex++) {
+                int start = batchIndex * WIKIDATA_BATCH_SIZE;
+                int end = Math.min(start + WIKIDATA_BATCH_SIZE, allDistricts.size());
+                List<Pair<IRI, IRI>> currentBatch = allDistricts.subList(start, end);
+
+                CompletableFuture<Void> future = CompletableFuture.runAsync(() -> {
+                    try {
+                        processBatch(currentBatch);
+                    } catch (Exception e) {
+                        logger.error("Error processing batch starting at index {} and ending at index {}", start, end, e);
+                    }
+                }, executor);
+
+                futures.add(future);
+            }
+            CompletableFuture.allOf(futures.toArray(new CompletableFuture[0])).join();
+        } finally {
+            executor.shutdown();
+            try {
+                if (!executor.awaitTermination(60, TimeUnit.SECONDS)) {
+                    executor.shutdownNow();
+                }
+            } catch (InterruptedException e) {
+                executor.shutdownNow();
+                Thread.currentThread().interrupt();
+            }
+        }
+//        IntStream.range(0, (allDistricts.size() + WIKIDATA_BATCH_SIZE - 1) / WIKIDATA_BATCH_SIZE)
+//                .parallel()
+//                .forEach(batchIndex -> {
+//                   int start = batchIndex * WIKIDATA_BATCH_SIZE;
+//                   int end = Math.min(start + WIKIDATA_BATCH_SIZE, allDistricts.size());
+//                   List<Pair<IRI, IRI>> currentBatch = allDistricts.subList(start, end);
+//                   processBatch(currentBatch);
+//                });
     }
 
 

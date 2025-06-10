@@ -40,3 +40,4 @@ database
 maps
 
 *.log
+/logs
