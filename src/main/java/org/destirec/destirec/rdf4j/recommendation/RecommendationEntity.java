@@ -6,6 +6,9 @@ import lombok.Setter;
 import lombok.ToString;
 import org.destirec.destirec.rdf4j.region.RegionDto;
 import org.destirec.destirec.rdf4j.user.UserDto;
+import org.eclipse.rdf4j.model.IRI;
+import org.javatuples.Pair;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
 
@@ -19,6 +22,8 @@ public class RecommendationEntity {
     private UserDto user;
     private float confidence;
     private RecommendationExplanation explanation;
+    @Nullable
+    private RecommendationExplanationPOI poiExplanation;
 
     @Getter
     @Setter
@@ -27,5 +32,13 @@ public class RecommendationEntity {
         private String explanationType;
         private List<String> forFeatures;
         private float avgDelta;
+    }
+
+    @Getter
+    @Setter
+    @AllArgsConstructor
+    public static class RecommendationExplanationPOI {
+        private List<IRI> features;
+        private List<Pair<IRI, IRI>> pois;
     }
 }

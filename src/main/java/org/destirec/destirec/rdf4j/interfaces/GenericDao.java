@@ -5,8 +5,11 @@ import org.destirec.destirec.rdf4j.interfaces.daoVisitors.*;
 import org.destirec.destirec.rdf4j.ontology.AppOntology;
 import org.destirec.destirec.utils.ValueContainer;
 import org.eclipse.rdf4j.model.IRI;
+import org.eclipse.rdf4j.model.Statement;
 import org.eclipse.rdf4j.model.ValueFactory;
+import org.eclipse.rdf4j.model.base.CoreDatatype;
 import org.eclipse.rdf4j.model.impl.SimpleValueFactory;
+import org.eclipse.rdf4j.model.vocabulary.RDF;
 import org.eclipse.rdf4j.query.BindingSet;
 import org.eclipse.rdf4j.sparqlbuilder.constraint.Expressions;
 import org.eclipse.rdf4j.sparqlbuilder.core.Groupable;
@@ -22,16 +25,16 @@ import org.eclipse.rdf4j.spring.dao.support.bindingsBuilder.MutableBindings;
 import org.eclipse.rdf4j.spring.dao.support.sparql.NamedSparqlSupplier;
 import org.eclipse.rdf4j.spring.support.RDF4JTemplate;
 import org.eclipse.rdf4j.spring.util.QueryResultUtils;
+import org.javatuples.Pair;
 import org.javatuples.Triplet;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 import static org.destirec.destirec.utils.Constants.MAX_RDF_RECURSION;
@@ -49,13 +52,12 @@ public abstract class GenericDao<FieldEnum extends Enum<FieldEnum> & ConfigField
             Executors.newSingleThreadScheduledExecutor();
 
 
-
     public GenericDao(
-        RDF4JTemplate rdf4JTemplate,
-        ConfigFields<FieldEnum> configFields,
-        Predicate migration,
-        DtoCreator<DTO, FieldEnum> dtoCreator,
-        AppOntology ontology
+            RDF4JTemplate rdf4JTemplate,
+            ConfigFields<FieldEnum> configFields,
+            Predicate migration,
+            DtoCreator<DTO, FieldEnum> dtoCreator,
+            AppOntology ontology
     ) {
         super(rdf4JTemplate);
         this.configFields = configFields;
@@ -136,7 +138,7 @@ public abstract class GenericDao<FieldEnum extends Enum<FieldEnum> & ConfigField
             List<Map.Entry<VariableType, Projectable>>,
             GraphPattern[],
             Groupable[]
-    > getSelectParams(RdfResource graph) {
+            > getSelectParams(RdfResource graph) {
         mapEnteredTimes.set(0);
         List<Map.Entry<VariableType, Projectable>> variables = getReadVariables();
         List<GraphPattern> graphPatterns = new ArrayList<>();
@@ -156,7 +158,7 @@ public abstract class GenericDao<FieldEnum extends Enum<FieldEnum> & ConfigField
         var groupByVariables = variables.stream()
                 .filter(variable -> variable.getKey() == VariableType.SINGULAR)
                 .map(Map.Entry::getValue)
-                .map(v -> (Groupable)v)
+                .map(v -> (Groupable) v)
                 .toList();
         var shouldGroupBy = groupByVariables.size() != variables.size();
         Groupable[] groupBy = shouldGroupBy ? groupByVariables.toArray(Groupable[]::new) : new Groupable[0];
@@ -182,6 +184,13 @@ public abstract class GenericDao<FieldEnum extends Enum<FieldEnum> & ConfigField
                 .getQueryString();
     }
 
+    public final DTO getByIdSafe(IRI id) {
+        return Optional.ofNullable(getRdf4JTemplate().tupleQuery(getClass(), "readQuery", this::getReadQuery)
+                .withBindings(bindingsBuilder -> populateIdBindings(bindingsBuilder, id))
+                .evaluateAndConvert()
+                .toList(this::mapSolution, this::postProcessMappedSolution)
+                .getFirst()).orElseThrow();
+    }
 
     @Override
     protected DTO mapSolution(BindingSet querySolution) {
@@ -208,6 +217,108 @@ public abstract class GenericDao<FieldEnum extends Enum<FieldEnum> & ConfigField
                 .tupleQuery(getClass(), "KEY_READ_PAGINATED_QUERY", () -> paginatedQuery)
                 .evaluateAndConvert()
                 .toList(this::mapSolution, this::postProcessMappedSolution);
+    }
+
+    protected Collection<Statement> createTriples(DTO input, IRI id) {
+        List<Statement> statements = new ArrayList<>();
+
+        statements.add(valueFactory.createStatement(id, RDF.TYPE, migration.get()));
+
+        Consumer<Triplet<IRI, CoreDatatype, String>> addToStatements = (triple) -> {
+            statements.add(
+                    valueFactory
+                            .createStatement(
+                                    id,
+                                    triple.getValue0(),
+                                    triple.getValue1() != null ?
+                                            valueFactory.createLiteral(triple.getValue2())
+                                            : valueFactory.createIRI(triple.getValue2())
+
+                            )
+            );
+        };
+
+        var inputMap = input.getMap();
+        configFields.getVariableNames()
+                .keySet()
+                .forEach(key -> {
+                    ValueContainer<IRI> predicateContainer = configFields.getPredicate(key);
+                    ValueContainer<CoreDatatype> typeContainer = configFields.getType(key);
+
+
+                    predicateContainer.accept((item) -> {
+                        String value = inputMap.get(key);
+                        if (value == null) {
+                            return;
+                        }
+                        addToStatements.accept(Triplet.with(item, typeContainer.getItem(), value));
+                    });
+
+                    predicateContainer.acceptList(items -> {
+                        if (items.isEmpty()) {
+                            return;
+                        }
+                        List<String> values = Arrays.stream(inputMap.get(key).split(",")).toList();
+                        if (items.size() != values.size()) {
+                            logger.warn("Mismatch for key {}: {} predicates vs {} values", key, items.size(), values.size());
+                            return;
+                        }
+                        for (int i = 0; i < values.size(); i++) {
+                            CoreDatatype type = typeContainer.next();
+                            if (type == null) {
+                                throw new NullPointerException("Cannot find type for key " + key);
+                            }
+                            addToStatements.accept(Triplet.with(items.get(i), type, values.get(i)));
+                        }
+                    });
+                });
+
+        return statements;
+    }
+
+    public List<IRI> bulkSaveList(List<DTO> dtos) {
+        return bulkSave(dtos.stream().map(f -> new Pair<>(f, f.id())).toList());
+    }
+
+    public List<DTO> bulkSaveListGet(List<DTO> dtos) {
+        return bulkSave(dtos.stream().map(f -> new Pair<>(f, f.id())).toList()).stream()
+                .map(this::getById)
+                .toList();
+    }
+
+    public List<IRI> bulkSave(List<Pair<DTO, IRI>> dtos) {
+        List<IRI> ids = new ArrayList<>();
+        List<Statement> allStatements = new ArrayList<>();
+
+        getRdf4JTemplate().consumeConnection(connection -> {
+            try {
+                connection.begin();
+
+                for (Pair<DTO, IRI> dto : dtos) {
+                    IRI inputId = dto.getValue1();
+                    DTO input = dto.getValue0();
+
+                    if (inputId != null) {
+                        deleteForUpdate(inputId);
+                    }
+
+                    IRI finalId = inputId == null ? getInputId(input) : inputId;
+                    ids.add(finalId);
+
+                    Collection<Statement> triples = createTriples(input, finalId);
+                    allStatements.addAll(triples);
+                }
+
+                connection.add(allStatements);
+                connection.commit();
+            } catch (Exception e) {
+                connection.rollback();
+                logger.error("Cannot bulk save the dtos: {}", dtos.toString(), e);
+                throw e;
+            }
+        });
+
+        return ids;
     }
 
     protected String getReadQueryPaginated(RdfResource graph, int page, int pageSize) {

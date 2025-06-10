@@ -417,6 +417,10 @@ public class DestiRecOntology implements AppOntology {
         return removeAxiom(axiom, featureName.toString());
     }
 
+    public void removeAxiomSet(String featureName) {
+        ontologyFeature.remove(featureName);
+    }
+
     @Override
     public ChangeApplied removeAxiom(OWLAxiom axiom, String featureName) {
         if (ontologyFeature.containsKey(featureName) && ontologyFeature.get(featureName) != null) {

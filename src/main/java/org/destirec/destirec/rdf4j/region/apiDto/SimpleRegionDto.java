@@ -17,4 +17,5 @@ public class SimpleRegionDto {
     RegionTypes type;
     String iso;
     IRI geoShape;
+    String osmId;
 }

@@ -28,38 +28,60 @@ import static java.net.URI.create;
 @Service
 public class OverpassService {
     private final RestClient client = RestClient.create();
-    protected Logger logger = LoggerFactory.getLogger(getClass());
+    protected static Logger logger = LoggerFactory.getLogger("OverpassService");
     public static final String MAP_JSON_DIR = "./maps";
 
     public OverpassService() {}
 
-    public static String getSuperRegion(List<String> countriesIso) {
+    public static String getSuperRegion(List<String> countriesIso, List<String> countryNames) {
         return """
-            [out:json][timeout:180];
-                    relation["boundary"="administrative"]["admin_level"="2"]["ISO3166-1"~"^(%s)$"];
-                    out geom;
-        """.formatted(String.join("|", countriesIso));
+        [out:json][timeout:180];
+        (
+          relation["boundary"="administrative"]["admin_level"="2"]["ISO3166-1"~"^(%s)$"];
+          relation["boundary"="administrative"]["admin_level"="2"]["name"~"^(%s)$"];
+        );
+        out geom;
+        """
+                .formatted(
+                        String.join("|", countriesIso),
+                        String.join("|", countryNames)
+                );
     }
 
-    public static String getCountry(String country) {
+    public static String getCountry(String countryIso, String countryName) {
         return """
             [out:json][timeout:180];
-                    relation["boundary"="administrative"]["admin_level"="2"]["ISO3166-1"="%s"];
+                    (
+                              relation["boundary"="administrative"]["admin_level"="2"]["ISO3166-1"="%s"];
+                              relation["boundary"="administrative"]["admin_level"="2"]["name"="%s"];
+                    );
                     out geom;
-        """.formatted(country);
+        """.formatted(countryIso, countryName);
     }
 
-    public static String getCountryDistrict(String country, String districtIso) {
+    public static String getCountryDistrict(String districtId, String countryName, String name) {
+        if (countryName == null || countryName.isBlank() || name == null || name.isBlank()) {
+            logger.warn("Country name or district name is null or blank. Country name: {}, district id: {}, district name: {}", countryName, districtId, name);
+            throw new RuntimeException("Cannot access countries map");
+        }
+
+        if (districtId == null || districtId.isBlank()) {
+            return """
+                    [out:json][timeout:180];
+                    area["ISO3166-1"="%s"][admin_level=2]->.searchArea;
+                     (
+                       relation["admin_level"~"^(3|4|5|7|8)$"]
+                                ["name:en"~"%s", i]
+                                (area.searchArea);
+                     );
+                     out geom;
+                   """.formatted(countryName, name);
+        }
         return """
             [out:json][timeout:180];
-            area["ISO3166-1"="%s"][admin_level=2];   // Country area
-            (
-              relation["admin_level"~"^(3|4|5|7|8)$"]
-              ["ISO3166-1"="%s"]
-              (area);
-            );
+            relation(%s);
             out geom;
-        """.formatted(country, districtIso);
+        """.formatted(districtId);
     }
 
     public String runQuery(String query) {
@@ -75,16 +97,16 @@ public class OverpassService {
                 .body(String.class);
     }
 
-    public String runQueryDistrict(String countryIso, String districtIso) {
-        return runQuery(getCountryDistrict(countryIso, districtIso));
+    public String runQueryDistrict(String districtId, String parentIso, String name) {
+        return runQuery(getCountryDistrict(districtId, parentIso, name));
     }
 
-    public String runQueryCountry(String country) {
-        return runQuery(getCountry(country));
+    public String runQueryCountry(String countryIso, String countryName) {
+        return runQuery(getCountry(countryIso, countryName));
     }
 
-    public String runQuerySuperRegion(List<String> country) {
-        return runQuery(getSuperRegion(country));
+    public String runQuerySuperRegion(List<String> countriesIso, List<String> countryNames) {
+        return runQuery(getSuperRegion(countriesIso, countryNames));
     }
 
 
@@ -129,7 +151,7 @@ public class OverpassService {
             Path dir = Paths.get(MAP_JSON_DIR);
             Files.createDirectories(dir);
 
-            Path location = dir.resolve(type.name().toLowerCase());
+            Path location = dir.resolve(type.getName().toLowerCase());
             Files.createDirectories(location);
 
             File jsonFile = location.resolve(regionId + ".json").toFile();
@@ -144,7 +166,7 @@ public class OverpassService {
 
     public boolean regionGeoJsonExists(RegionNames.Individuals.RegionTypes type, String regionId) {
         Path dir = Paths.get(MAP_JSON_DIR);
-        Path location = dir.resolve(type.name().toLowerCase());
+        Path location = dir.resolve(type.getName().toLowerCase());
         Path jsonFilePath = location.resolve(regionId + ".json");
 
         return Files.exists(jsonFilePath) && Files.isRegularFile(jsonFilePath);

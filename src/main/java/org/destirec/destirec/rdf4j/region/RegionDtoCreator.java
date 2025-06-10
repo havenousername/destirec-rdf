@@ -84,6 +84,7 @@ public class RegionDtoCreator implements DtoCreator<RegionDto, RegionConfig.Fiel
                 months,
                 features,
                 map.get(RegionConfig.Fields.ISO),
+                map.get(RegionConfig.Fields.OSM),
                 geoShape
         );
     }
@@ -111,6 +112,7 @@ public class RegionDtoCreator implements DtoCreator<RegionDto, RegionConfig.Fiel
                 months,
                 features,
                 null,
+                "",
                 null
         );
     }
@@ -130,6 +132,7 @@ public class RegionDtoCreator implements DtoCreator<RegionDto, RegionConfig.Fiel
                 null,
                 null,
                 dto.getIso(),
+                dto.getOsmId(),
                 dto.getGeoShape()
         );
     }

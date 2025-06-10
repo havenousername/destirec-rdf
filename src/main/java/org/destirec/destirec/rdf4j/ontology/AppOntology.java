@@ -35,4 +35,6 @@ public interface AppOntology {
     void resetOntologyFeature(String feature);
 
     ChangeApplied removeDatabaseAxioms(String featureName, Resource subject);
+
+    void removeAxiomSet(String featureName);
 }

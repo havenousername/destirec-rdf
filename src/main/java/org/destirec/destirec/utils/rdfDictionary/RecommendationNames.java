@@ -12,6 +12,10 @@ public final class RecommendationNames {
 
         public static final DESTIREC.NamespaceWrapper BIGGER_THAN_RECOMMENDATION = DESTIREC.wrap("BiggerThanRecommendation");
 
+        public static final DESTIREC.NamespaceWrapper EXISTS_RECOMMENDATION = DESTIREC.wrap("ExistRecommendation");
+        public static final DESTIREC.NamespaceWrapper ALL_RECOMMENDATION = DESTIREC.wrap("AllRecommendation");
+
+
         public static final DESTIREC.NamespaceWrapper EXPLANATION = DESTIREC.wrap("Explanation");
     }
 
@@ -20,6 +24,9 @@ public final class RecommendationNames {
         public static final DESTIREC.NamespaceWrapper CONFIDENCE_LEVEL = DESTIREC.wrap("confidenceLevel");
         public static final DESTIREC.NamespaceWrapper HAS_EXPLANATION = DESTIREC.wrap("explanation");
         public static final DESTIREC.NamespaceWrapper EXPLAINS_FEATURE = DESTIREC.wrap("explainsFeature");
+        public static final DESTIREC.NamespaceWrapper MATCHING_FEATURE = DESTIREC.wrap("matchingFeature");
+        public static final DESTIREC.NamespaceWrapper RECOMMENDED_POI = DESTIREC.wrap("recommendedPOI");
+        public static final DESTIREC.NamespaceWrapper RECOMMENDED_POI_FEATURE = DESTIREC.wrap("recommendedPOIFeature");
         public static final DESTIREC.NamespaceWrapper EXCEEDS_BY_SCORE = DESTIREC.wrap("exceedsByScore");
     }
 

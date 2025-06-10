@@ -2,6 +2,7 @@ package org.destirec.destirec.rdf4j.attribute;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
+import lombok.Setter;
 import lombok.ToString;
 import org.destirec.destirec.rdf4j.interfaces.Dto;
 import org.eclipse.rdf4j.model.IRI;
@@ -13,8 +14,10 @@ import java.util.Map;
 @AllArgsConstructor
 public class AttributeDto implements Dto {
     protected final IRI id;
-    protected final int hasScore;
-    protected final boolean isActive;
+    @Setter
+    protected int hasScore;
+    @Setter
+    protected boolean isActive;
 
     @Override
     public Map<AttributeConfig.Field, String> getMap() {

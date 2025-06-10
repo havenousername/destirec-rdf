@@ -62,7 +62,7 @@ public class WIKIDATA {
 
             // HIKING
             HIKING_TRAIL("Q209939"),
-            CLIMBING_AREA("Q22698"),
+            CLIMBING_AREA("Q4970"),
             CLIMBING_ROUTE("Q1779811"),
             LOOKOUT_POINT("Q207326"),
 
@@ -71,7 +71,7 @@ public class WIKIDATA {
             SKIING("Q54202"),
             SKI_JUMPING("Q180809"),
             SLEDDING("Q1506654"),
-            SKI_RESORT("Q875538"),
+            SKI_RESORT("Q130003"),
             ICE_CLIMBING("Q173211"),
             SNOW_PARK("Q2202162"),
 

@@ -1,8 +1,11 @@
 package org.destirec.destirec.utils.rdfDictionary;
 
+import lombok.Getter;
 import org.destirec.destirec.rdf4j.vocabulary.DESTIREC;
+import org.destirec.destirec.utils.aggregates.*;
 
 import java.util.Arrays;
+import java.util.function.Function;
 
 public class RegionFeatureNames {
     private RegionFeatureNames() {}
@@ -13,21 +16,30 @@ public class RegionFeatureNames {
     public final static class Individuals {
         public enum RegionFeature {
             NATURE("Nature"),
-            SAFETY("Safety"),
-            ARCHITECTURE("Architecture"),
-            HIKING("Hiking"),
-            WINTERSPORTS("Wintersports"),
-            WATERSPORTS("Watersports"),
-            BEACH("Beach"),
+            SAFETY("Safety", new AggregateMin()),
+            ARCHITECTURE("Architecture", new AggregateTopK(10)),
+            HIKING("Hiking", new AggregateCount()),
+            WINTERSPORTS("Wintersports", new AggregateMax()),
+            WATERSPORTS("Watersports", new AggregateMax()),
+            BEACH("Beach", new AggregateTopK(5)),
             CULTURE("Culture"),
-            CULINARY("Culinary"),
-            ENTERTAINMENT("Entertainment"),
-            SHOPPING("Shopping");
+            CULINARY("Culinary", new AggregateLog()),
+            ENTERTAINMENT("Entertainment", new AggregateTopK(10)),
+            SHOPPING("Shopping", new AggregateCount());
 
+            @Getter
             private final String name;
+            @Getter
+            private final Function<String, Double> scoreFunction;
 
             RegionFeature(String iriLocalName) {
                 this.name = iriLocalName;
+                scoreFunction = new AggregateMean();
+            }
+
+            RegionFeature(String iriLocalName, Function<String, Double> scoreFunction) {
+                this.name = iriLocalName;
+                this.scoreFunction = scoreFunction;
             }
 
             public DESTIREC.NamespaceWrapper iri() {

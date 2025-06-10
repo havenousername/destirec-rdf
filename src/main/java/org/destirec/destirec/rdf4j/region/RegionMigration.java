@@ -79,7 +79,6 @@ public class RegionMigration extends IriMigration implements OntologyDefiner {
         builder
                 .add(get(), RDF.TYPE, OWL.CLASS)
                 .add(get(), RDFS.SUBCLASSOF, TopOntologyNames.Classes.OBJECT.rdfIri());
-
     }
 
     @Override

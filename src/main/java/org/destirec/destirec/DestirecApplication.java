@@ -1,7 +1,7 @@
 package org.destirec.destirec;
 
-import org.destirec.destirec.rdf4j.ontology.DestiRecOntology;
 import org.destirec.destirec.rdf4j.knowledgeGraph.KnowledgeGraphService;
+import org.destirec.destirec.rdf4j.ontology.DestiRecOntology;
 import org.destirec.destirec.rdf4j.services.MigrationsService;
 import org.destirec.destirec.rdf4j.services.RdfInitializerService;
 import org.eclipse.rdf4j.model.IRI;
@@ -53,11 +53,17 @@ public class DestirecApplication {
                 var version = initializerService.version();
                 logger.info("RDF resource version with version {} is running", version);
             }
+            logger.info("Getting all the regions to repository");
             knowledgeGraphService.addAllRegionsToRepository();
+            logger.info("Fetching all the maps");
             knowledgeGraphService.fetchAllMaps();
-//            knowledgeGraphService.addAllPOIs();
-//            knowledgeGraphService.updateKGOntologies();
-            ontology.triggerInference();
+            logger.info("Getting all the POIs to repository");
+            knowledgeGraphService.addAllPOIs();
+            logger.info("Updating kg ontologies with the new pois");
+            knowledgeGraphService.updateKGOntologies();
+//            ontology.triggerInference();
+
+            logger.info("Setup has been finished");
         };
     }
 }

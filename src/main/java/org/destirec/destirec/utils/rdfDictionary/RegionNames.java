@@ -52,6 +52,10 @@ public final class RegionNames {
         public final static DESTIREC.NamespaceWrapper HAS_FEATURE = DESTIREC.wrap("hasFeature");
 
         public final static DESTIREC.NamespaceWrapper HAS_LEVEL = DESTIREC.wrap("level");
+
+        public final static DESTIREC.NamespaceWrapper HAS_OSM_ID = DESTIREC.wrap("osmId");
+
+        public final static DESTIREC.NamespaceWrapper IS_COMPLETE = DESTIREC.wrap("isComplete");
     }
 
     public final static class Individuals {

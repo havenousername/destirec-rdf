@@ -122,6 +122,9 @@ public class QualityOntology {
         OWLObjectProperty forFeature = factory.getOWLObjectProperty(RegionNames.Properties.FOR_FEATURE.owlIri());
         for (var poiDto : pois) {
             OWLNamedIndividual poiInd = factory.getOWLNamedIndividual(poiDto.getId().stringValue());
+            if (poiDto.getFeature() == null) {
+                continue;
+            }
             FeatureDto featureDto = poiDto.getFeature();
             int score = featureDto.getHasScore();
             OWLIndividual featureInd = factory.getOWLNamedIndividual(featureDto.id().stringValue());

@@ -43,6 +43,12 @@ public class ACOHyperparameters {
     private double selectionSize;
 
 
+    private double maxSelectionSize;
+
+    public double getTrueSelectionSize() {
+        return Math.min(selectionSize, maxSelectionSize);
+    }
+
     public static ACOHyperparameters getDefault() {
         return new ACOHyperparameters(
                 50,
@@ -51,7 +57,8 @@ public class ACOHyperparameters {
                 2.0,
                 0.5,
                 1.0,
-                40
+                40,
+                30
         );
     }
 }

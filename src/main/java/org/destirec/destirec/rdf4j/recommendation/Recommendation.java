@@ -7,6 +7,6 @@ public record Recommendation(
         List<RecommendationEntity> entities,
         String query,
         String workbenchGraphURL,
-        RecommendationParameters parameters
+        SimpleRecommendationParameters parameters
 ) { }
 

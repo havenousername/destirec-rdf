@@ -56,7 +56,7 @@ class RegionPropertiesOntology {
         ontology.addAxiom(factory.getOWLTransitiveObjectPropertyAxiom(sfWithin));
     }
 
-    //        // ∀x.¬sfWithin(x,x) - irreflexive, region cannot contain itself - Germany cannot contain Germany
+    // ∀x.¬sfWithin(x,x) - irreflexive, region cannot contain itself - Germany cannot contain Germany
     public void defineSfWithinIrreflexive(){
         ontology.addAxiom(factory.getOWLIrreflexiveObjectPropertyAxiom(sfDirectlyWithin));
     }

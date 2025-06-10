@@ -24,7 +24,6 @@ import java.util.stream.IntStream;
 @Component
 public class RegionConfig extends GenericConfig<RegionConfig.Fields> {
     private final AttributesCollectionMigration collectionMigration;
-
     @Setter
     private List<String> featureNames;
     public RegionConfig(AttributesCollectionMigration collectionMigration) {
@@ -44,6 +43,7 @@ public class RegionConfig extends GenericConfig<RegionConfig.Fields> {
             case REGION_TYPE -> RegionNames.Properties.HAS_LEVEL.rdfIri();
             case ISO -> SKOS.NOTATION;
             case GEO_SHAPE -> GEO.Geometry;
+            case OSM ->  RegionNames.Properties.HAS_OSM_ID.rdfIri();
             case null -> throw new IllegalArgumentException("Field is not defined");
         };
         return new ValueContainer<>(values);
@@ -65,7 +65,7 @@ public class RegionConfig extends GenericConfig<RegionConfig.Fields> {
                         .mapToObj(i -> SparqlBuilder.var(field.name() + i))
                         .collect(Collectors.toList()));
             }
-            case COST, NAME, PARENT_REGION, SOURCE, REGION_TYPE, ISO, GEO_SHAPE -> {
+            case COST, NAME, PARENT_REGION, SOURCE, REGION_TYPE, ISO, GEO_SHAPE, OSM -> {
                 return new ValueContainer<>(SparqlBuilder.var(field.name()));
             }
             case null -> throw new IllegalArgumentException("Field is not defined");
@@ -74,7 +74,7 @@ public class RegionConfig extends GenericConfig<RegionConfig.Fields> {
 
     @Override
     public ValueContainer<CoreDatatype> getType(Fields field) {
-        if (field == Fields.NAME || field == Fields.ISO) {
+        if (field == Fields.NAME || field == Fields.ISO || field == Fields.OSM) {
             return new ValueContainer<>(CoreDatatype.XSD.STRING);
         }
         return new ValueContainer<>(null);
@@ -84,7 +84,7 @@ public class RegionConfig extends GenericConfig<RegionConfig.Fields> {
     public Boolean getIsOptional(Fields field) {
         return switch (field) {
             case NAME -> false;
-            case PARENT_REGION, FEATURES, MONTHS, SOURCE, COST, REGION_TYPE, ISO, GEO_SHAPE -> true;
+            case PARENT_REGION, FEATURES, MONTHS, SOURCE, COST, REGION_TYPE, ISO, GEO_SHAPE, OSM -> true;
         };
     }
 
@@ -107,7 +107,8 @@ public class RegionConfig extends GenericConfig<RegionConfig.Fields> {
 
         // new types
         ISO("isoName", true),
-        GEO_SHAPE("shape", true);
+        GEO_SHAPE("shape", true),
+        OSM("osm", true);
 
         private final String name;
         private final boolean isRead;

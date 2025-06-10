@@ -22,4 +22,9 @@ public class UserDao extends GenericDao<UserConfig.Fields, UserDto> {
         super(rdf4JTemplate, model, userMigration, userDtoCreator, ontology);
         this.preferenceDao = preferenceDao;
     }
+
+    @Override
+    public UserDtoCreator getDtoCreator() {
+        return (UserDtoCreator) super.getDtoCreator();
+    }
 }
