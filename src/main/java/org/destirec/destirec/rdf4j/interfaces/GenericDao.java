@@ -184,6 +184,13 @@ public abstract class GenericDao<FieldEnum extends Enum<FieldEnum> & ConfigField
                 .getQueryString();
     }
 
+    public final DTO getByIdSafe(IRI id) {
+        return Optional.ofNullable(getRdf4JTemplate().tupleQuery(getClass(), "readQuery", this::getReadQuery)
+                .withBindings(bindingsBuilder -> populateIdBindings(bindingsBuilder, id))
+                .evaluateAndConvert()
+                .toList(this::mapSolution, this::postProcessMappedSolution)
+                .getFirst()).orElseThrow();
+    }
 
     @Override
     protected DTO mapSolution(BindingSet querySolution) {

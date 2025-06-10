@@ -282,13 +282,13 @@ public class RegionDao extends GenericDao<RegionConfig.Fields, RegionDto> {
         List<RegionDto> regions =regionsString
                 .stream()
                 .filter(region -> !region.isBlank())
-                .map(poi -> getById(valueFactory.createIRI(poi)))
+                .map(poi -> getByIdSafe(valueFactory.createIRI(poi)))
                 .toList();
 
         List<POIDto> pois = poisString
                 .stream()
                 .filter(region -> !region.isBlank())
-                .map(poi -> pOIDao.getById(valueFactory.createIRI(poi)))
+                .map(poi -> pOIDao.getByIdSafe(valueFactory.createIRI(poi)))
                 .toList();
 
         List<FeatureDto> features = featuresString
