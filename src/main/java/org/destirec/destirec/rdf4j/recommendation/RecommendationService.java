@@ -10,6 +10,7 @@ import org.destirec.destirec.rdf4j.region.apiDto.RegionDtoWithIds;
 import org.destirec.destirec.rdf4j.region.feature.FeatureDao;
 import org.destirec.destirec.rdf4j.user.UserDao;
 import org.destirec.destirec.rdf4j.user.UserDto;
+import org.destirec.destirec.utils.PatternDtoTransformations;
 import org.destirec.destirec.utils.ShortRepositoryInfo;
 import org.destirec.destirec.utils.SimpleDtoTransformations;
 import org.destirec.destirec.utils.URIHandling;
@@ -30,7 +31,10 @@ import org.springframework.stereotype.Service;
 import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Service
@@ -84,6 +88,7 @@ public class RecommendationService {
         UserDto tmpUser = null;
         List<IRI> featuresExplanation = new ArrayList<>();
         List<Pair<IRI, IRI>> poisExplanation = new ArrayList<>();
+        List<Pair<IRI, IRI>> regionExplanation = new ArrayList<>();
         float confidenceLevel = 1f;
         int iteration = 0;
         while (result.hasNext()) {
@@ -114,8 +119,10 @@ public class RecommendationService {
                         .collect(Collectors.toList());
                 statement = result.next();
                 float deltaScore = Float.parseFloat(statement.getObject().stringValue());
+                statement = result.next();
+                float scoreWeight = Float.parseFloat(statement.getObject().stringValue());
                 RecommendationEntity.RecommendationExplanation explanation =
-                        new RecommendationEntity.RecommendationExplanation(explanationType, features, deltaScore);
+                        new RecommendationEntity.RecommendationExplanation(explanationType, features, deltaScore, scoreWeight);
                 if (!recommendations.isEmpty()) {
                     recommendations.getLast().setExplanation(explanation);
                 }
@@ -126,8 +133,11 @@ public class RecommendationService {
                         .map(f -> featureDao.getValueFactory().createIRI(f))
                         .toList();
             } else if (statement.getPredicate().equals(RecommendationNames.Properties.RECOMMENDED_POI.rdfIri())) {
-                poisExplanation = SimpleDtoTransformations
-                        .toFeaturePoiIds(statement.getObject().stringValue());
+                poisExplanation = PatternDtoTransformations
+                        .toPOIFeaturePair(statement.getObject().stringValue());
+            } else if (statement.getPredicate().equals(RecommendationNames.Properties.RECOMMENDED_REGIONS.rdfIri())) {
+                regionExplanation = PatternDtoTransformations
+                        .toRegionFeaturePair(statement.getObject().stringValue());
             }
 
             if (tmpRegion != null && tmpUser != null) {
@@ -138,7 +148,7 @@ public class RecommendationService {
                             featuresExplanation,
                             poisExplanation
                     );
-                    query = recommendationQueries.generatePoisExplanationQuery(
+                    query = RecommendationQueries.generatePoisExplanationQuery(
                             tmpRegion.getId(), tmpUser.id(), featuresExplanation, poisExplanation);
                 }
 
@@ -146,6 +156,8 @@ public class RecommendationService {
                 if (!featuresExplanation.isEmpty() && !poisExplanation.isEmpty()) {
                     Collections.shuffle(poisExplanation);
                     tmpRegion = new RegionDtoWithIds(tmpRegion, poisExplanation.stream().limit(10).toList(), featuresExplanation);
+                } else if (!regionExplanation.isEmpty()) {
+                    tmpRegion = new RegionDtoWithIds(tmpRegion, regionExplanation, new ArrayList<>());
                 }
 
                 recommendations.add(new RecommendationEntity(iteration, tmpRegion, tmpUser, confidenceLevel, null, explanationPOI));

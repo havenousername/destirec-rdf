@@ -3,6 +3,7 @@ package org.destirec.destirec.rdf4j.region;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.constraints.Min;
 import org.destirec.destirec.rdf4j.interfaces.ResponsePaginated;
+import org.destirec.destirec.rdf4j.poi.POIDto;
 import org.destirec.destirec.rdf4j.region.apiDto.ExternalRegionDto;
 import org.destirec.destirec.rdf4j.region.apiDto.ResponseRegionDto;
 import org.destirec.destirec.rdf4j.region.cost.CostDto;
@@ -192,5 +193,12 @@ public class RegionController {
     public ResponseEntity<Optional<ResponseRegionDto>> getRegionDto(@PathVariable String regionId) {
         Optional<RegionDto> dto = regionService.getRegion(regionId);
         return ResponseEntity.ok(dto.map(i -> new ResponseRegionDto(i, generateJsonPath(i))));
+    }
+
+
+    @GetMapping("/poi/{poiId}")
+    public ResponseEntity<POIDto> getPoiById(@PathVariable String poiId) {
+        Optional<POIDto> dto = regionService.getPOI(poiId);
+        return ResponseEntity.ok(dto.orElse(null));
     }
 }
