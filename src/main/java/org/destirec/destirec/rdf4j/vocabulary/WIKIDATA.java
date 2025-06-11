@@ -47,73 +47,79 @@ public class WIKIDATA {
         @Getter
         public enum QTypes {
             // NATURE
+            NATURAL_ATTRACTION("Q14226459"),
             MOUNTAIN("Q8502"),
             LAKE("Q23397"),
             PARK("Q22698"),
-            FOREST("Q4421"),
-            NATURAL_RESERVE("Q472972"),
-            CANYON("Q623578"),
-
-            // ARCHITECTURE
-            HISTORIC_DISTRICT("Q839954"),
-            UNESCO_SITE("Q839954"),
-            CATHEDRAL("Q41176"),
-            CASTLE("Q124714"),
-
-            // HIKING
-            HIKING_TRAIL("Q209939"),
-            CLIMBING_AREA("Q4970"),
-            CLIMBING_ROUTE("Q1779811"),
-            LOOKOUT_POINT("Q207326"),
-
-            // WINTERSPORTS
-            SNOWBOARDING("Q210327"),
-            SKIING("Q54202"),
-            SKI_JUMPING("Q180809"),
-            SLEDDING("Q1506654"),
-            SKI_RESORT("Q130003"),
-            ICE_CLIMBING("Q173211"),
-            SNOW_PARK("Q2202162"),
-
-            // WATERSPORTS
-            DIVING_SPOT("Q1337009"),
-            SCUBA_DIVING("Q133740"),
-            SURF_SPOT("Q652733"),
-            MARINA("Q1372364"),
-            WATER_PARK("Q37038"),
-
-
-            // ENTERTAINMENT
-            AMUSEMENT_PARK("Q1493709"),
-            THEME_PARK("Q1824207"),
-            KART_RACING_TRACK("Q1735272"),
-            SHOOTING_RANGE("Q1407358"),
-            ARCADE("Q133357"),
-            ESCAPE_ROOM("Q28154028"),
-            FESTIVAL_VENUE("Q183424"),
-            ICE_CREAM_SHOP("Q27017155"),
-            BOWLING_ALLEY("Q1502956"),
-            BEER_GARDEN("Q1324011"),
-            BREWERY("Q131734"),
-
-
-            // CULINARY
-            RESTAURANT("Q11707"),
-            STREET_FOOD_VENUE("Q18119866"),
-            FOOD_MARKET("Q210272"),
-
-
-            // SHOPPING
-            SHOPPING_MALL("Q55488"),
-            SOUVENIR_SHOP("Q18534524"),
-            MARKET("Q3305213"),
-
+            FOREST("Q5469146"),
+            NATURAL_RESERVE("Q179049"),
+            CANYON("Q150784"),
             // BEACH
             BEACH("Q40080"),
 
+            // ARCHITECTURE / HISTORICAL / CULTURAL LANDMARKS
+            HISTORIC_DISTRICT("Q15243209"),
+            UNESCO_SITE("Q9259"),
+            CATHEDRAL("Q2977"),
+            CASTLE("Q23413"),
+            ARCHITECTURAL_LANDMARK("Q2319498"),
+
             // CULTURE
             MUSEUM("Q33506"),
-            ART_GALLERY("Q871905");
+            ART_GALLERY("Q1007870"),
+            OPERA_HOUSE("Q153562"),
+            THEATRE_BUILDING("Q24354"),
+
+            // HIKING / CLIMBING
+            HIKING_TRAIL("Q2143825"),
+            CLIMBING_AREA("Q1640361"),
+            CLIMBING_ROUTE("Q1699583"),
+            LOOKOUT_POINT("Q6017969"),
+
+            // WINTERSPORTS VENUES/AREAS
+            SKI_RESORT("Q130003"),
+            SNOW_PARK("Q3141488"),
+            SKI_JUMPING_HILL("Q1109069"),
+
+            // WATERSPORTS VENUES
+            DIVING_SPOT("Q179643"),
+            SURF_SPOT("Q2368508"),
+            WATER_PARK("Q740326"),
+
+            // ENTERTAINMENT VENUES & ATTRACTIONS
+            AMUSEMENT_PARK("Q194195"),
+            THEME_PARK("Q2416723"),
+            CIRCUS("Q477396"),
+            RACE_TRACK("Q1777138"),
+            KARTING_CIRCUIT("Q1232319"),
+            SHOOTING_RANGE("Q521839"),
+            STADIUM("Q483110"),
+            OCEANARIUM("Q1443808"),
+            ROLLER_COASTER("Q1265865"),
+            FERRIS_WHEEL("Q202570"),
+            SKY_COASTER("Q3486441"),
+            FLYING_THEATER("Q18326400"),
+            MARINE_MAMMAL_PARK("Q15060435"),
+            ARCADE_VENUE("Q33097655"),
+            ESCAPE_ROOM("Q17015069"),
+            FESTIVAL_VENUE("Q183424"),
+            FESTIVAL_EVENT("Q132241"),
+            BOWLING_ALLEY("Q27106471"),
+
+            // CULINARY
+            RESTAURANT("Q11707"),
+            ICE_CREAM_SHOP("Q1311064"),
+            BEER_GARDEN("Q857909"),
+            STREET_FOOD_VENUE("Q1316209"),
+            FOOD_MARKET("Q1192284"),
+
+            // SHOPPING
+            SHOPPING_MALL("Q31374404"),
+            SOUVENIR_SHOP("Q865693"),
+            MARKET("Q330284"),
+
+            // OTHER
+            SPA_TOWN("Q6882870");
 
             public static QTypes getQTypeFromIRI(String iri) {
                 for (QTypes qType : QTypes.values()) {
@@ -127,26 +133,27 @@ public class WIKIDATA {
 
             public static RegionFeature getRegionFeature(QTypes qType) {
                 return switch (qType) {
-                    case MOUNTAIN, LAKE, PARK, FOREST, NATURAL_RESERVE, CANYON ->
+                    case MOUNTAIN, LAKE, PARK, FOREST, NATURAL_RESERVE, CANYON, NATURAL_ATTRACTION ->
                             RegionFeature.NATURE;
 
-                    case HISTORIC_DISTRICT, UNESCO_SITE, CATHEDRAL, CASTLE ->
+                    case HISTORIC_DISTRICT, UNESCO_SITE, CATHEDRAL, CASTLE, ARCHITECTURAL_LANDMARK ->
                             RegionFeature.ARCHITECTURE;
 
-                    case MUSEUM, ART_GALLERY -> RegionFeature.CULTURE;
+                    case MUSEUM, ART_GALLERY, OPERA_HOUSE, THEATRE_BUILDING -> RegionFeature.CULTURE;
 
                     case HIKING_TRAIL, CLIMBING_AREA, CLIMBING_ROUTE, LOOKOUT_POINT ->
                             RegionFeature.HIKING;
 
-                    case SNOWBOARDING, SKIING, SKI_JUMPING, SLEDDING, SKI_RESORT, ICE_CLIMBING, SNOW_PARK ->
+                    case SKI_RESORT, SNOW_PARK, SKI_JUMPING_HILL ->
                             RegionFeature.WINTERSPORTS;
 
-                    case DIVING_SPOT, SCUBA_DIVING, SURF_SPOT, MARINA, WATER_PARK ->
+                    case DIVING_SPOT, SURF_SPOT, WATER_PARK ->
                             RegionFeature.WATERSPORTS;
 
-                    case AMUSEMENT_PARK, THEME_PARK, KART_RACING_TRACK, SHOOTING_RANGE,
-                         ARCADE, ESCAPE_ROOM, FESTIVAL_VENUE, ICE_CREAM_SHOP,
-                         BOWLING_ALLEY, BEER_GARDEN, BREWERY ->
+                    case AMUSEMENT_PARK, THEME_PARK, SHOOTING_RANGE, ESCAPE_ROOM, FESTIVAL_VENUE, ICE_CREAM_SHOP,
+                         BOWLING_ALLEY, BEER_GARDEN, CIRCUS, RACE_TRACK, KARTING_CIRCUIT, STADIUM, OCEANARIUM,
+                         ROLLER_COASTER,  FERRIS_WHEEL, SKY_COASTER, FLYING_THEATER, MARINE_MAMMAL_PARK, ARCADE_VENUE,
+                         FESTIVAL_EVENT, SPA_TOWN   ->
                             RegionFeature.ENTERTAINMENT;
 
                     case RESTAURANT, STREET_FOOD_VENUE, FOOD_MARKET ->
@@ -157,9 +164,6 @@ public class WIKIDATA {
 
                     case BEACH ->
                             RegionFeature.BEACH;
-
-                    case null ->
-                        throw new IllegalArgumentException("QType is not defined");
                 };
 
             }

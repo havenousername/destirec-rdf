@@ -181,51 +181,60 @@ public class KnowledgeGraphService {
                             WHERE {
                               VALUES ?district { %s }
                               VALUES ?type {
+                                wd:Q14226459 # NATURAL ATTRACTION
                                 wd:Q8502    # MOUNTAIN
                                 wd:Q23397   # LAKE
                                 wd:Q22698   # PARK
-                                wd:Q4421    # FOREST
-                                wd:Q472972  # NATURAL_RESERVE
-                                wd:Q623578  # CANYON
-                                wd:Q839954  # HISTORIC_DISTRICT
-                                wd:Q41176   # CATHEDRAL
-                                wd:Q124714  # CASTLE
-                                wd:Q209939  # HIKING_TRAIL
-                                wd:Q4970    # CLIMBING AREA
-                                wd:Q1779811 # CLIMBING_ROUTE
-                                wd:Q207326  # LOOKOUT_POINT
-                                wd:Q210327  # SNOWBOARDING
-                                wd:Q54202   # SKIING
-                                wd:Q180809  # SKI_JUMPING
-                                wd:Q1506654 # SLEDDING
+                                wd:Q5469146    # FOREST
+                                wd:Q179049  # NATURAL_RESERVE
+                                wd:Q150784  # CANYON
+                                wd:Q15243209  # HISTORIC_DISTRICT
+                                wd:Q9259 # UNESCO SITE
+                                wd:Q2977   # CATHEDRAL
+                                wd:Q23413  # CASTLE
+                                wd:Q2319498 # ARCHITECTURAL LANDMARK
+                                wd:Q2143825  # HIKING_TRAIL
+                                wd:Q6017969 # LOOKOUT POINT
+                                wd:Q1640361    # CLIMBING AREA
+                                wd:Q1699583 # CLIMBING_ROUTE
+                                wd:Q1109069 # SKI JUMPING HILL
                                 wd:Q130003  # SKI_RESORT
-                                wd:Q173211  # ICE_CLIMBING
-                                wd:Q2202162 # SNOW_PARK
-                                wd:Q1337009 # DIVING_SPOT
-                                wd:Q133740  # SCUBA_DIVING
-                                wd:Q652733  # SURF_SPOT
-                                wd:Q1372364 # MARINA
-                                wd:Q37038   # WATER_PARK
-                                wd:Q1493709 # AMUSEMENT_PARK
-                                wd:Q1824207 # THEME_PARK
-                                wd:Q1735272 # KART_RACING_TRACK
-                                wd:Q1407358 # SHOOTING_RANGE
-                                wd:Q133357  # ARCADE
-                                wd:Q28154028# ESCAPE_ROOM
+                                wd:Q3141488 # SNOW_PARK
+                                wd:Q179643 # DIVING_SPOT
+                                wd:Q2368508  # SURF_SPOT
+                                wd:Q740326   # WATER_PARK
+                                wd:Q194195  # AMUSEMENT_PARK
+                                wd:Q2416723 # THEME_PARK
+                                wd:Q477396 # CIRCUS
+                                wd:Q1232319 # KARTING_CIRCUIT
+                                wd:Q521839 # SHOOTING_RANGE
+                                wd:Q1777138 # RACE TRACK
+                                wd:Q483110  # STADIUM
+                                wd:Q1443808 # OCEANARIUM
+                                wd:Q1265865 # ROLLER COASTER
+                                wd:Q15060435 # MARINE MAMMAL PARK
+                                wd:Q33097655  # ARCADE
+                                wd:Q17015069 # ESCAPE_ROOM
+                                wd:Q132241  # FESTIVAL
                                 wd:Q183424  # FESTIVAL_VENUE
-                                wd:Q27017155# ICE_CREAM_SHOP
-                                wd:Q1502956 # BOWLING_ALLEY
-                                wd:Q1324011 # BEER_GARDEN
-                                wd:Q131734  # BREWERY
+                                wd:Q1311064 # ICE_CREAM_SHOP
+                                wd:Q18326400 # FLYING THEATER
+                                wd:Q202570 # FERRIS WHEEL
+                                wd:Q27106471 # BOWLING_ALLEY
+                                wd:Q857909 # BEER_GARDEN
                                 wd:Q11707   # RESTAURANT
-                                wd:Q18119866# STREET_FOOD_VENUE
-                                wd:Q210272  # FOOD_MARKET
-                                wd:Q55488   # SHOPPING_MALL
-                                wd:Q18534524# SOUVENIR_SHOP
-                                wd:Q3305213 # MARKET
+                                wd:Q1316209 # STREET_FOOD_VENUE
+                                wd:Q1192284  # FOOD_MARKET
+                                wd:Q31374404   # SHOPPING_MALL
+                                wd:Q865693 # SOUVENIR_SHOP
+                                wd:Q3486441  # SKYCOASTER
+                                wd:Q6882870 # SPA TOWN
+                                wd:Q330284 # MARKET
                                 wd:Q40080   # BEACH
                                 wd:Q33506   # MUSEUM
-                                wd:Q871905  # ART GALLERY
+                                wd:Q1007870  # ART GALLERY
+                                wd:Q153562  # OPERA HOUSE
+                                wd:Q24354   # THEATRE BUILDING
                               }
                 
                               ?poi wdt:P31 ?type ;
