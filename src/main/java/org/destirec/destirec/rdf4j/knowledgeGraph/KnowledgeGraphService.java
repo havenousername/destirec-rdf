@@ -9,6 +9,7 @@ import io.github.resilience4j.retry.RetryConfig;
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Timer;
+import jakarta.validation.constraints.Null;
 import org.destirec.destirec.rdf4j.interfaces.Rdf4jTemplate;
 import org.destirec.destirec.rdf4j.overpass.OverpassService;
 import org.destirec.destirec.rdf4j.region.RegionDao;
@@ -18,6 +19,7 @@ import org.destirec.destirec.rdf4j.region.apiDto.SimpleRegionDto;
 import org.destirec.destirec.rdf4j.version.VersionDao;
 import org.destirec.destirec.rdf4j.vocabulary.DBPEDIA;
 import org.destirec.destirec.rdf4j.vocabulary.WIKIDATA;
+import org.destirec.destirec.utils.TupleContainer;
 import org.destirec.destirec.utils.URIHandling;
 import org.destirec.destirec.utils.rdfDictionary.RegionNames.Individuals.RegionTypes;
 import org.eclipse.rdf4j.model.IRI;
@@ -29,6 +31,7 @@ import org.eclipse.rdf4j.repository.Repository;
 import org.eclipse.rdf4j.repository.RepositoryConnection;
 import org.eclipse.rdf4j.spring.support.RDF4JTemplate;
 import org.javatuples.Pair;
+import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -53,14 +56,14 @@ public class KnowledgeGraphService {
     protected final RDF4JTemplate rdf4JTemplate;
     protected final Rdf4jTemplate threadSafeRdf4JTemplate;
     protected final RegionService regionService;
-    private final Map<RegionTypes, Function<String, String>> queries;
+    private final Map<RegionTypes, Function<TupleContainer<String>, String>> queries;
     private final SimpleValueFactory factory = SimpleValueFactory.getInstance();
     private final VersionDao versionDao;
     private final RateLimiter rateLimiter;
     private static final Duration REQUEST_TIMEOUT = Duration.ofSeconds(2);
     private static final int MAX_REQUESTS_PER_SECOND = 40;
-    private static final int WIKIDATA_BATCH_SIZE = 50;
-    private static final int DBPEDIA_BATCH_SIZE = 500;
+    private static final int WIKIDATA_BATCH_SIZE = 10;
+    private static final int DBPEDIA_BATCH_SIZE = 20;
     private final CircuitBreaker circuitBreaker = CircuitBreaker.of("wikidata-api",
             CircuitBreakerConfig.custom()
                     .failureRateThreshold(50)
@@ -170,7 +173,7 @@ public class KnowledgeGraphService {
                         PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
                         PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
                 
-                        SELECT ?poi ?poiLabel ?officialWebsite ?image ?coord
+                        SELECT DISTINCT ?poi ?poiLabel ?officialWebsite ?image ?coord
                          ?osmId ?statementCount ?siteLinks ?dbpedia ?district
                          ?quoraTopicID ?tripAdvisorID ?twitterUsername ?imdbKeywordID ?type
                         WHERE {
@@ -181,7 +184,6 @@ public class KnowledgeGraphService {
                             WHERE {
                               VALUES ?district { %s }
                               VALUES ?type {
-                                wd:Q14226459 # NATURAL ATTRACTION
                                 wd:Q8502    # MOUNTAIN
                                 wd:Q23397   # LAKE
                                 wd:Q22698   # PARK
@@ -260,7 +262,7 @@ public class KnowledgeGraphService {
                 """.formatted(districtValues);
     }
 
-    private String buildWorldQueryString(String parent) {
+    private String buildWorldQueryString(@Null TupleContainer<String> parents) {
         return """
                 PREFIX bd: <http://www.bigdata.com/rdf#>
                 PREFIX wdt: <http://www.wikidata.org/prop/direct/>
@@ -280,7 +282,7 @@ public class KnowledgeGraphService {
                 """;
     }
 
-    private String buildContinentQueryString(String noName) {
+    private String buildContinentQueryString(@Nullable TupleContainer<String> noName) {
         return """
                     PREFIX bd: <http://www.bigdata.com/rdf#>
                     PREFIX wdt: <http://www.wikidata.org/prop/direct/>
@@ -311,7 +313,7 @@ public class KnowledgeGraphService {
                 """;
     }
 
-    private String buildContinentRegionQueryString(String continent) {
+    private String buildContinentRegionQueryString(TupleContainer<String> continent) {
         return """
                     PREFIX bd: <http://www.bigdata.com/rdf#>
                     PREFIX wdt: <http://www.wikidata.org/prop/direct/>
@@ -328,10 +330,10 @@ public class KnowledgeGraphService {
                             }
                         }
                     }
-                """.formatted(continent);
+                """.formatted(continent.getItem());
     }
 
-    private String buildCountryQueryString(String region) {
+    private String buildCountryQueryString(TupleContainer<String> region) {
         return """
                     PREFIX bd: <http://www.bigdata.com/rdf#>
                     PREFIX wdt: <http://www.wikidata.org/prop/direct/>
@@ -341,27 +343,30 @@ public class KnowledgeGraphService {
                     SELECT ?country ?countryLabel ?geoShape ?iso {
                         SERVICE <https://query.wikidata.org/sparql> {
                             SELECT ?country ?countryLabel ?iso ?geoShape WHERE {
-                                {
-                                    ?country wdt:P31 wd:Q15239622 ;  # Q15239622 = continent region
-                                        wdt:P361 <%s> ;     # Q27381 = Eurasia
-                                        wdt:P297 ?iso .
-                                    OPTIONAL { ?country wdt:P3896 ?geoShape }
-                      }
-                      UNION
-                      {
-                        ?country wdt:P31 wd:Q6256 ;      # Q6256 = country
-                                        wdt:P361 <%s> ;
-                                        wdt:P297 ?iso .
-                        OPTIONAL { ?country wdt:P3896 ?geoShape }
-                      }
-                      SERVICE wikibase:label { bd:serviceParam wikibase:language "[AUTO_LANGUAGE],en". }
+                              {
+                                    ?country wdt:P31 wd:Q6256 ;      # Q6256 = country
+                                                wdt:P361 <%s> ;
+                                                wdt:P297 ?iso .
+                                OPTIONAL { ?country wdt:P3896 ?geoShape }
+                              }
+                              UNION
+                              {
+                                ?country wdt:P31 wd:Q6256;      # Q6256 = country
+                                                wdt:P361* <%s> ;
+                                                wdt:P297 ?iso .
+                                OPTIONAL { ?country wdt:P3896 ?geoShape }
+                                FILTER NOT EXISTS {
+                                    ?country wdt:P361 <%s>  .
+                                }
+                              }
+                            SERVICE wikibase:label { bd:serviceParam wikibase:language "[AUTO_LANGUAGE],en". }
                             }
                         }
                     }
-                """.formatted(region, region);
+                """.formatted(region.getItems().getValue0(), region.getItems().getValue0(), region.getItems().getValue0());
     }
 
-    private String getDistrictsCountries(String country) {
+    private String getDistrictsCountries(TupleContainer<String> country) {
         return
                 """
                         PREFIX bd: <http://www.bigdata.com/rdf#>
@@ -380,23 +385,25 @@ public class KnowledgeGraphService {
                                 }
                             }
                         }
-                        """.formatted(country);
+                        """.formatted(country.getItem());
     }
 
     @Cacheable(value = "regionQueries", key = "#regionType + '-' + #parent")
     public void getQueryHandlerCached(
-            List<Map.Entry<RegionTypes, Function<String, String>>> regionsHierarchy,
+            List<Map.Entry<RegionTypes, Function<TupleContainer<String>, String>>> regionsHierarchy,
             RegionTypes regionType,
-            Optional<Value> parent
+            Optional<Value> parent,
+            Optional<Value> superParent
     ) {
-        getQueryHandlerWithRetry(regionsHierarchy, regionType, parent);
+        getQueryHandlerWithRetry(regionsHierarchy, regionType, parent, superParent);
     }
 
 
     private void getQueryHandlerWithRetry(
-            List<Map.Entry<RegionTypes, Function<String, String>>> regionsHierarchy,
+            List<Map.Entry<RegionTypes, Function<TupleContainer<String>, String>>> regionsHierarchy,
             RegionTypes regionType,
-            Optional<Value> parent
+            Optional<Value> parent,
+            Optional<Value> superParent
     ) {
         Retry retry = Retry.of(
                 "queryHandlerRetry",
@@ -412,7 +419,7 @@ public class KnowledgeGraphService {
                     retry,
                     () -> {
                         rateLimiter.acquire(); // assuming rateLimiter is defined elsewhere
-                        getQueryHandler(connection, regionsHierarchy, regionType, parent);
+                        getQueryHandler(connection, regionsHierarchy, regionType, parent, superParent);
                     }
             );
 
@@ -439,12 +446,14 @@ public class KnowledgeGraphService {
 
     private void getQueryHandler(
             RepositoryConnection connection,
-            List<Map.Entry<RegionTypes, Function<String, String>>> regionsHierarchy,
+            List<Map.Entry<RegionTypes, Function<TupleContainer<String>, String>>> regionsHierarchy,
             RegionTypes regionType,
-            Optional<Value> parent
+            Optional<Value> parent,
+            Optional<Value> superParent
     ) {
         var parentValue = parent.map(Value::stringValue).orElse(null);
-        String query = queries.get(regionType).apply(parentValue);
+        var superParentValue = superParent.map(Value::stringValue).orElse(null);
+        String query = queries.get(regionType).apply(new TupleContainer<>(parentValue, superParentValue));
         TupleQuery tupleQuery = connection.prepareTupleQuery(query);
         ExecutorService executorService = Executors.newFixedThreadPool(4);
 
@@ -459,7 +468,8 @@ public class KnowledgeGraphService {
                     allResults.add(result.next());
                 }
 
-                Lists.partition(allResults, 50).parallelStream().forEach(batch -> {
+                Lists.partition(allResults, 50).parallelStream()
+                        .forEach(batch -> {
                     createRegionFromQueryResults(
                             connection,
                             batch,
@@ -491,7 +501,7 @@ public class KnowledgeGraphService {
     private void createRegionFromQueryResults(
             RepositoryConnection connection,
             List<BindingSet> results,
-            List<Map.Entry<RegionTypes, Function<String, String>>> regionsHierarchy,
+            List<Map.Entry<RegionTypes, Function<TupleContainer<String>, String>>> regionsHierarchy,
             String parent,
             RegionTypes regionType
     ) {
@@ -515,7 +525,11 @@ public class KnowledgeGraphService {
 
                 // Create region
                 try {
-                    regionService.createRegion(region, true);
+                    if (regionService.getRegion(region.getId()).isEmpty()) {
+                        regionService.createRegion(region, true);
+                    } else {
+                        logger.warn("Region {} already exists", region.getId());
+                    }
                 } catch (Exception e) {
                     logger.error("Failed to create region: {}", region.getId(), e);
                 }
@@ -523,7 +537,7 @@ public class KnowledgeGraphService {
                 // Process next hierarchy level if needed
                 Value finalEntity = entity;
                 if (shouldProcessNextHierarchyLevel(regionsHierarchy, finalEntity)) {
-                    processNextHierarchyLevel(connection, regionsHierarchy, finalEntity);
+                    processNextHierarchyLevel(connection, regionsHierarchy, finalEntity, parentIri);
                 }
             });
 
@@ -548,16 +562,18 @@ public class KnowledgeGraphService {
     }
 
     private boolean shouldProcessNextHierarchyLevel(
-            List<Map.Entry<RegionTypes, Function<String, String>>> regionsHierarchy,
+            List<Map.Entry<RegionTypes, Function<TupleContainer<String>, String>>> regionsHierarchy,
             Value entity) {
         return !regionsHierarchy.isEmpty() && entity != null;
     }
 
     private void processNextHierarchyLevel(
             RepositoryConnection connection,
-            List<Map.Entry<RegionTypes, Function<String, String>>> regionsHierarchy,
-            Value entity) {
-        List<Map.Entry<RegionTypes, Function<String, String>>> remainingRegions =
+            List<Map.Entry<RegionTypes, Function<TupleContainer<String>, String>>> regionsHierarchy,
+            Value entity,
+            Value superParent
+    ) {
+        List<Map.Entry<RegionTypes, Function<TupleContainer<String>, String>>> remainingRegions =
                 regionsHierarchy.subList(1, regionsHierarchy.size());
 
         if (!remainingRegions.isEmpty()) {
@@ -566,7 +582,8 @@ public class KnowledgeGraphService {
                     connection,
                     remainingRegions,
                     nextRegionType,
-                    Optional.of(entity)
+                    Optional.of(entity),
+                    Optional.ofNullable(superParent)
             );
         }
     }
@@ -590,7 +607,16 @@ public class KnowledgeGraphService {
 //                .filter(Objects::nonNull)
 //                .map(regionService::createPOI).toList();
 
-        List<IRI> iris = regionService.createPOIs(pois);
+        List<POIClass> nonPresentPois = pois.stream()
+                .filter(poi -> {
+                    try {
+                        return regionService.getRegion(poi.getId()).isEmpty();
+                    } catch (Exception e) {
+                        logger.warn("Failed to get region for POI {}", poi.getId(), e);
+                        return false;
+                    }
+                }).toList();
+        List<IRI> iris = regionService.createPOIs(nonPresentPois);
         logger.info("Created {} POIs in RDF", iris.size());
     }
 
@@ -867,12 +893,11 @@ public class KnowledgeGraphService {
         for (RegionDto region : topRegions) {
             logger.debug("Processing region: {}", region.id());
 
-            if (fetchMapFromWikimedia(type, region)) {
-                logger.debug("Successfully fetched map from Wikimedia for region: {}", region.id());
-                continue;
-            }
-
-            logger.debug("Wikimedia fetch failed, trying alternative approach for region: {}", region.id());
+//            if (fetchMapFromWikimedia(type, region)) {
+//                logger.debug("Successfully fetched map from Wikimedia for region: {}", region.id());
+//                continue;
+//            }
+//            logger.debug("Wikimedia fetch failed, trying alternative approach for region: {}", region.id());
 
             List<RegionDto> countries = regionDao
                     .listAllCountriesForRegion(region.id())
@@ -983,7 +1008,9 @@ public class KnowledgeGraphService {
             self.getQueryHandlerCached(
                     queries.entrySet().stream().toList(),
                     RegionTypes.WORLD,
-                    Optional.empty());
+                    Optional.empty(),
+                    Optional.empty()
+            );
             logger.info("Repository already has all the regions");
         });
 

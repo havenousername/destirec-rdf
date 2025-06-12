@@ -97,7 +97,7 @@ public class RecommendationService {
             if (statement.getPredicate().equals(RDF.TYPE) && statement.getObject().equals(strategy.iri().rdfIri())) {
                 IRI regionIRI = factory.createIRI(statement.getSubject().stringValue());
                 // TODO: test properly
-                tmpRegion = regionDao.getById(regionIRI);
+                tmpRegion = regionDao.getByIdSafe(regionIRI);
             } else if (statement.getPredicate().equals(RecommendationNames.Properties.RECOMMENDED_FOR.rdfIri())) {
                 IRI userIRI = factory.createIRI(statement.getObject().stringValue());
                 tmpUser = userDao.getById(userIRI);

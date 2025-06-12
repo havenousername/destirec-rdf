@@ -204,8 +204,28 @@ public class RegionService {
     }
 
     @Transactional
+    public Optional<RegionDto> getRegion(IRI id) {
+        return regionDao.getByIdOptional(id);
+    }
+
+//    @Transactional
+//    public List<RegionDto> getRegionsLevelFromChild(RegionDto child, RegionNames level) {
+//        regionDao.getListAllByTypeQueryId()
+//    }
+
+    @Transactional
+    public Optional<POIDto> getPOI(IRI id) {
+        return poiDao.getByIdOptional(id);
+    }
+
+    @Transactional
     public Optional<POIDto> getPOI(String id) {
         return poiDao.getByIdOptional(poiDao.getDtoCreator().createId(id));
+    }
+
+    @Transactional
+    public POIDto getPOISafe(String id) {
+        return poiDao.getById(poiDao.getDtoCreator().createId(id));
     }
 
     @Transactional

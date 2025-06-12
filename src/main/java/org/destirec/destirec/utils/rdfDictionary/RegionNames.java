@@ -7,6 +7,10 @@ import org.eclipse.rdf4j.model.IRI;
 import org.eclipse.rdf4j.model.vocabulary.GEO;
 
 import java.util.Arrays;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.ListIterator;
+import java.util.stream.Collectors;
 
 public final class RegionNames {
 
@@ -74,6 +78,24 @@ public final class RegionNames {
             private final String name;
             public DESTIREC.NamespaceWrapper iri() {
                 return DESTIREC.wrap(name);
+            }
+
+            public static LinkedList<RegionTypes> getTopDown() {
+                return new LinkedList<>(List.of(WORLD, CONTINENT, COUNTRY, DISTRICT, POI));
+            }
+
+            public static LinkedList<RegionTypes> getBottomUp() {
+                return new LinkedList<>(List.of(POI, DISTRICT, COUNTRY, CONTINENT, WORLD));
+            }
+
+            public ListIterator<RegionTypes> getTop() {
+                return RegionTypes.getTopDown().stream().dropWhile(v -> v.equals(this))
+                        .collect(Collectors.toCollection(LinkedList::new)).listIterator();
+            }
+
+            public ListIterator<RegionTypes> getBottom() {
+                return RegionTypes.getTopDown().stream().takeWhile(v -> v.equals(this))
+                        .collect(Collectors.toCollection(LinkedList::new)).listIterator();
             }
 
             public static RegionTypes fromIRI(IRI iri) {

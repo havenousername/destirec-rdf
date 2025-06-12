@@ -57,8 +57,6 @@ public class UserHistoryDao extends GenericDao<UserHistoryConfig.Fields, UserHis
                     IRI regionSolution = (IRI) solution.getValue("region");
                     IRI userSolution = (IRI) solution.getValue("user");
                     IRI id = (IRI) solution.getValue("historyInfluence");
-                    double score = Double.parseDouble(solution.getValue("score").stringValue());
-                    double confidence = Double.parseDouble(solution.getValue("confidence").stringValue());
 
                     List<String> rawScores = SimpleDtoTransformations.
                             toListString(solution.getValue("scores").stringValue());
@@ -69,28 +67,28 @@ public class UserHistoryDao extends GenericDao<UserHistoryConfig.Fields, UserHis
                     List<Double> scores = rawScores.stream().map(Double::parseDouble).toList();
                     List<Double> confidences = rawConfidences.stream().map(Double::parseDouble).toList();
 
-                    return new UserInfluenceDto(id, regionSolution, userSolution, score, confidence, scores, confidences);
+                    return new UserInfluenceDto(id, regionSolution, userSolution, scores, confidences);
                 });
     }
 
-    public IRI updateInfluence(IRI influenceId, IRI region, IRI user, double score, double confidence) {
-        this.getRdf4JTemplate().update(this.getClass(), createInfluenceSupplier(influenceId, region, user, score, confidence))
+    public IRI updateInfluence(UserInfluenceDto influenceDto) {
+        this.getRdf4JTemplate().update(this.getClass(), createInfluenceSupplier(influenceDto.getId(), influenceDto))
                 .execute();
 
-        return influenceId;
+        return influenceDto.getId();
     }
 
 
-    public IRI createInfluence(IRI region, IRI user, double score, double confidence) {
-        IRI newInfluence = valueFactory.createIRI(INFLUENCE_RESOURCE + "region:" + region  +"-user:" + user);
-        this.getRdf4JTemplate().update(this.getClass(), createInfluenceSupplier(newInfluence, region, user, score, confidence))
+    public IRI createInfluence(UserInfluenceDto influenceDto) {
+        IRI newInfluence = valueFactory.createIRI(INFLUENCE_RESOURCE + "region:" + influenceDto.getRegion()  +"-user:" + influenceDto.getUser());
+        this.getRdf4JTemplate().update(this.getClass(), createInfluenceSupplier(newInfluence, influenceDto))
                 .execute();
 
         return newInfluence;
     }
 
-    public NamedSparqlSupplier createInfluenceSupplier(IRI id, IRI region, IRI user, double score, double confidence) {
-        return NamedSparqlSupplier.of(KEY_PREFIX_INSERT, () -> createInfluenceQuery(id, region, user, score, confidence));
+    public NamedSparqlSupplier createInfluenceSupplier(IRI id, UserInfluenceDto dto) {
+        return NamedSparqlSupplier.of(KEY_PREFIX_INSERT, () -> createInfluenceQuery(id, dto));
     }
 
 
@@ -128,8 +126,6 @@ public class UserHistoryDao extends GenericDao<UserHistoryConfig.Fields, UserHis
         Variable historyInfluenceVar = SparqlBuilder.var("historyInfluence");
         Variable regionVar = SparqlBuilder.var("region");
         Variable userVar = SparqlBuilder.var("user");
-        Variable confidence = SparqlBuilder.var("confidence");
-        Variable score = SparqlBuilder.var("score");
 
         Variable scores = SparqlBuilder.var("scores");
         Variable confidences = SparqlBuilder.var("confidences");
@@ -154,27 +150,19 @@ public class UserHistoryDao extends GenericDao<UserHistoryConfig.Fields, UserHis
         TriplePattern hasRegion = GraphPatterns
                 .tp(historyInfluenceVar, UserNames.Properties.INFLUENCE_BY_USER.rdfIri(), regionVar);
 
-        TriplePattern hasPScore = GraphPatterns
-                .tp(historyInfluenceVar, UserNames.Properties.HAS_INFLUENCE_P_SCORE.rdfIri(), score);
-
-        TriplePattern hasCConfidence = GraphPatterns
-                .tp(historyInfluenceVar, UserNames.Properties.HAS_INFLUENCE_C_CONFIDENCE.rdfIri(), confidence);
-
         TriplePattern hasCConfidences = GraphPatterns
                 .tp(historyInfluenceVar, UserNames.Properties.HAS_C_CONFIDENCES.rdfIri(), confidences);
 
         TriplePattern hasPScores = GraphPatterns
                 .tp(historyInfluenceVar, UserNames.Properties.HAS_P_SCORES.rdfIri(), scores);
 
-        String selectQuery = Queries.SELECT(historyInfluenceVar, confidence, score)
+        String selectQuery = Queries.SELECT(historyInfluenceVar, confidences, scores)
                 .where(
                         isHistoryInfluence,
                         valuesRegion,
                         valuesUser,
                         hasUser,
                         hasRegion,
-                        hasPScore,
-                        hasCConfidence,
                         hasCConfidences,
                         hasPScores
                 )
@@ -183,8 +171,12 @@ public class UserHistoryDao extends GenericDao<UserHistoryConfig.Fields, UserHis
         return selectQuery;
     }
 
+    private String createListToStringFormatted(List<Double> scores) {
+        return String.join(",", scores.stream().map(String::valueOf).toArray(CharSequence[]::new));
+    }
 
-    public String createInfluenceQuery(IRI id, IRI region, IRI user, double score, double confidence) {
+
+    public String createInfluenceQuery(IRI id, UserInfluenceDto dto) {
         TriplePattern typeStatement = GraphPatterns.tp(
                 id,
                 RDF.TYPE,
@@ -193,17 +185,17 @@ public class UserHistoryDao extends GenericDao<UserHistoryConfig.Fields, UserHis
         TriplePattern hasRegionProperty = GraphPatterns.tp(
                 id,
                 UserNames.Properties.INFLUENCE_FOR_REGION.rdfIri(), // Property linking to a region
-                region // The region IRI
+                dto.getRegion() // The region IRI
         );
 
         TriplePattern hasUserProperty = GraphPatterns.tp(
                 id,
                 UserNames.Properties.INFLUENCE_BY_USER.rdfIri(),   // Property linking to a user
-                user   // The user IRI
+                dto.getUser()   // The user IRI
         );
 
-        Literal scoreLiteral = valueFactory.createLiteral(score);
-        Literal confidenceLiteral = valueFactory.createLiteral(confidence);
+        Literal scoreLiteral = valueFactory.createLiteral(createListToStringFormatted(dto.getScores()));
+        Literal confidenceLiteral = valueFactory.createLiteral(createListToStringFormatted(dto.getConfidences()));
 
         TriplePattern hasPScore = GraphPatterns.tp(
                 id,

@@ -465,6 +465,49 @@ public class RegionDao extends GenericDao<RegionConfig.Fields, RegionDto> {
                 .getQueryString();
     }
 
+    public List<IRI> listAllParentsIds(IRI regionId, RegionTypes parentLevel) {
+        return this.getRdf4JTemplate()
+                .tupleQuery(getClass(), "KEY_LIST_ALL_PARENTS", () ->
+                        getRegionParentQuery(regionId, parentLevel))
+                .evaluateAndConvert()
+                .toList((bindings) -> (IRI) bindings.getBinding("parent").getValue());
+    }
+
+    protected String getRegionParentQuery(IRI regionId, RegionTypes parentLevel) {
+        Variable id = SparqlBuilder.var("regionId");
+        Variable parent = SparqlBuilder.var("parent");
+        Variable parentType = SparqlBuilder.var("parentType");
+        TriplePattern selectRegion = GraphPatterns.tp(id, RDF.TYPE, Rdf.iri(RegionNames.Classes.REGION.rdfIri()));
+        TriplePattern selectParent = GraphPatterns.tp(id,
+                valueFactory.createIRI(RegionNames.Properties.SF_CONTAINS), parent);
+
+        TriplePattern selectParentRegion = GraphPatterns.tp(parent,
+                RDF.TYPE, Rdf.iri(RegionNames.Classes.REGION.rdfIri()));
+
+        TriplePattern selectParentType = GraphPatterns.tp(parent,
+                RegionNames.Properties.HAS_LEVEL.rdfIri(), parentType);
+
+        GraphPattern variableRegionBind = GraphPatterns.and().values((builder) -> {
+            builder.variables(id);
+            builder.value(Rdf.iri(regionId));
+        });
+
+        GraphPattern variableTypeBind = GraphPatterns.and().values((builder) -> {
+            builder.variables(parentType);
+            builder.value(Rdf.iri(parentLevel.iri().rdfIri()));
+        });
+
+        return Queries.SELECT(parent)
+                .where(
+                        variableRegionBind,
+                        variableTypeBind,
+                        selectRegion,
+                        selectParent,
+                        selectParentRegion,
+                        selectParentType)
+                .getQueryString();
+    }
+
     public long getTotalCountByType(RegionTypes type) {
         String countQuery = getCountryByType(migration.getResource(), type);
         var countResult = getRdf4JTemplate()
