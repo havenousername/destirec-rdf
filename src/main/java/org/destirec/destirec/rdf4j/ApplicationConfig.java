@@ -71,6 +71,7 @@ public class ApplicationConfig {
         if (isRemote) {
             var repo = new HTTPRepository(url, repositoryName);
             repo.setAdditionalHttpHeaders(Map.of("User-Agent", "Destirec/1.0 (+https://destination-finder-production.up.railway.app; contact:cristea.andrei997@gmail.com)"));
+            logger.info("Connected to RDF repository with the URI {}", url);
             System.out.println(repo.getConnection().isActive());
             repository = repo;
         } else {
