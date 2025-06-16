@@ -489,7 +489,7 @@ public class RecommendationQueries {
                             addBNodeExplanation,
                             addMatchRatioToGraph,
                             filter)
-                    .orderBy(SparqlBuilder.desc(avgDeltaScore), SparqlBuilder.desc(matchRatio))
+                    .orderBy(SparqlBuilder.desc(matchRatio), SparqlBuilder.desc(avgDeltaScore))
                     .limit(parameters.getMaxResults());
             queryString = constructQuery.getQueryString();
         } else {
@@ -500,7 +500,7 @@ public class RecommendationQueries {
                             confidenceLevel
                     )
                     .where(userQualitiesQuery, regionQualitiesQuery, addMatchRatioToGraph, filter)
-                    .orderBy(SparqlBuilder.desc(avgDeltaScore), SparqlBuilder.desc(matchRatio))
+                    .orderBy(SparqlBuilder.desc(matchRatio), SparqlBuilder.desc(avgDeltaScore))
                     .limit(parameters.getMaxResults());
             queryString = constructQuery.getQueryString();
         }
