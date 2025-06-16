@@ -49,6 +49,7 @@ public class WIKIDATA {
             // NATURE
             NATURAL_ATTRACTION("Q14226459"),
             MOUNTAIN("Q8502"),
+            SUMMIT("Q207326"),
             LAKE("Q23397"),
             PARK("Q22698"),
             FOREST("Q5469146"),
@@ -63,6 +64,7 @@ public class WIKIDATA {
             CATHEDRAL("Q2977"),
             CASTLE("Q23413"),
             ARCHITECTURAL_LANDMARK("Q2319498"),
+            BUILDING("Q41176"),
 
             // CULTURE
             MUSEUM("Q33506"),
@@ -105,7 +107,7 @@ public class WIKIDATA {
             FESTIVAL_VENUE("Q183424"),
             FESTIVAL_EVENT("Q132241"),
             BOWLING_ALLEY("Q27106471"),
-
+            BREWERY("Q131734"),
             // CULINARY
             RESTAURANT("Q11707"),
             ICE_CREAM_SHOP("Q1311064"),
@@ -133,10 +135,10 @@ public class WIKIDATA {
 
             public static RegionFeature getRegionFeature(QTypes qType) {
                 return switch (qType) {
-                    case MOUNTAIN, LAKE, PARK, FOREST, NATURAL_RESERVE, CANYON, NATURAL_ATTRACTION ->
+                    case MOUNTAIN, SUMMIT, LAKE, PARK, FOREST, NATURAL_RESERVE, CANYON, NATURAL_ATTRACTION ->
                             RegionFeature.NATURE;
 
-                    case HISTORIC_DISTRICT, UNESCO_SITE, CATHEDRAL, CASTLE, ARCHITECTURAL_LANDMARK ->
+                    case HISTORIC_DISTRICT, UNESCO_SITE, CATHEDRAL, CASTLE, ARCHITECTURAL_LANDMARK, BUILDING ->
                             RegionFeature.ARCHITECTURE;
 
                     case MUSEUM, ART_GALLERY, OPERA_HOUSE, THEATRE_BUILDING -> RegionFeature.CULTURE;
@@ -153,7 +155,7 @@ public class WIKIDATA {
                     case AMUSEMENT_PARK, THEME_PARK, SHOOTING_RANGE, ESCAPE_ROOM, FESTIVAL_VENUE, ICE_CREAM_SHOP,
                          BOWLING_ALLEY, BEER_GARDEN, CIRCUS, RACE_TRACK, KARTING_CIRCUIT, STADIUM, OCEANARIUM,
                          ROLLER_COASTER,  FERRIS_WHEEL, SKY_COASTER, FLYING_THEATER, MARINE_MAMMAL_PARK, ARCADE_VENUE,
-                         FESTIVAL_EVENT, SPA_TOWN   ->
+                         FESTIVAL_EVENT, SPA_TOWN, BREWERY   ->
                             RegionFeature.ENTERTAINMENT;
 
                     case RESTAURANT, STREET_FOOD_VENUE, FOOD_MARKET ->

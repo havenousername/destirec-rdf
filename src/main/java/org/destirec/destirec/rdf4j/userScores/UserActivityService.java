@@ -83,7 +83,7 @@ public class UserActivityService {
             }
             // update user influence according to the formula
             // P_updated = min(1, \beta x P_user + (1 - \beta) \times P_score
-            double newInfluenceScore = Math.min(1, UserInfluenceMigration.BETA * historyDto.getScore() + (1 - UserInfluenceMigration.BETA) * userInfluenceDto.get()
+            double newInfluenceScore = Math.min(5, UserInfluenceMigration.BETA * historyDto.getScore() + (1 - UserInfluenceMigration.BETA) * userInfluenceDto.get()
                     .getScores().getFirst());
 
             /**
