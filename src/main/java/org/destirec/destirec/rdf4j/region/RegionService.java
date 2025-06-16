@@ -200,12 +200,36 @@ public class RegionService {
 
     @Transactional
     public Optional<RegionDto> getRegion(String id) {
-        return regionDao.getByIdOptional(regionDao.getDtoCreator().createId(id));
+        try {
+            return Optional.ofNullable(regionDao.getByIdSafe(regionDao.getDtoCreator().createId(id)));
+        } catch (Exception e) {
+            return Optional.empty();
+        }
+    }
+
+    @Transactional
+    public Optional<RegionDto> getRegion(IRI id) {
+        return regionDao.getByIdOptional(id);
+    }
+
+//    @Transactional
+//    public List<RegionDto> getRegionsLevelFromChild(RegionDto child, RegionNames level) {
+//        regionDao.getListAllByTypeQueryId()
+//    }
+
+    @Transactional
+    public Optional<POIDto> getPOI(IRI id) {
+        return poiDao.getByIdOptional(id);
     }
 
     @Transactional
     public Optional<POIDto> getPOI(String id) {
         return poiDao.getByIdOptional(poiDao.getDtoCreator().createId(id));
+    }
+
+    @Transactional
+    public POIDto getPOISafe(String id) {
+        return poiDao.getById(poiDao.getDtoCreator().createId(id));
     }
 
     @Transactional
@@ -392,7 +416,9 @@ public class RegionService {
     }
 
     public void updateParentChildOntologiesAsync(RegionDto child) {
-        scheduledService.schedule(() -> updateParentChildOntologiesAsync(child), 100, TimeUnit.MILLISECONDS);
+        scheduledService.schedule(() -> {
+
+        }, 100, TimeUnit.MILLISECONDS);
     }
 
     @Transactional

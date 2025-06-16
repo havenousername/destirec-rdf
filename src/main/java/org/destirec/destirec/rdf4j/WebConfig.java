@@ -11,13 +11,17 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 public class WebConfig {
     @Value("${app.env.frontend}")
     private String frontendLink;
+
+    @Value("${app.env.redirect_frontend}")
+    private String redirectLink;
+
     @Bean
     public WebMvcConfigurer corsConfigurer() {
         return new WebMvcConfigurer() {
             @Override
             public void addCorsMappings(@NotNull CorsRegistry registry) {
                 registry.addMapping("/**")
-                        .allowedOrigins(frontendLink)
+                        .allowedOrigins(frontendLink, redirectLink)
                         .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
                         .allowedHeaders("*");
             }

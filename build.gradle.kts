@@ -103,6 +103,8 @@ dependencies {
     implementation("org.apache.commons:commons-math3:3.6.1")
 
     implementation("io.micrometer:micrometer-core:1.12.3")
+
+    implementation("io.github.cdimascio:dotenv-java:3.0.0")
 }
 
 tasks.withType<Test> {

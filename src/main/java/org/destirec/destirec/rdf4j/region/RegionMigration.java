@@ -78,7 +78,8 @@ public class RegionMigration extends IriMigration implements OntologyDefiner {
         // Region \sqsubseteq Object
         builder
                 .add(get(), RDF.TYPE, OWL.CLASS)
-                .add(get(), RDFS.SUBCLASSOF, TopOntologyNames.Classes.OBJECT.rdfIri());
+                .add(get(), RDFS.SUBCLASSOF, TopOntologyNames.Classes.OBJECT.rdfIri())
+                .add(get(), RDFS.LABEL, "Region class inside the world's map");
     }
 
     @Override

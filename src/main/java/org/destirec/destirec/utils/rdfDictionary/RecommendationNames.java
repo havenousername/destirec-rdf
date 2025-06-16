@@ -26,8 +26,10 @@ public final class RecommendationNames {
         public static final DESTIREC.NamespaceWrapper EXPLAINS_FEATURE = DESTIREC.wrap("explainsFeature");
         public static final DESTIREC.NamespaceWrapper MATCHING_FEATURE = DESTIREC.wrap("matchingFeature");
         public static final DESTIREC.NamespaceWrapper RECOMMENDED_POI = DESTIREC.wrap("recommendedPOI");
+        public static final DESTIREC.NamespaceWrapper RECOMMENDED_REGIONS = DESTIREC.wrap("recommendedRegions");
         public static final DESTIREC.NamespaceWrapper RECOMMENDED_POI_FEATURE = DESTIREC.wrap("recommendedPOIFeature");
         public static final DESTIREC.NamespaceWrapper EXCEEDS_BY_SCORE = DESTIREC.wrap("exceedsByScore");
+        public static final DESTIREC.NamespaceWrapper HAS_SCORE_WEIGHT = DESTIREC.wrap("hasScoreWeight");
     }
 
 

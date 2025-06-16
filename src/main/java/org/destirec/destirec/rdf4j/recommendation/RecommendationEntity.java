@@ -32,6 +32,7 @@ public class RecommendationEntity {
         private String explanationType;
         private List<String> forFeatures;
         private float avgDelta;
+        private float scoreWeight;
     }
 
     @Getter

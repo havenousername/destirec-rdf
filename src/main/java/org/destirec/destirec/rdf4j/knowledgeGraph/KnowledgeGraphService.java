@@ -9,6 +9,7 @@ import io.github.resilience4j.retry.RetryConfig;
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Timer;
+import jakarta.validation.constraints.Null;
 import org.destirec.destirec.rdf4j.interfaces.Rdf4jTemplate;
 import org.destirec.destirec.rdf4j.overpass.OverpassService;
 import org.destirec.destirec.rdf4j.region.RegionDao;
@@ -18,6 +19,7 @@ import org.destirec.destirec.rdf4j.region.apiDto.SimpleRegionDto;
 import org.destirec.destirec.rdf4j.version.VersionDao;
 import org.destirec.destirec.rdf4j.vocabulary.DBPEDIA;
 import org.destirec.destirec.rdf4j.vocabulary.WIKIDATA;
+import org.destirec.destirec.utils.TupleContainer;
 import org.destirec.destirec.utils.URIHandling;
 import org.destirec.destirec.utils.rdfDictionary.RegionNames.Individuals.RegionTypes;
 import org.eclipse.rdf4j.model.IRI;
@@ -29,6 +31,7 @@ import org.eclipse.rdf4j.repository.Repository;
 import org.eclipse.rdf4j.repository.RepositoryConnection;
 import org.eclipse.rdf4j.spring.support.RDF4JTemplate;
 import org.javatuples.Pair;
+import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -53,14 +56,14 @@ public class KnowledgeGraphService {
     protected final RDF4JTemplate rdf4JTemplate;
     protected final Rdf4jTemplate threadSafeRdf4JTemplate;
     protected final RegionService regionService;
-    private final Map<RegionTypes, Function<String, String>> queries;
+    private final Map<RegionTypes, Function<TupleContainer<String>, String>> queries;
     private final SimpleValueFactory factory = SimpleValueFactory.getInstance();
     private final VersionDao versionDao;
     private final RateLimiter rateLimiter;
     private static final Duration REQUEST_TIMEOUT = Duration.ofSeconds(2);
     private static final int MAX_REQUESTS_PER_SECOND = 40;
-    private static final int WIKIDATA_BATCH_SIZE = 50;
-    private static final int DBPEDIA_BATCH_SIZE = 500;
+    private static final int WIKIDATA_BATCH_SIZE = 10;
+    private static final int DBPEDIA_BATCH_SIZE = 10;
     private final CircuitBreaker circuitBreaker = CircuitBreaker.of("wikidata-api",
             CircuitBreakerConfig.custom()
                     .failureRateThreshold(50)
@@ -112,7 +115,7 @@ public class KnowledgeGraphService {
 
         queries.put(RegionTypes.WORLD, this::buildWorldQueryString);
         queries.put(RegionTypes.CONTINENT, this::buildContinentQueryString);
-        queries.put(RegionTypes.CONTINENT_REGION, this::buildContinentRegionQueryString);
+//        queries.put(RegionTypes.CONTINENT_REGION, this::buildContinentRegionQueryString);
         queries.put(RegionTypes.COUNTRY, this::buildCountryQueryString);
         queries.put(RegionTypes.DISTRICT, this::getDistrictsCountries);
 
@@ -170,7 +173,7 @@ public class KnowledgeGraphService {
                         PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
                         PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
                 
-                        SELECT ?poi ?poiLabel ?officialWebsite ?image ?coord
+                        SELECT DISTINCT ?poi ?poiLabel ?officialWebsite ?image ?coord
                          ?osmId ?statementCount ?siteLinks ?dbpedia ?district
                          ?quoraTopicID ?tripAdvisorID ?twitterUsername ?imdbKeywordID ?type
                         WHERE {
@@ -184,48 +187,54 @@ public class KnowledgeGraphService {
                                 wd:Q8502    # MOUNTAIN
                                 wd:Q23397   # LAKE
                                 wd:Q22698   # PARK
-                                wd:Q4421    # FOREST
-                                wd:Q472972  # NATURAL_RESERVE
-                                wd:Q623578  # CANYON
-                                wd:Q839954  # HISTORIC_DISTRICT
-                                wd:Q41176   # CATHEDRAL
-                                wd:Q124714  # CASTLE
-                                wd:Q209939  # HIKING_TRAIL
-                                wd:Q4970    # CLIMBING AREA
-                                wd:Q1779811 # CLIMBING_ROUTE
-                                wd:Q207326  # LOOKOUT_POINT
-                                wd:Q210327  # SNOWBOARDING
-                                wd:Q54202   # SKIING
-                                wd:Q180809  # SKI_JUMPING
-                                wd:Q1506654 # SLEDDING
+                                wd:Q5469146    # FOREST
+                                wd:Q150784  # CANYON
+                                wd:Q15243209  # HISTORIC_DISTRICT
+                                wd:Q9259 # UNESCO SITE
+                                wd:Q2977   # CATHEDRAL
+                                wd:Q23413  # CASTLE
+                                wd:Q2143825  # HIKING_TRAIL
+                                wd:Q6017969 # LOOKOUT POINT
+                                wd:Q1640361    # CLIMBING AREA
+                                wd:Q1699583 # CLIMBING_ROUTE
+                                wd:Q1109069 # SKI JUMPING HILL
                                 wd:Q130003  # SKI_RESORT
-                                wd:Q173211  # ICE_CLIMBING
-                                wd:Q2202162 # SNOW_PARK
-                                wd:Q1337009 # DIVING_SPOT
-                                wd:Q133740  # SCUBA_DIVING
-                                wd:Q652733  # SURF_SPOT
-                                wd:Q1372364 # MARINA
-                                wd:Q37038   # WATER_PARK
-                                wd:Q1493709 # AMUSEMENT_PARK
-                                wd:Q1824207 # THEME_PARK
-                                wd:Q1735272 # KART_RACING_TRACK
-                                wd:Q1407358 # SHOOTING_RANGE
-                                wd:Q133357  # ARCADE
-                                wd:Q28154028# ESCAPE_ROOM
+                                wd:Q3141488 # SNOW_PARK
+                                wd:Q179643 # DIVING_SPOT
+                                wd:Q2368508  # SURF_SPOT
+                                wd:Q740326   # WATER_PARK
+                                wd:Q194195  # AMUSEMENT_PARK
+                                wd:Q2416723 # THEME_PARK
+                                wd:Q477396 # CIRCUS
+                                wd:Q1232319 # KARTING_CIRCUIT
+                                wd:Q521839 # SHOOTING_RANGE
+                                wd:Q1777138 # RACE TRACK
+                                wd:Q483110  # STADIUM
+                                wd:Q1443808 # OCEANARIUM
+                                wd:Q1265865 # ROLLER COASTER
+                                wd:Q15060435 # MARINE MAMMAL PARK
+                                wd:Q33097655  # ARCADE
+                                wd:Q17015069 # ESCAPE_ROOM
+                                wd:Q132241  # FESTIVAL
                                 wd:Q183424  # FESTIVAL_VENUE
-                                wd:Q27017155# ICE_CREAM_SHOP
-                                wd:Q1502956 # BOWLING_ALLEY
-                                wd:Q1324011 # BEER_GARDEN
-                                wd:Q131734  # BREWERY
+                                wd:Q1311064 # ICE_CREAM_SHOP
+                                wd:Q18326400 # FLYING THEATER
+                                wd:Q202570 # FERRIS WHEEL
+                                wd:Q27106471 # BOWLING_ALLEY
+                                wd:Q857909 # BEER_GARDEN
                                 wd:Q11707   # RESTAURANT
-                                wd:Q18119866# STREET_FOOD_VENUE
-                                wd:Q210272  # FOOD_MARKET
-                                wd:Q55488   # SHOPPING_MALL
-                                wd:Q18534524# SOUVENIR_SHOP
-                                wd:Q3305213 # MARKET
+                                wd:Q1316209 # STREET_FOOD_VENUE
+                                wd:Q1192284  # FOOD_MARKET
+                                wd:Q31374404   # SHOPPING_MALL
+                                wd:Q865693 # SOUVENIR_SHOP
+                                wd:Q3486441  # SKYCOASTER
+                                wd:Q6882870 # SPA TOWN
+                                wd:Q330284 # MARKET
                                 wd:Q40080   # BEACH
                                 wd:Q33506   # MUSEUM
-                                wd:Q871905  # ART GALLERY
+                                wd:Q1007870  # ART GALLERY
+                                wd:Q153562  # OPERA HOUSE
+                                wd:Q24354   # THEATRE BUILDING
                               }
                 
                               ?poi wdt:P31 ?type ;
@@ -251,7 +260,7 @@ public class KnowledgeGraphService {
                 """.formatted(districtValues);
     }
 
-    private String buildWorldQueryString(String parent) {
+    private String buildWorldQueryString(@Null TupleContainer<String> parents) {
         return """
                 PREFIX bd: <http://www.bigdata.com/rdf#>
                 PREFIX wdt: <http://www.wikidata.org/prop/direct/>
@@ -271,7 +280,7 @@ public class KnowledgeGraphService {
                 """;
     }
 
-    private String buildContinentQueryString(String noName) {
+    private String buildContinentQueryString(@Nullable TupleContainer<String> noName) {
         return """
                     PREFIX bd: <http://www.bigdata.com/rdf#>
                     PREFIX wdt: <http://www.wikidata.org/prop/direct/>
@@ -302,7 +311,7 @@ public class KnowledgeGraphService {
                 """;
     }
 
-    private String buildContinentRegionQueryString(String continent) {
+    private String buildContinentRegionQueryString(TupleContainer<String> continent) {
         return """
                     PREFIX bd: <http://www.bigdata.com/rdf#>
                     PREFIX wdt: <http://www.wikidata.org/prop/direct/>
@@ -319,10 +328,10 @@ public class KnowledgeGraphService {
                             }
                         }
                     }
-                """.formatted(continent);
+                """.formatted(continent.getItem());
     }
 
-    private String buildCountryQueryString(String region) {
+    private String buildCountryQueryString(TupleContainer<String> region) {
         return """
                     PREFIX bd: <http://www.bigdata.com/rdf#>
                     PREFIX wdt: <http://www.wikidata.org/prop/direct/>
@@ -331,28 +340,19 @@ public class KnowledgeGraphService {
                 
                     SELECT ?country ?countryLabel ?geoShape ?iso {
                         SERVICE <https://query.wikidata.org/sparql> {
-                            SELECT ?country ?countryLabel ?iso ?geoShape WHERE {
-                                {
-                                    ?country wdt:P31 wd:Q15239622 ;  # Q15239622 = continent region
-                                        wdt:P361 <%s> ;     # Q27381 = Eurasia
-                                        wdt:P297 ?iso .
-                                    OPTIONAL { ?country wdt:P3896 ?geoShape }
-                      }
-                      UNION
-                      {
-                        ?country wdt:P31 wd:Q6256 ;      # Q6256 = country
-                                        wdt:P361 <%s> ;
-                                        wdt:P297 ?iso .
-                        OPTIONAL { ?country wdt:P3896 ?geoShape }
-                      }
-                      SERVICE wikibase:label { bd:serviceParam wikibase:language "[AUTO_LANGUAGE],en". }
+                            SELECT ?country ?countryLabel ?geoShape ?iso {
+                            ?country wdt:P31 wd:Q6256;      # Q6256 = country
+                                            wdt:P361* <%s> ;
+                                            wdt:P297 ?iso .
+                            OPTIONAL { ?country wdt:P3896 ?geoShape }
+                            SERVICE wikibase:label { bd:serviceParam wikibase:language "[AUTO_LANGUAGE],en". }
                             }
                         }
                     }
-                """.formatted(region, region);
+                """.formatted(region.getItems().getValue0());
     }
 
-    private String getDistrictsCountries(String country) {
+    private String getDistrictsCountries(TupleContainer<String> country) {
         return
                 """
                         PREFIX bd: <http://www.bigdata.com/rdf#>
@@ -371,23 +371,25 @@ public class KnowledgeGraphService {
                                 }
                             }
                         }
-                        """.formatted(country);
+                        """.formatted(country.getItem());
     }
 
     @Cacheable(value = "regionQueries", key = "#regionType + '-' + #parent")
     public void getQueryHandlerCached(
-            List<Map.Entry<RegionTypes, Function<String, String>>> regionsHierarchy,
+            List<Map.Entry<RegionTypes, Function<TupleContainer<String>, String>>> regionsHierarchy,
             RegionTypes regionType,
-            Optional<Value> parent
+            Optional<Value> parent,
+            Optional<Value> superParent
     ) {
-        getQueryHandlerWithRetry(regionsHierarchy, regionType, parent);
+        getQueryHandlerWithRetry(regionsHierarchy, regionType, parent, superParent);
     }
 
 
     private void getQueryHandlerWithRetry(
-            List<Map.Entry<RegionTypes, Function<String, String>>> regionsHierarchy,
+            List<Map.Entry<RegionTypes, Function<TupleContainer<String>, String>>> regionsHierarchy,
             RegionTypes regionType,
-            Optional<Value> parent
+            Optional<Value> parent,
+            Optional<Value> superParent
     ) {
         Retry retry = Retry.of(
                 "queryHandlerRetry",
@@ -403,7 +405,7 @@ public class KnowledgeGraphService {
                     retry,
                     () -> {
                         rateLimiter.acquire(); // assuming rateLimiter is defined elsewhere
-                        getQueryHandler(connection, regionsHierarchy, regionType, parent);
+                        getQueryHandler(connection, regionsHierarchy, regionType, parent, superParent);
                     }
             );
 
@@ -417,11 +419,16 @@ public class KnowledgeGraphService {
     }
 
     private TupleQueryResult reduceTurtleQueryCapacity(TupleQueryResult result, RegionTypes regionType) {
-        List<BindingSet> allResults = org.eclipse.rdf4j.query.QueryResults.asList(result);
+        List<BindingSet> allResults = QueryResults.asList(result);
 
-        if (regionType == RegionTypes.CONTINENT_REGION
-                || regionType == RegionTypes.COUNTRY
-                || regionType == RegionTypes.DISTRICT) {
+        if (!isTestRun) {
+            return new MutableTupleQueryResult(result.getBindingNames(), allResults);
+        }
+
+        if (
+//                regionType == RegionTypes.CONTINENT_REGION
+                regionType == RegionTypes.COUNTRY
+                        || regionType == RegionTypes.DISTRICT) {
             allResults = allResults.stream().limit(queryNumberLimit).toList();
         }
         return new MutableTupleQueryResult(result.getBindingNames(), allResults);
@@ -430,27 +437,30 @@ public class KnowledgeGraphService {
 
     private void getQueryHandler(
             RepositoryConnection connection,
-            List<Map.Entry<RegionTypes, Function<String, String>>> regionsHierarchy,
+            List<Map.Entry<RegionTypes, Function<TupleContainer<String>, String>>> regionsHierarchy,
             RegionTypes regionType,
-            Optional<Value> parent
+            Optional<Value> parent,
+            Optional<Value> superParent
     ) {
         var parentValue = parent.map(Value::stringValue).orElse(null);
-        String query = queries.get(regionType).apply(parentValue);
+        var superParentValue = superParent.map(Value::stringValue).orElse(null);
+        String query = queries.get(regionType).apply(new TupleContainer<>(parentValue, superParentValue));
         TupleQuery tupleQuery = connection.prepareTupleQuery(query);
         ExecutorService executorService = Executors.newFixedThreadPool(4);
 
         CompletableFuture<Void> future = CompletableFuture.runAsync(() -> {
             Timer.Sample sample = Timer.start();
-            try (TupleQueryResult result = tupleQuery.evaluate()) {
+            List<BindingSet> allResults = new ArrayList<>();
+            try (TupleQueryResult result = reduceTurtleQueryCapacity(tupleQuery.evaluate(), regionType)) {
                 if (regionType == RegionTypes.POI) {
                     return;
                 }
-                List<BindingSet> allResults = new ArrayList<>();
                 while (result.hasNext()) {
                     allResults.add(result.next());
                 }
 
-                Lists.partition(allResults, 50).parallelStream().forEach(batch -> {
+                Lists.partition(allResults, 50).parallelStream()
+                        .forEach(batch -> {
                     createRegionFromQueryResults(
                             connection,
                             batch,
@@ -471,7 +481,7 @@ public class KnowledgeGraphService {
         });
 
         try {
-            future.get(10, TimeUnit.MINUTES);
+            future.get(20, TimeUnit.MINUTES);
         } catch (Exception e) {
             logger.error("Query processing timed out or failed for region type: {}", regionType, e);
             throw new RuntimeException("Query processing failed", e);
@@ -482,46 +492,43 @@ public class KnowledgeGraphService {
     private void createRegionFromQueryResults(
             RepositoryConnection connection,
             List<BindingSet> results,
-            List<Map.Entry<RegionTypes, Function<String, String>>> regionsHierarchy,
+            List<Map.Entry<RegionTypes, Function<TupleContainer<String>, String>>> regionsHierarchy,
             String parent,
             RegionTypes regionType
     ) {
-        List<CompletableFuture<Void>> futures = new ArrayList<>();
-
         for (BindingSet result : results) {
-            CompletableFuture<Void> future = CompletableFuture.runAsync(() -> {
-                SimpleRegionDto region = new SimpleRegionDto();
-                IRI parentIri = parent != null ? factory.createIRI(parent) : null;
-                region.setSourceParent(parentIri);
-                region.setType(regionType);
-                Value entity = null;
+            SimpleRegionDto region = new SimpleRegionDto();
+            IRI parentIri = parent != null ? factory.createIRI(parent) : null;
+            region.setSourceParent(parentIri);
+            region.setType(regionType);
+            Value entity = null;
 
-                for (Binding binding : result) {
-                    if (entity == null) {
-                        entity = binding.getValue();
-                        region.setSource(factory.createIRI(entity.stringValue()));
-                    }
-                    processBinding(binding, region);
+            for (Binding binding : result) {
+                if (entity == null) {
+                    entity = binding.getValue();
+                    region.setSource(factory.createIRI(entity.stringValue()));
                 }
+                processBinding(binding, region);
+            }
 
-                // Create region
-                try {
+            // Create region
+            try {
+                if (regionService.getRegion(region.getId()).isEmpty()) {
                     regionService.createRegion(region, true);
-                } catch (Exception e) {
-                    logger.error("Failed to create region: {}", region.getId(), e);
+                    logger.info("Created region {}", region.getId());
+                } else {
+                    logger.warn("Region {} already exists", region.getId());
                 }
+            } catch (Exception e) {
+                logger.error("Failed to create region: {}", region.getId(), e);
+            }
 
-                // Process next hierarchy level if needed
-                Value finalEntity = entity;
-                if (shouldProcessNextHierarchyLevel(regionsHierarchy, finalEntity)) {
-                    processNextHierarchyLevel(connection, regionsHierarchy, finalEntity);
-                }
-            });
-
-            futures.add(future);
+            // Process next hierarchy level if needed
+            Value finalEntity = entity;
+            if (shouldProcessNextHierarchyLevel(regionsHierarchy, finalEntity)) {
+                processNextHierarchyLevel(connection, regionsHierarchy, finalEntity, parentIri);
+            }
         }
-
-        CompletableFuture.allOf(futures.toArray(new CompletableFuture[0])).join();
     }
 
     private void processBinding(Binding binding, SimpleRegionDto region) {
@@ -539,16 +546,18 @@ public class KnowledgeGraphService {
     }
 
     private boolean shouldProcessNextHierarchyLevel(
-            List<Map.Entry<RegionTypes, Function<String, String>>> regionsHierarchy,
+            List<Map.Entry<RegionTypes, Function<TupleContainer<String>, String>>> regionsHierarchy,
             Value entity) {
         return !regionsHierarchy.isEmpty() && entity != null;
     }
 
     private void processNextHierarchyLevel(
             RepositoryConnection connection,
-            List<Map.Entry<RegionTypes, Function<String, String>>> regionsHierarchy,
-            Value entity) {
-        List<Map.Entry<RegionTypes, Function<String, String>>> remainingRegions =
+            List<Map.Entry<RegionTypes, Function<TupleContainer<String>, String>>> regionsHierarchy,
+            Value entity,
+            Value superParent
+    ) {
+        List<Map.Entry<RegionTypes, Function<TupleContainer<String>, String>>> remainingRegions =
                 regionsHierarchy.subList(1, regionsHierarchy.size());
 
         if (!remainingRegions.isEmpty()) {
@@ -557,7 +566,8 @@ public class KnowledgeGraphService {
                     connection,
                     remainingRegions,
                     nextRegionType,
-                    Optional.of(entity)
+                    Optional.of(entity),
+                    Optional.ofNullable(superParent)
             );
         }
     }
@@ -581,7 +591,18 @@ public class KnowledgeGraphService {
 //                .filter(Objects::nonNull)
 //                .map(regionService::createPOI).toList();
 
-        List<IRI> iris = regionService.createPOIs(pois);
+        List<POIClass> nonPresentPois = pois.stream()
+                .filter(poi -> {
+                    try {
+                        synchronized (rdf4JTemplate) {
+                            return regionService.getPOI(poi.getId()).isEmpty();
+                        }
+                    } catch (Exception e) {
+                        logger.warn("Failed to get region for POI {}", poi.getId(), e);
+                        return false;
+                    }
+                }).toList();
+        List<IRI> iris = regionService.createPOIs(nonPresentPois);
         logger.info("Created {} POIs in RDF", iris.size());
     }
 
@@ -609,7 +630,9 @@ public class KnowledgeGraphService {
 
                 CompletableFuture<Void> future = CompletableFuture.runAsync(() -> {
                     try {
-                        processBatch(currentBatch);
+                        try (RepositoryConnection connection = repository.getConnection()) {
+                            processBatch(currentBatch, connection);
+                        }
                     } catch (Exception e) {
                         logger.error("Error processing batch starting at index {} and ending at index {}", start, end, e);
                     }
@@ -640,12 +663,11 @@ public class KnowledgeGraphService {
     }
 
 
-    private void processBatch(List<Pair<IRI, IRI>> currentBatch) {
+    private void processBatch(List<Pair<IRI, IRI>> currentBatch, RepositoryConnection connection) {
         if (currentBatch.isEmpty()) {
             return;
         }
 
-        RepositoryConnection connection = repository.getConnection();
         try {
             List<String> districtUrisForQuery = currentBatch
                     .stream()
@@ -683,6 +705,8 @@ public class KnowledgeGraphService {
                                 wikidataPoisForQuery.size(), districtUrisForQuery.getFirst(), exception);
                     }
                 }
+            } else {
+                logger.info("No POIS found in wikidata disticts {}", currentBatch);
             }
 
             // ACO optimization step
@@ -718,13 +742,6 @@ public class KnowledgeGraphService {
             }
         } catch (Exception exception) {
             logger.error("Failed to process batch of POIs", exception);
-        } finally {
-            connection.close();
-            try {
-                Thread.sleep(100);
-            } catch (InterruptedException e) {
-                throw new RuntimeException(e);
-            }
         }
     }
 
@@ -852,23 +869,24 @@ public class KnowledgeGraphService {
         logger.info("Starting to fetch top maps for region type: {}", type);
 
         // get continents
-        List<RegionDto> topRegions = regionDao.listAllByType(type);
+        List<RegionDto> topRegions = regionDao.listAllByType(type).stream()
+                .distinct()
+                .toList();;
         logger.debug("Found {} regions of type {}", topRegions.size(), type);
 
         for (RegionDto region : topRegions) {
             logger.debug("Processing region: {}", region.id());
 
-            if (fetchMapFromWikimedia(type, region)) {
-                logger.debug("Successfully fetched map from Wikimedia for region: {}", region.id());
-                continue;
-            }
-
-            logger.debug("Wikimedia fetch failed, trying alternative approach for region: {}", region.id());
+//            if (fetchMapFromWikimedia(type, region)) {
+//                logger.debug("Successfully fetched map from Wikimedia for region: {}", region.id());
+//                continue;
+//            }
+//            logger.debug("Wikimedia fetch failed, trying alternative approach for region: {}", region.id());
 
             List<RegionDto> countries = regionDao
                     .listAllCountriesForRegion(region.id())
                     .stream()
-                    .map(countryIRI -> regionDao.getById(countryIRI))
+                    .map(countryIRI -> regionDao.getByIdSafe(countryIRI))
                     .toList();
 
             logger.debug("Found {} countries for region {}", countries.size(), region.id());
@@ -896,7 +914,11 @@ public class KnowledgeGraphService {
     private void fetchBottomMaps(RegionTypes type) {
         logger.info("Starting to fetch bottom maps for region type: {}", type);
 
-        List<RegionDto> bottomRegions = regionDao.listAllByType(type);
+        List<RegionDto> bottomRegions = regionDao
+                .listAllByType(type)
+                .stream()
+                .distinct()
+                .toList();
         logger.debug("Found {} regions of type {}", bottomRegions.size(), type);
 
         for (RegionDto region : bottomRegions) {
@@ -916,7 +938,7 @@ public class KnowledgeGraphService {
                 logger.info("Successfully saved country map for {}", region.getId());
             } else {
                 logger.debug("Processing as sub-region, fetching parent region for {}", region.getId());
-                RegionDto parentRegion = regionDao.getById(region.getParentRegion());
+                RegionDto parentRegion = regionDao.getByIdSafe(region.getParentRegion());
 
                 if (parentRegion == null) {
                     logger.warn("Parent region not found for {}", region.getId());
@@ -958,7 +980,7 @@ public class KnowledgeGraphService {
 
     public void fetchAllMaps() {
         fetchTopMaps(RegionTypes.CONTINENT);
-        fetchTopMaps(RegionTypes.CONTINENT_REGION);
+//        fetchTopMaps(RegionTypes.CONTINENT_REGION);
         fetchBottomMaps(RegionTypes.COUNTRY);
         fetchBottomMaps(RegionTypes.DISTRICT);
     }
@@ -974,7 +996,9 @@ public class KnowledgeGraphService {
             self.getQueryHandlerCached(
                     queries.entrySet().stream().toList(),
                     RegionTypes.WORLD,
-                    Optional.empty());
+                    Optional.empty(),
+                    Optional.empty()
+            );
             logger.info("Repository already has all the regions");
         });
 

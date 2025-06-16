@@ -14,7 +14,9 @@ import org.eclipse.rdf4j.model.IRI;
 import java.time.LocalDate;
 import java.time.ZoneId;
 import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
 import java.util.Date;
+import java.util.List;
 import java.util.Optional;
 
 public class UserActivityService {
@@ -81,7 +83,8 @@ public class UserActivityService {
             }
             // update user influence according to the formula
             // P_updated = min(1, \beta x P_user + (1 - \beta) \times P_score
-            double newInfluenceScore = Math.min(1, UserInfluenceMigration.BETA * historyDto.getScore() + (1 - UserInfluenceMigration.BETA) * userInfluenceDto.get().getInitialScore());
+            double newInfluenceScore = Math.min(5, UserInfluenceMigration.BETA * historyDto.getScore() + (1 - UserInfluenceMigration.BETA) * userInfluenceDto.get()
+                    .getScores().getFirst());
 
             /**
              * update user confidence according to formula
@@ -91,16 +94,33 @@ public class UserActivityService {
                     regionId,
                     historyDto.getFromDate(),
                     historyDto.getToDate(),
-                    historyDto.getScore()) * UserInfluenceMigration.BETA + (1 - UserInfluenceMigration.BETA) * userInfluenceDto.get().getInitialConfidence();
+                    historyDto.getScore()) * UserInfluenceMigration.BETA + (1 - UserInfluenceMigration.BETA) * userInfluenceDto.get().getConfidences().getLast();
 
-            userInfluenceId = userHistoryDao.updateInfluence(userInfluenceDto.get().getId(), regionId, user.id(), newInfluenceScore, newConfidence);
+
+            userInfluenceDto.get().getConfidences().add(newConfidence);
+            userInfluenceDto.get().getScores().add(newInfluenceScore);
+            userInfluenceId = userHistoryDao.updateInfluence(userInfluenceDto.get());
         } else {
             double newInfluenceScore = historyDto.getScore();
             double newConfidence = calculateConfidence(regionId,
                     historyDto.getFromDate(),
                     historyDto.getToDate(),
                     historyDto.getScore());
-            userInfluenceId = userHistoryDao.createInfluence(user.id(), regionId, newInfluenceScore, newConfidence);
+
+            List<Double> influencesArrayScores = new ArrayList<>();
+            influencesArrayScores.add(newInfluenceScore);
+
+            List<Double> influencesArrayConfidences = new ArrayList<>();
+            influencesArrayConfidences.add(newConfidence);
+
+            UserInfluenceDto influenceDto = new UserInfluenceDto(
+                null,
+                regionId,
+                user.id(),
+                influencesArrayScores,
+                influencesArrayConfidences
+            );
+            userInfluenceId = userHistoryDao.createInfluence(influenceDto);
         }
 
         UserHistoryDto userHistoryDto = new UserHistoryDto(
@@ -114,5 +134,22 @@ public class UserActivityService {
         );
 
         return userHistoryDao.save(userHistoryDto);
+    }
+
+
+    private void propagateInfluencesUp(UserInfluenceDto influenceDto) {
+        Optional<RegionDto> regionDto = regionService.getRegion(influenceDto.getRegion());
+        Optional<POIDto> poiDto = regionService.getPOI(influenceDto.getRegion());
+
+        if (regionDto.isEmpty() && poiDto.isEmpty()) {
+            throw new RuntimeException("RegionLike for string"  + influenceDto.getRegion() + " should be either region or " +
+                    "poi. But not found");
+        }
+
+        // strategy for the region -> find its :level, propagate influences up and down
+        if (regionDto.isPresent()) {
+            var levelsUp = regionDto.get().getType().getTop();
+//            var regionsOnTop = regionService.getFromREgion
+        }
     }
 }

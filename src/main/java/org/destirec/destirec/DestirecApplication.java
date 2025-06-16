@@ -1,5 +1,6 @@
 package org.destirec.destirec;
 
+import io.github.cdimascio.dotenv.Dotenv;
 import org.destirec.destirec.rdf4j.knowledgeGraph.KnowledgeGraphService;
 import org.destirec.destirec.rdf4j.ontology.DestiRecOntology;
 import org.destirec.destirec.rdf4j.services.MigrationsService;
@@ -17,6 +18,9 @@ import org.springframework.context.annotation.Bean;
 public class DestirecApplication {
     protected Logger logger = LoggerFactory.getLogger(getClass());
     public static void main(String[] args) {
+        Dotenv dotenv = Dotenv.load();
+        System.setProperty("RDF_DATABASE_URL", dotenv.get("RDF_DATABASE_URL"));
+        System.setProperty("REDIRECT_FRONTEND", dotenv.get("REDIRECT_FRONTEND"));
         SpringApplication.run(DestirecApplication.class, args);
     }
 
@@ -62,7 +66,6 @@ public class DestirecApplication {
             logger.info("Updating kg ontologies with the new pois");
             knowledgeGraphService.updateKGOntologies();
 //            ontology.triggerInference();
-
             logger.info("Setup has been finished");
         };
     }

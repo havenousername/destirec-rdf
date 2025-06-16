@@ -58,7 +58,7 @@ public class ACOHyperparameters {
                 0.5,
                 1.0,
                 40,
-                30
+                40
         );
     }
 }

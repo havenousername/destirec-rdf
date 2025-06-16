@@ -6,7 +6,6 @@ import org.destirec.destirec.rdf4j.interfaces.IriMigrationInstance;
 import org.eclipse.rdf4j.model.BNode;
 import org.eclipse.rdf4j.model.vocabulary.OWL;
 import org.eclipse.rdf4j.model.vocabulary.RDF;
-import org.eclipse.rdf4j.model.vocabulary.RDFS;
 import org.eclipse.rdf4j.spring.support.RDF4JTemplate;
 import org.springframework.stereotype.Component;
 
@@ -34,27 +33,27 @@ public class TopOntologyMigration extends IriMigration {
     private void setupClasses() {
         objectClass = new IriMigrationInstance(rdf4jMethods, OBJECT.str(), (instance) -> {
             instance.builder()
-                    .add(instance.predicate(), RDFS.SUBCLASSOF, OWL.CLASS);
+                    .add(instance.predicate(), RDF.TYPE, OWL.CLASS);
         });
 
         conceptClass = new IriMigrationInstance(rdf4jMethods, CONCEPT.str(), (instance) -> {
             instance.builder()
-                    .add(instance.predicate(), RDFS.SUBCLASSOF, OWL.CLASS);
+                    .add(instance.predicate(), RDF.TYPE, OWL.CLASS);
         });
 
         actorClass = new IriMigrationInstance(rdf4jMethods, ACTOR.str(), (instance) -> {
             instance.builder()
-                    .add(instance.predicate(), RDFS.SUBCLASSOF, OWL.CLASS);
+                    .add(instance.predicate(), RDF.TYPE, OWL.CLASS);
         });
 
         eventClass = new IriMigrationInstance(rdf4jMethods, EVENT.str(), (instance) -> {
             instance.builder()
-                    .add(instance.predicate(), RDFS.SUBCLASSOF, OWL.CLASS);
+                    .add(instance.predicate(), RDF.TYPE, OWL.CLASS);
         });
 
         configClass = new IriMigrationInstance(rdf4jMethods, CONFIG.str(), (instance) -> {
             instance.builder()
-                    .add(instance.predicate(), RDFS.SUBCLASSOF, OWL.CLASS);
+                    .add(instance.predicate(), RDF.TYPE, OWL.CLASS);
         });
     }
 

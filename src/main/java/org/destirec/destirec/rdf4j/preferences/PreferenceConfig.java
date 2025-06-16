@@ -7,6 +7,7 @@ import org.destirec.destirec.rdf4j.interfaces.GenericConfig;
 import org.destirec.destirec.utils.ValueContainer;
 import org.destirec.destirec.utils.rdfDictionary.AttributeNames;
 import org.destirec.destirec.utils.rdfDictionary.PreferenceNames;
+import org.destirec.destirec.utils.rdfDictionary.RegionFeatureNames;
 import org.eclipse.rdf4j.model.IRI;
 import org.eclipse.rdf4j.model.base.CoreDatatype;
 import org.eclipse.rdf4j.sparqlbuilder.core.SparqlBuilder;
@@ -70,7 +71,7 @@ public class PreferenceConfig extends GenericConfig<PreferenceConfig.Fields> {
         }
         if (field == Fields.HAS_FEATURE) {
             return new ValueContainer<>(IntStream
-                    .rangeClosed(0, 9)
+                    .rangeClosed(0, RegionFeatureNames.Individuals.RegionFeature.values().length - 1)
                     .mapToObj(i -> SparqlBuilder.var(field.name() + i))
                     .collect(Collectors.toList())
             );
