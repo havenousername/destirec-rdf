@@ -17,9 +17,7 @@ import org.eclipse.rdf4j.spring.support.RDF4JTemplate;
 import org.semanticweb.owlapi.model.*;
 import org.semanticweb.owlapi.vocab.OWL2Datatype;
 
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 
 public class QualityOntology {
     private final OWLDataFactory factory;
@@ -32,6 +30,12 @@ public class QualityOntology {
     private final RDF4JTemplate template;
 
     private final SimpleValueFactory valueFactory;
+
+    private static final Map<String, OWLObjectProperty> hasFQualitiesProps = new HashMap<>();
+    private static final Map<String, OWLNamedIndividual> qualityInd = new HashMap<>();
+    private static final Map<String, OWLNamedIndividual> featureSubjects = new HashMap<>();
+    private static final Set<String> addedPropertyChains = new HashSet<>();
+    private static final Set<String> addedProperties = new HashSet<>();
 
 
     public QualityOntology(AppOntology ontology, OWLDataFactory factory, RDF4JTemplate template) {
@@ -84,6 +88,13 @@ public class QualityOntology {
         defineRegionsQualities(regions, OntologyFeature.GENERAL.toString());
     }
 
+
+    private String createFeatureQuality(FeatureDto featureDto) {
+        return "has"
+                + StringUtils.capitalize(featureDto.getRegionFeature().name())
+                + "Quality";
+    }
+
     public void definePreferenceQualities(PreferenceDto preferenceDto, String ontologyFeature) {
         var features = preferenceDto.getFeatureDtos();
         OWLNamedIndividual regionInd = factory.getOWLNamedIndividual(preferenceDto.id().stringValue());
@@ -98,9 +109,7 @@ public class QualityOntology {
                 int upper = qualityEnum.getUpper();
 
                 if (score >= lower && score < upper) {
-                    String featureQuality = "has"
-                            + StringUtils.capitalize(feature.getRegionFeature().name())
-                            + "Quality";
+                    String featureQuality = createFeatureQuality(feature);
 
                     OWLObjectProperty hasFQuality = factory.getOWLObjectProperty(DESTIREC.wrap(featureQuality).owlIri());
 
@@ -128,34 +137,7 @@ public class QualityOntology {
             FeatureDto featureDto = poiDto.getFeature();
             int score = featureDto.getHasScore();
             OWLIndividual featureInd = factory.getOWLNamedIndividual(featureDto.id().stringValue());
-            for (QualityNames.Individuals.Quality qualityEnum : QualityNames.Individuals.Quality.values()) {
-                OWLNamedIndividual qualityInd = factory.getOWLNamedIndividual(qualityEnum.iri().owlIri());
-
-                int lower = qualityEnum.getLower();
-                int upper = qualityEnum.getUpper();
-
-                if (score >= lower && score < upper) {
-                    String featureQuality = "has"
-                            + StringUtils.capitalize(featureDto.getRegionFeature().name())
-                            + "Quality";
-
-                    OWLObjectProperty hasFQuality = factory.getOWLObjectProperty(DESTIREC.wrap(featureQuality).owlIri());
-                    // sfDirectlyWithin \ \circ  has{F}Quality  \sqsubseteq has{F}Quality - for the inference
-                    // on the parent level
-                    OWLSubPropertyChainOfAxiom propertyChainAxiom = factory
-                            .getOWLSubPropertyChainOfAxiom(List.of(sfDirectlyContains, hasFQuality), hasFQuality);
-
-                    ontology.addAxiom(factory.getOWLObjectPropertyAssertionAxiom(hasFQuality, poiInd, qualityInd), ontologyFeature);
-
-                    // hasFQuality \sqsubseteq hasQuality
-                    ontology.addAxiom(factory.getOWLSubObjectPropertyOfAxiom(hasFQuality, hasQuality), ontologyFeature);
-                    ontology.addAxiom(propertyChainAxiom, ontologyFeature);
-
-                    OWLIndividual subject = factory.getOWLNamedIndividual(DESTIREC.wrap(featureQuality).pseudoUri());
-                    // hasFQuality :forFeature :Feature
-                    ontology.addAxiom(factory.getOWLObjectPropertyAssertionAxiom(forFeature, subject, featureInd), ontologyFeature);
-                }
-            }
+            defineIndividualQualities(ontologyFeature, sfDirectlyContains, forFeature, poiInd, featureDto, score, featureInd);
         }
     }
 
@@ -174,37 +156,52 @@ public class QualityOntology {
                 for (var feature : features) {
                     int score = feature.getHasScore();
                     OWLIndividual featureInd = factory.getOWLNamedIndividual(feature.getId().stringValue());
-                    for (QualityNames.Individuals.Quality qualityEnum : QualityNames.Individuals.Quality.values()) {
-                        OWLNamedIndividual qualityInd = factory.getOWLNamedIndividual(qualityEnum.iri().owlIri());
-
-                        int lower = qualityEnum.getLower();
-                        int upper = qualityEnum.getUpper();
-
-                        if (score >= lower && score < upper) {
-                            String featureQuality = "has"
-                                    + StringUtils.capitalize(feature.getRegionFeature().name())
-                                    + "Quality";
-
-                            OWLObjectProperty hasFQuality = factory.getOWLObjectProperty(DESTIREC.wrap(featureQuality).owlIri());
-                            // sfDirectlyWithin \ \circ  has{F}Quality  \sqsubseteq has{F}Quality - for the inference
-                            // on the parent level
-                            OWLSubPropertyChainOfAxiom propertyChainAxiom = factory
-                                    .getOWLSubPropertyChainOfAxiom(List.of(sfDirectlyContains, hasFQuality), hasFQuality);
-
-                            ontology.addAxiom(factory.getOWLObjectPropertyAssertionAxiom(hasFQuality, regionInd, qualityInd), ontologyFeature);
-
-                            // hasFQuality \sqsubseteq hasQuality
-                            ontology.addAxiom(factory.getOWLSubObjectPropertyOfAxiom(hasFQuality, hasQuality), ontologyFeature);
-                            ontology.addAxiom(propertyChainAxiom, ontologyFeature);
-
-                            OWLIndividual subject = factory.getOWLNamedIndividual(DESTIREC.wrap(featureQuality).pseudoUri());
-                            // hasFQuality :forFeature :Feature
-                            ontology.addAxiom(factory.getOWLObjectPropertyAssertionAxiom(forFeature, subject, featureInd), ontologyFeature);
-                        }
-                    }
+                    defineIndividualQualities(ontologyFeature, sfDirectlyContains, forFeature, regionInd, feature, score, featureInd);
                 }
             } else {
                 ontology.removeDatabaseAxioms(region.id().stringValue(), region.id());
+            }
+        }
+    }
+
+    private void defineIndividualQualities(
+            String ontologyFeature,
+            OWLObjectProperty sfDirectlyContains,
+            OWLObjectProperty forFeature,
+            OWLNamedIndividual poiInd,
+            FeatureDto featureDto,
+            int score, OWLIndividual featureInd) {
+        String featureQuality = createFeatureQuality(featureDto);
+        OWLObjectProperty hasFQuality = hasFQualitiesProps.computeIfAbsent(featureQuality, fq -> factory.getOWLObjectProperty(DESTIREC.wrap(fq).owlIri()));
+
+        for (QualityNames.Individuals.Quality qualityEnum : QualityNames.Individuals.Quality.values()) {
+            OWLNamedIndividual qualityIndividual = qualityInd.computeIfAbsent(qualityEnum.getName(), (_) -> factory.getOWLNamedIndividual(qualityEnum.iri().owlIri()));
+
+            int lower = qualityEnum.getLower();
+            int upper = qualityEnum.getUpper();
+
+            if (score >= lower && score < upper) {
+                assert qualityIndividual != null;
+                ontology.addAxiom(factory.getOWLObjectPropertyAssertionAxiom(hasFQuality, poiInd, qualityIndividual), ontologyFeature);
+
+                // hasFQuality ⊑ hasQuality (once
+                if (addedProperties.add(featureQuality)) {
+                    ontology.addAxiom(
+                            factory.getOWLSubObjectPropertyOfAxiom(hasFQuality, hasQuality), ontologyFeature
+                    );
+                }
+
+                // sfDirectlyContains o hasFQuality ⊑ hasFQuality (once)
+                if (addedPropertyChains.add(featureQuality)) {
+                    OWLSubPropertyChainOfAxiom propertyChainAxiom = factory
+                            .getOWLSubPropertyChainOfAxiom(List.of(sfDirectlyContains, hasFQuality), hasFQuality);
+                    ontology.addAxiom(propertyChainAxiom, ontologyFeature);
+                }
+
+                // reuse or create subject
+                OWLIndividual subject = featureSubjects.computeIfAbsent(featureQuality, fq -> factory.getOWLNamedIndividual(DESTIREC.wrap(fq).pseudoUri()));
+                // hasFQuality :forFeature :Feature
+                ontology.addAxiom(factory.getOWLObjectPropertyAssertionAxiom(forFeature, subject, featureInd), ontologyFeature);
             }
         }
     }
