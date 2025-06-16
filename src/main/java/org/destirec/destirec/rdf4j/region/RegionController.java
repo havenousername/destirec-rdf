@@ -130,7 +130,7 @@ public class RegionController {
         return ResponseEntity.ok(List.of(
                 RegionTypes.WORLD.getName(),
                 RegionTypes.CONTINENT.getName(),
-                RegionTypes.CONTINENT_REGION.getName(),
+//                RegionTypes.CONTINENT_REGION.getName(),
                 RegionTypes.COUNTRY.getName(),
                 RegionTypes.DISTRICT.getName()
         ));

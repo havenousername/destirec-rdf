@@ -2,6 +2,7 @@ package org.destirec.destirec.rdf4j.region;
 
 import lombok.Getter;
 import org.destirec.destirec.rdf4j.interfaces.GenericDao;
+import org.destirec.destirec.rdf4j.interfaces.Rdf4jTemplate;
 import org.destirec.destirec.rdf4j.interfaces.daoVisitors.QueryStringVisitor;
 import org.destirec.destirec.rdf4j.months.MonthDao;
 import org.destirec.destirec.rdf4j.ontology.DestiRecOntology;
@@ -57,6 +58,7 @@ public class RegionDao extends GenericDao<RegionConfig.Fields, RegionDto> {
     private final FeatureDao featureDao;
     private final MonthDao monthDao;
     private final POIDao pOIDao;
+    private final Rdf4jTemplate rdf4jTemplate;
     protected Logger logger = LoggerFactory.getLogger(getClass());
 
     public RegionDao(
@@ -68,12 +70,13 @@ public class RegionDao extends GenericDao<RegionConfig.Fields, RegionDto> {
             FeatureDao featureDao,
             MonthDao monthDao,
             DestiRecOntology ontology,
-            POIDao pOIDao) {
+            POIDao pOIDao, Rdf4jTemplate rdf4jTemplate) {
         super(rdf4JTemplate, configFields, migration, dtoCreator, ontology);
         this.costDao = costDao;
         this.featureDao = featureDao;
         this.monthDao = monthDao;
         this.pOIDao = pOIDao;
+        this.rdf4jTemplate = rdf4jTemplate;
     }
 
 
@@ -149,14 +152,15 @@ public class RegionDao extends GenericDao<RegionConfig.Fields, RegionDto> {
     }
 
     public void signalChildrenCompletion(IRI id) {
-        getRdf4JTemplate().consumeConnection(connection -> {
-            TriplePattern isComplete = GraphPatterns.tp(id, IS_COMPLETE.rdfIri(), Rdf.literalOf(true));
-
-            connection.begin();
-            ModifyQuery insertQuery = Queries.INSERT(isComplete);
-            connection.prepareUpdate(insertQuery.getQueryString()).execute();
-            connection.commit();
-        });
+        synchronized (rdf4jTemplate) {
+            getRdf4JTemplate().consumeConnection(connection -> {
+                TriplePattern isComplete = GraphPatterns.tp(id, IS_COMPLETE.rdfIri(), Rdf.literalOf(true));
+                connection.begin();
+                ModifyQuery insertQuery = Queries.INSERT(isComplete);
+                connection.prepareUpdate(insertQuery.getQueryString()).execute();
+                connection.commit();
+            });
+        }
     }
 
     public boolean isRegionComplete(IRI id) {
@@ -379,9 +383,10 @@ public class RegionDao extends GenericDao<RegionConfig.Fields, RegionDto> {
     }
 
     public List<RegionDto> listAllByType(RegionTypes regionType, int page, int pageSize) {
+        String query = getListAllByType(migration.getResource(), regionType, page, pageSize);
         return this.getRdf4JTemplate()
                 .tupleQuery(getClass(), "KEY_LIST_ALL_BY_TYPE", () ->
-                        getListAllByType(migration.getResource(), regionType, page, pageSize))
+                        query)
                 .evaluateAndConvert()
                 .toList(this::mapSolution, this::postProcessMappedSolution);
     }
@@ -438,7 +443,7 @@ public class RegionDao extends GenericDao<RegionConfig.Fields, RegionDto> {
         var queryParams = getSelectParams(graph);
         var whereParams = new ArrayList<>(List.of(queryParams.getValue1()));
         whereParams.add(GraphPatterns.tp(configFields.getId(), RegionNames.Properties.HAS_LEVEL.rdfIri(), regionType.iri().rdfIri()));
-        return Queries.SELECT(queryParams.getValue0()
+        var query = Queries.SELECT(queryParams.getValue0()
                         .stream()
                         .map(Map.Entry::getValue)
                         .toArray(Projectable[]::new))
@@ -446,6 +451,7 @@ public class RegionDao extends GenericDao<RegionConfig.Fields, RegionDto> {
                 .where(whereParams.toArray(GraphPattern[]::new))
                 .groupBy(queryParams.getValue2())
                 .getQueryString();
+        return query;
     }
 
 

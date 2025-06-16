@@ -70,7 +70,7 @@ public final class RegionNames {
         public enum RegionTypes {
             WORLD("World"),
             CONTINENT("Continent"),
-            CONTINENT_REGION("ContinentRegion"),
+//            CONTINENT_REGION("ContinentRegion"),
             COUNTRY("Country"),
             DISTRICT("District"),
             POI("POI");
