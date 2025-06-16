@@ -9,7 +9,10 @@ import org.destirec.destirec.rdf4j.vocabulary.DBPEDIA;
 import org.destirec.destirec.utils.rdfDictionary.AttributeNames;
 import org.destirec.destirec.utils.rdfDictionary.RegionFeatureNames;
 import org.destirec.destirec.utils.rdfDictionary.TopOntologyNames;
-import org.eclipse.rdf4j.model.vocabulary.*;
+import org.eclipse.rdf4j.model.vocabulary.OWL;
+import org.eclipse.rdf4j.model.vocabulary.RDF;
+import org.eclipse.rdf4j.model.vocabulary.RDFS;
+import org.eclipse.rdf4j.model.vocabulary.SKOS;
 import org.eclipse.rdf4j.spring.support.RDF4JTemplate;
 import org.semanticweb.owlapi.model.*;
 import org.springframework.stereotype.Component;
@@ -43,9 +46,9 @@ public class FeatureMigration extends IriMigration implements OntologyDefiner {
     @Override
     protected void setupProperties() {
         builder
-                .add(get(), RDF.TYPE, OWL.DATATYPEPROPERTY)
-                .add(get(), RDFS.SUBCLASSOF, TopOntologyNames.Classes.CONCEPT.rdfIri())
-                .add(get(), SKOS.RELATED_MATCH, DBPEDIA.INTEREST);
+                .add(get(), RDF.TYPE, OWL.CLASS)
+                .add(get(), SKOS.RELATED_MATCH, DBPEDIA.INTEREST)
+                .add(get(), RDFS.SUBCLASSOF, TopOntologyNames.Classes.CONCEPT.rdfIri());
     }
 
     @Override
